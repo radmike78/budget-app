@@ -35,19 +35,32 @@ const variantStyles: Record<Variant, TextStyle> = {
 
 export function Text({ variant = 'body', color, style, ...rest }: TextProps & { variant?: Variant; color?: string }) {
   const { colors } = useTheme();
+  const scale = useTypeScale();
   const defaultColor = variant === 'muted' || variant === 'small' || variant === 'label' ? colors.muted : colors.text;
-  return <RNText {...rest} style={[variantStyles[variant], { color: color ?? defaultColor }, style]} />;
+  return <RNText {...rest} style={[scaleText(variantStyles[variant], scale), { color: color ?? defaultColor }, style]} />;
 }
 
 // ---------- Layout ----------
 
 /** Widest a column of cards should get: on tablets the content is centred at this width. */
-export const CONTENT_MAX_WIDTH = 720;
+export const CONTENT_MAX_WIDTH = 960;
 
 /** True on tablets and desktop-sized windows, where a sheet should not span the whole width. */
 export function useIsWide(): boolean {
   const { width } = useWindowDimensions();
   return width >= 700;
+}
+
+/** Type is set a step larger on tablets so the wider column does not read as small print. */
+export const TABLET_TYPE_SCALE = 1.15;
+
+export function useTypeScale(): number {
+  return useIsWide() ? TABLET_TYPE_SCALE : 1;
+}
+
+function scaleText(base: TextStyle, scale: number): TextStyle {
+  if (scale === 1) return base;
+  return { ...base, fontSize: base.fontSize ? base.fontSize * scale : undefined, lineHeight: base.lineHeight ? base.lineHeight * scale : undefined };
 }
 
 export function Screen({ children, scroll = true, padded = true, style, contentStyle, keyboard }: {
@@ -120,6 +133,7 @@ export function Button({ title, tone = 'primary', loading, disabled, style, smal
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
+  const scale = useTypeScale();
   const bg = tone === 'primary' ? colors.accent : tone === 'secondary' ? colors.accentSoft : tone === 'danger' ? colors.dangerSoft : 'transparent';
   const fg = tone === 'primary' ? colors.onAccent : tone === 'danger' ? colors.danger : colors.accent;
   return (
@@ -137,7 +151,7 @@ export function Button({ title, tone = 'primary', loading, disabled, style, smal
       {loading ? <ActivityIndicator color={fg} /> : (
         <Row gap={6}>
           {icon}
-          <RNText style={[styles.buttonText, small && { fontSize: 14 }, { color: fg }]}>{title}</RNText>
+          <RNText style={[styles.buttonText, { fontSize: (small ? 14 : 16) * scale, color: fg }]}>{title}</RNText>
         </Row>
       )}
     </Pressable>
@@ -146,24 +160,26 @@ export function Button({ title, tone = 'primary', loading, disabled, style, smal
 
 export function Chip({ label, selected, onPress, tone = 'default', style }: { label: string; selected?: boolean; onPress?: () => void; tone?: 'default' | 'danger'; style?: StyleProp<ViewStyle> }) {
   const { colors } = useTheme();
+  const scale = useTypeScale();
   const bg = selected ? (tone === 'danger' ? colors.dangerSoft : colors.accent) : colors.cardAlt;
   const fg = selected ? (tone === 'danger' ? colors.danger : colors.onAccent) : colors.text;
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected: !!selected }} onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
-      <RNText style={{ color: fg, fontSize: 14, fontWeight: selected ? '600' : '500' }}>{label}</RNText>
+      <RNText style={{ color: fg, fontSize: 14 * scale, fontWeight: selected ? '600' : '500' }}>{label}</RNText>
     </Pressable>
   );
 }
 
 export function Segmented<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   const { colors } = useTheme();
+  const scale = useTypeScale();
   return (
     <View style={[styles.segmented, { backgroundColor: colors.cardAlt }]}>
       {options.map((o) => {
         const active = o.value === value;
         return (
           <Pressable key={o.value} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 }]}>
-            <RNText style={{ color: active ? colors.text : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 }}>{o.label}</RNText>
+            <RNText style={{ color: active ? colors.text : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale }}>{o.label}</RNText>
           </Pressable>
         );
       })}
@@ -175,13 +191,14 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
 
 export function Field({ label, hint, style, inputStyle, ...rest }: TextInputProps & { label?: string; hint?: string; style?: StyleProp<ViewStyle>; inputStyle?: StyleProp<TextStyle> }) {
   const { colors } = useTheme();
+  const scale = useTypeScale();
   return (
     <View style={[{ marginBottom: spacing.lg }, style]}>
       {label ? <Text variant="label" style={{ marginBottom: 6 }}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={colors.faint}
         {...rest}
-        style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }, inputStyle]}
+        style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, fontSize: 17 * scale }, inputStyle]}
       />
       {hint ? <Text variant="small" style={{ marginTop: 6 }}>{hint}</Text> : null}
     </View>
