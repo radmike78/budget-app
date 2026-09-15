@@ -15,7 +15,7 @@ export function Sheet({ visible, onClose, title, children, tall }: { visible: bo
   // On tablets a sheet spanning the whole width reads badly; keep it a phone-sized column, centred.
   const wide = width >= 700;
   // Absolute positioning ignores alignSelf, so the side offsets do the centring.
-  const side = Math.max(0, Math.round((width - 640) / 2));
+  const side = Math.max(0, Math.round((width - 760) / 2));
   const widthStyle = wide ? { left: side, right: side, marginBottom: spacing.xl, borderBottomLeftRadius: radius.lg + 6, borderBottomRightRadius: radius.lg + 6 } : null;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

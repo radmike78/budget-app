@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { radius, spacing, useTheme } from '@/theme';
 import { useVoiceInput } from '@/lib/speech';
 import { useT } from '@/i18n';
-import { Text } from './ui';
+import { Text, useTypeScale } from './ui';
 
 /**
  * The single prominent input: a text field and a big mic button.
@@ -14,6 +14,7 @@ import { Text } from './ui';
  */
 export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: string) => void; busy?: boolean; autoFocus?: boolean }) {
   const { colors } = useTheme();
+  const scale = useTypeScale();
   const t = useT();
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
@@ -59,7 +60,7 @@ export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: strin
           placeholderTextColor={colors.faint}
           accessibilityLabel={t.entryText}
           maxLength={MAX_ENTRY_LENGTH}
-          style={[styles.input, { color: colors.text }]}
+          style={[styles.input, { color: colors.text, fontSize: 18 * scale }]}
         />
         {text.trim().length > 0 && !voice.listening ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t.addEntry} onPress={send} style={[styles.sendBtn, { backgroundColor: colors.accentSoft }]}>
