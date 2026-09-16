@@ -8,7 +8,7 @@ import { friendlyDate, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
 import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useT } from '@/i18n';
-import { confirmDialog } from '@/lib/dialogs';
+import { confirmDialog, notify } from '@/lib/dialogs';
 import { CategoryPicker, DatePicker } from '@/components/pickers';
 import { Button, Chip, Field, Row, Screen, Segmented, Text } from '@/components/ui';
 
@@ -30,7 +30,9 @@ export default function RecurringEditor() {
 
   const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
   const [type, setType] = useState<TxType>(existing?.type ?? 'expense');
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? 'rent');
+  // 'rent' when it still exists, otherwise the first expense category the user has kept.
+  const defaultCategoryId = (categories.find((c) => c.id === 'rent' && c.kind === 'expense' && !c.archived) ?? categories.find((c) => c.kind === 'expense' && !c.archived))?.id ?? null;
+  const [categoryId, setCategoryId] = useState<string | null>(existing ? existing.categoryId : defaultCategoryId);
   const [frequency, setFrequency] = useState<Frequency>(existing?.frequency ?? 'monthly');
   const [next, setNext] = useState(existing?.nextOccurrence ?? today());
   const [note, setNote] = useState(existing?.note ?? '');
@@ -44,11 +46,19 @@ export default function RecurringEditor() {
     if (category && category.kind !== nextType) setCategoryId(categories.find((c) => !c.archived && c.kind === nextType)?.id ?? null);
   };
 
+  const persist = async (rule: Parameters<typeof save>[0]) => {
+    try {
+      await save(rule);
+      router.back();
+    } catch (e) {
+      notify(t.didntWork((e as Error).message));
+    }
+  };
+
   const onSave = async () => {
     const a = parseMoneyInput(amount, locale.format.decimal === ',');
     if (a == null || a <= 0) { setError(t.enterAmount); return; }
-    await save({ id: existing?.id ?? newId(), amount: a, type, categoryId, frequency, nextOccurrence: next, note: note.trim() || null, active: existing?.active ?? true });
-    router.back();
+    await persist({ id: existing?.id ?? newId(), amount: a, type, categoryId, frequency, nextOccurrence: next, note: note.trim() || null, active: existing?.active ?? true });
   };
 
   const onDelete = async () => {
@@ -77,7 +87,7 @@ export default function RecurringEditor() {
       <Button title={isNew ? t.startRepeating : t.save} onPress={onSave} />
       {existing ? (
         <Row style={{ marginTop: spacing.md }}>
-          <Button tone="secondary" title={existing.active ? t.pause : t.resume} style={{ flex: 1 }} onPress={async () => { await save({ ...existing, active: !existing.active }); router.back(); }} />
+          <Button tone="secondary" title={existing.active ? t.pause : t.resume} style={{ flex: 1 }} onPress={() => persist({ ...existing, active: !existing.active })} />
           <Button tone="danger" title={t.remove} style={{ flex: 1 }} onPress={onDelete} />
         </Row>
       ) : null}

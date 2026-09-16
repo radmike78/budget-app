@@ -62,6 +62,7 @@ export const es: LanguagePack = {
     }),
     dayMonthRule(MONTHS, { pre: ['el', 'el día', 'el dia'], between: ['de'] }),
     dayOfMonthRule(/\bel d[ií]a (\d{1,2})\b/),
+    dayOfMonthRule(/\bel (\d{1,2})\b(?!\s?(?:€|euros?|pesos|d[oó]lares|%|:|h\b))/),
     weekdayRule(WEEKDAYS),
     slashRule(true),
   ],

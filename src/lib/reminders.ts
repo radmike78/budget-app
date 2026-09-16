@@ -5,10 +5,11 @@ const REMINDER_ID = 'onlybudget-daily-reminder';
 
 /**
  * One optional, gentle daily reminder. Never a badge, never a streak.
- * Returns false if permission was not granted.
+ * Returns false if permission was not granted. The strings come from the caller's
+ * locale (this module is pure). Scheduled local notifications are a native-only
+ * feature; the web build reports false.
  */
-/** Scheduled local notifications are a native-only feature; the web build reports false. */
-export async function scheduleDailyReminder(hour: number, text: { title: string; body: string } = { title: 'Anything to log today?', body: 'A quick "spent 12 on lunch" keeps the picture honest.' }): Promise<boolean> {
+export async function scheduleDailyReminder(hour: number, text: { title: string; body: string; channelName: string }): Promise<boolean> {
   if (Platform.OS === 'web') return false;
   const perm = await Notifications.getPermissionsAsync();
   let granted = perm.granted;
@@ -20,7 +21,7 @@ export async function scheduleDailyReminder(hour: number, text: { title: string;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Daily reminder',
+      name: text.channelName,
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: undefined,
       showBadge: false,
@@ -126,10 +127,10 @@ export function nextOccurrence(rem: Reminder, now: Date = new Date()): Date | nu
   return next;
 }
 
-async function ensureChannel(): Promise<string | undefined> {
+async function ensureChannel(channelName: string): Promise<string | undefined> {
   if (Platform.OS !== 'android') return undefined;
   await Notifications.setNotificationChannelAsync('reminders', {
-    name: 'Reminders',
+    name: channelName,
     importance: Notifications.AndroidImportance.DEFAULT,
     vibrationPattern: undefined,
     showBadge: false,
@@ -137,18 +138,21 @@ async function ensureChannel(): Promise<string | undefined> {
   return 'reminders';
 }
 
+const REMINDER_PREFIX = 'onlybudget-reminder-';
+
 /**
  * Schedules the notification for a reminder. Returns the notification id, or null
  * when notifications are not allowed (the reminder is still kept and can be armed later).
+ * `channelName` is the Android channel's user-visible name, in the app's language.
  */
-export async function scheduleReminderNotification(rem: Reminder, title: string): Promise<string | null> {
+export async function scheduleReminderNotification(rem: Reminder, title: string, channelName: string): Promise<string | null> {
   if (Platform.OS === 'web') return null;
   const state = await ensureNotificationPermission();
   if (state !== 'granted') return null;
-  const channelId = await ensureChannel();
+  const channelId = await ensureChannel(channelName);
   const { hour, minute } = parseTime(rem.time);
   const content = { title, body: rem.text, sound: false as const };
-  const identifier = `onlybudget-reminder-${rem.id}`;
+  const identifier = `${REMINDER_PREFIX}${rem.id}`;
   await cancelReminderNotification(identifier);
 
   if (rem.repeat === 'daily') {
@@ -173,5 +177,18 @@ export async function cancelReminderNotification(notificationId: string | null |
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch {
     // nothing scheduled
+  }
+}
+
+/** Cancels every scheduled spoken-reminder notification (used before a restore replaces the reminders). */
+export async function cancelAllReminderNotifications(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) {
+      if (n.identifier.startsWith(REMINDER_PREFIX)) await cancelReminderNotification(n.identifier);
+    }
+  } catch {
+    // nothing scheduled, or notifications unavailable
   }
 }

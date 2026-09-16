@@ -13,6 +13,14 @@ const dist = path.dirname(require.resolve('pdfjs-dist/package.json'));
 const lib = fs.readFileSync(path.join(dist, 'build/pdf.min.mjs'), 'utf8');
 const worker = fs.readFileSync(path.join(dist, 'build/pdf.worker.min.mjs'), 'utf8');
 const version = require('pdfjs-dist/package.json').version;
+const { FONT_DIR, listStandardFonts } = require('./pdf-standard-fonts');
+
+// The standard 14 fonts are inlined as base64 and handed to pdf.js through its
+// StandardFontDataFactory hook rather than fetched from a URL: the page's CSP
+// (connect-src 'none') and the WebView allow no network or file access, and that
+// sandbox is the whole point. useSystemFonts stays false so symbol fonts and glyph
+// maps come from these known files, never from whatever the phone has installed.
+const fontMap = Object.fromEntries(listStandardFonts().map((name) => [name, fs.readFileSync(path.join(FONT_DIR, name)).toString('base64')]));
 
 const app = `
 window.__ob = { chunks: [], ready: false };
@@ -49,11 +57,20 @@ async function inspect(doc, maxPages) {
   }
   return [...reasons];
 }
+const STANDARD_FONTS = ${JSON.stringify(fontMap)};
+class InlineStandardFontDataFactory {
+  constructor() {}
+  async fetch({ filename }) {
+    const b64 = STANDARD_FONTS[filename];
+    if (!b64) throw new Error('unknown standard font');
+    return b64ToBytes(b64);
+  }
+}
 window.__ob.run = async (maxPages) => {
   try {
     const data = b64ToBytes(window.__ob.chunks.join(''));
     window.__ob.chunks = [];
-    const doc = await pdfjsLib.getDocument({ data, isEvalSupported: false, disableFontFace: true, useSystemFonts: false, stopAtErrors: false, enableXfa: false }).promise;
+    const doc = await pdfjsLib.getDocument({ data, isEvalSupported: false, disableFontFace: true, useSystemFonts: false, StandardFontDataFactory: InlineStandardFontDataFactory, stopAtErrors: false, enableXfa: false }).promise;
     const pages = Math.min(doc.numPages, maxPages || 300);
     const reasons = await inspect(doc, pages);
     if (reasons.length) { post({ type: 'blocked', reasons }); await doc.destroy(); return; }

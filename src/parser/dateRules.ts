@@ -205,8 +205,10 @@ export function dayOfMonthRule(re: RegExp): DateRule {
 /** "9/3", "9/3/2025" (month/day by default; dayFirst for European locales). */
 export function slashRule(dayFirst: boolean): DateRule {
   return {
-    re: /(?<![\d/])(\d{1,2})[/.](\d{1,2})(?:[/.](\d{2,4}))?(?![\d/])/,
-    resolve: (m, t) => {
+    // "9/3", "9/3/25", "3.9.2026" and the German "3.9." (trailing dot). A bare "4.5" is an amount, not a date.
+    re: /(?<![\d/.])(?:(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?|(\d{1,2})\.(\d{1,2})\.(?:(\d{2,4})(?!\d)|(?![\d\w])))(?![\d/])/,
+    resolve: (m0, t) => {
+      const m = m0[1] != null ? [m0[0], m0[1], m0[2], m0[3]] : [m0[0], m0[4], m0[5], m0[6]];
       let a = Number(m[1]);
       let b = Number(m[2]);
       if (dayFirst) [a, b] = [b, a];

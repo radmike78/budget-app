@@ -1,4 +1,4 @@
-import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
+import { dayOfMonthRule, ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
 import { periodWords } from '../questionRules';
@@ -76,6 +76,7 @@ export const it: LanguagePack = {
     dayMonthRule(MONTHS, { pre: ['il', "l'", 'lo scorso'] }),
     weekdayRule(WEEKDAYS),
     slashRule(true),
+    dayOfMonthRule(/\bil (\d{1,2})\b(?!\s?(?:€|euro|euri))/),
   ],
   futureDateRules: [
     ISO_RULE,

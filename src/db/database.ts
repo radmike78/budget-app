@@ -130,6 +130,8 @@ const MIGRATIONS: string[] = [
   );`,
   // v6: how answers to spoken questions are given (text, spoken, or spoken only when asked by voice).
   `ALTER TABLE settings ADD COLUMN answer_mode TEXT DEFAULT 'auto';`,
+  // v7: the day of month a monthly rule was set on, so it returns to the 31st after a short month.
+  `ALTER TABLE recurring_rules ADD COLUMN anchor_day INTEGER;`,
 ];
 
 async function migrate(db: DB): Promise<void> {

@@ -100,7 +100,7 @@ export const en: LanguagePack = {
   incomeVerbs: [
     'got paid', 'get paid', 'was paid', 'were paid', 'been paid', 'paid me', 'paid us', 'paycheck', 'pay check', 'payday', 'pay day',
     'salary', 'wages', 'wage', 'earned', 'earning', 'earn', 'received', 'receive', 'refund', 'refunded', 'reimbursed', 'reimbursement',
-    'income', 'deposited', 'deposit from', 'bonus', 'commission', 'sold', 'made', 'won', 'cashback', 'cash back', 'dividend',
+    'income', 'deposited', 'deposit from', 'bonus', 'commission', 'sold', 'made money', 'made from', 'won money', 'winnings', 'cashback', 'cash back', 'dividend',
     'dividends', 'pension', 'stipend', 'allowance', 'gift from', 'gave me', 'sent me', 'paid back', 'paid me back', 'repaid',
     'tips', 'tip money', 'tax refund', 'tax return', 'freelance', 'invoice paid', 'client paid', 'payout', 'cashed',
   ],

@@ -37,10 +37,11 @@ export interface DueResult {
  * Every occurrence from the rule's next_occurrence up to and including today.
  * Capped so a rule left untouched for years cannot generate thousands of rows.
  */
-export function dueOccurrences(rule: Pick<RecurringRule, 'nextOccurrence' | 'frequency'>, todayStr: string, cap = 120): DueResult {
+export function dueOccurrences(rule: Pick<RecurringRule, 'nextOccurrence' | 'frequency'> & { anchorDay?: number | null }, todayStr: string, cap = 120): DueResult {
   const due: string[] = [];
   let next = rule.nextOccurrence;
-  const anchorDay = fromDateString(rule.nextOccurrence).getDate();
+  // The anchor is the day the user chose; without it a rule on the 31st would drift to the 28th after February.
+  const anchorDay = rule.anchorDay ?? fromDateString(rule.nextOccurrence).getDate();
   while (next <= todayStr && due.length < cap) {
     due.push(next);
     next = advance(next, rule.frequency, anchorDay);

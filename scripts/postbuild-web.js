@@ -7,6 +7,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { copyStandardFonts } = require('./pdf-standard-fonts');
 
 const dist = path.resolve(process.argv[2] || 'dist');
 
@@ -14,6 +15,10 @@ const dist = path.resolve(process.argv[2] || 'dist');
 const workerSrc = path.join(path.dirname(require.resolve('pdfjs-dist/package.json')), 'build/pdf.worker.min.mjs');
 fs.copyFileSync(workerSrc, path.join(dist, 'pdf.worker.min.mjs'));
 console.log('Copied pdf.worker.min.mjs into', dist);
+// The standard 14 fonts are fetched by that worker from /standard_fonts/ (same origin) when a
+// statement uses non-embedded fonts; without them pdf.js cannot extract the text.
+const fontCount = copyStandardFonts(path.join(dist, 'standard_fonts'));
+console.log(`Copied ${fontCount} standard font files into`, path.join(dist, 'standard_fonts'));
 const file = path.join(dist, 'index.html');
 let html = fs.readFileSync(file, 'utf8');
 

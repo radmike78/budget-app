@@ -7,10 +7,12 @@ import { monthRange } from '@/lib/dates';
 type TxRow = {
   id: string; amount: number; type: TxType; category_id: string | null; note: string | null; raw_input: string | null;
   occurred_at: string; created_at: string; is_recurring_instance: number; recurring_rule_id: string | null;
+  fingerprint?: string | null; import_id?: string | null;
 };
 const toTx = (r: TxRow): Transaction => ({
   id: r.id, amount: r.amount, type: r.type, categoryId: r.category_id, note: r.note, rawInput: r.raw_input,
   occurredAt: r.occurred_at, createdAt: r.created_at, isRecurringInstance: r.is_recurring_instance === 1, recurringRuleId: r.recurring_rule_id,
+  fingerprint: r.fingerprint ?? null, importId: r.import_id ?? null,
 });
 
 type CatRow = { id: string; name: string; icon: string | null; kind: TxType; monthly_limit: number | null; is_default: number; archived: number; sort_order: number };
@@ -18,9 +20,9 @@ const toCat = (r: CatRow): Category => ({
   id: r.id, name: r.name, icon: r.icon, kind: r.kind, monthlyLimit: r.monthly_limit, isDefault: r.is_default === 1, archived: r.archived === 1, sortOrder: r.sort_order,
 });
 
-type RuleRow = { id: string; amount: number; type: TxType; category_id: string | null; frequency: RecurringRule['frequency']; next_occurrence: string; note: string | null; active: number };
+type RuleRow = { id: string; amount: number; type: TxType; category_id: string | null; frequency: RecurringRule['frequency']; next_occurrence: string; note: string | null; active: number; anchor_day: number | null };
 const toRule = (r: RuleRow): RecurringRule => ({
-  id: r.id, amount: r.amount, type: r.type, categoryId: r.category_id, frequency: r.frequency, nextOccurrence: r.next_occurrence, note: r.note, active: r.active === 1,
+  id: r.id, amount: r.amount, type: r.type, categoryId: r.category_id, frequency: r.frequency, nextOccurrence: r.next_occurrence, note: r.note, active: r.active === 1, anchorDay: r.anchor_day ?? null,
 });
 
 type GoalRow = { id: string; name: string; kind: string | null; target_amount: number; current_amount: number; target_date: string | null; created_at: string; completed: number };
@@ -202,9 +204,9 @@ export async function allRules(db: DB): Promise<RecurringRule[]> {
 
 export async function upsertRule(db: DB, r: RecurringRule): Promise<void> {
   await db.runAsync(
-    `INSERT INTO recurring_rules (id, amount, type, category_id, frequency, next_occurrence, note, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET amount = excluded.amount, type = excluded.type, category_id = excluded.category_id, frequency = excluded.frequency, next_occurrence = excluded.next_occurrence, note = excluded.note, active = excluded.active`,
-    [r.id, r.amount, r.type, r.categoryId, r.frequency, r.nextOccurrence, r.note, r.active ? 1 : 0],
+    `INSERT INTO recurring_rules (id, amount, type, category_id, frequency, next_occurrence, note, active, anchor_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET amount = excluded.amount, type = excluded.type, category_id = excluded.category_id, frequency = excluded.frequency, next_occurrence = excluded.next_occurrence, note = excluded.note, active = excluded.active, anchor_day = excluded.anchor_day`,
+    [r.id, r.amount, r.type, r.categoryId, r.frequency, r.nextOccurrence, r.note, r.active ? 1 : 0, r.anchorDay ?? null],
   );
 }
 
@@ -290,21 +292,25 @@ export async function deleteKeyword(db: DB, word: string): Promise<void> {
 
 export async function replaceAllData(
   db: DB,
-  data: { settings: Settings; categories: Category[]; transactions: Transaction[]; recurringRules: RecurringRule[]; goals: Goal[]; keywords: KeywordMapping[] },
+  data: { settings: Settings; categories: Category[]; transactions: Transaction[]; recurringRules: RecurringRule[]; goals: Goal[]; keywords: KeywordMapping[]; reminders?: Reminder[]; debts?: Debt[]; imports?: ImportRecord[] },
 ): Promise<void> {
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories;');
+    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts;');
     for (const c of data.categories) {
       await db.runAsync('INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder]);
     }
     for (const r of data.recurringRules) {
-      await db.runAsync('INSERT INTO recurring_rules (id, amount, type, category_id, frequency, next_occurrence, note, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [r.id, r.amount, r.type, r.categoryId, r.frequency, r.nextOccurrence, r.note, r.active ? 1 : 0]);
+      await db.runAsync('INSERT INTO recurring_rules (id, amount, type, category_id, frequency, next_occurrence, note, active, anchor_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [r.id, r.amount, r.type, r.categoryId, r.frequency, r.nextOccurrence, r.note, r.active ? 1 : 0, r.anchorDay ?? null]);
+    }
+    for (const r of data.imports ?? []) {
+      await db.runAsync('INSERT INTO imports (id, kind, file_name, period_start, period_end, count, imported_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [r.id, r.kind, r.fileName, r.periodStart, r.periodEnd, r.count, r.importedAt]);
     }
     for (const t of data.transactions) {
-      await db.runAsync('INSERT INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId]);
+      await db.runAsync('INSERT INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id, fingerprint, import_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null]);
     }
     for (const g of data.goals) {
       await db.runAsync('INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -312,6 +318,15 @@ export async function replaceAllData(
     }
     for (const k of data.keywords) {
       await db.runAsync('INSERT OR IGNORE INTO keyword_mappings (word, category_id) VALUES (?, ?)', [k.word, k.categoryId]);
+    }
+    for (const r of data.reminders ?? []) {
+      // Notification ids are never restored: the store re-arms every reminder afterwards.
+      await db.runAsync('INSERT INTO reminders (id, text, due_at, repeat, notification_id, created_at) VALUES (?, ?, ?, ?, NULL, ?)',
+        [r.id, r.text, `${r.date}T${r.time}`, r.repeat, r.createdAt]);
+    }
+    for (const d of data.debts ?? []) {
+      await db.runAsync('INSERT INTO debts (id, creditor, type, balance, monthly_payment, credit_limit, apr, source, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [d.id, d.creditor, d.type, d.balance, d.monthlyPayment, d.creditLimit, d.apr, d.source, d.updatedAt]);
     }
     const s = data.settings;
     await db.runAsync(

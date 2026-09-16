@@ -66,6 +66,8 @@ export interface RecurringRule {
   frequency: Frequency;
   /** YYYY-MM-DD */
   nextOccurrence: string;
+  /** Day of month the rule was set on (1-31), so a monthly rule on the 31st returns to the 31st after February. */
+  anchorDay?: number | null;
   note: string | null;
   active: boolean;
 }

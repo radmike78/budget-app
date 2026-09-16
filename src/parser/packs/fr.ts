@@ -1,4 +1,4 @@
-import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
+import { dayOfMonthRule, ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
 import { periodWords } from '../questionRules';
@@ -22,7 +22,8 @@ const numberWords = makeNumberWords({
     .replace(/dix[- ]sept/g, 'dixsept')
     .replace(/dix[- ]huit/g, 'dixhuit')
     .replace(/dix[- ]neuf/g, 'dixneuf')
-    .replace(/(\p{L})-(\p{L})/gu, '$1 $2'),
+    .replace(/\b(vingt|trente|quarante|cinquante|soixante|soixantedix|quatrevingt|cent|mille)-(un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dixsept|dixhuit|dixneuf|et)\b/gu, '$1 $2')
+    .replace(/\b(et)-(un|une|onze)\b/gu, '$1 $2'),
 });
 
 export const fr: LanguagePack = {
@@ -70,6 +71,7 @@ export const fr: LanguagePack = {
     dayMonthRule(MONTHS, { pre: ['le'], ordinal: '(?:er)?' }),
     weekdayRule(WEEKDAYS),
     slashRule(true),
+    dayOfMonthRule(/\ble (\d{1,2})(?:er)?\b(?!\s?(?:h\b|€|euros?))/),
   ],
   futureDateRules: [
     ISO_RULE,

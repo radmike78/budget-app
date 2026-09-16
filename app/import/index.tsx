@@ -43,8 +43,16 @@ export default function ImportScreen() {
   const [pickingCat, setPickingCat] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // Bumped on every pick and on Cancel, so a read that was cancelled cannot change the screen when it finishes.
+  const readToken = useRef(0);
+
+  const cancelReading = () => {
+    readToken.current += 1;
+    setStage('idle');
+  };
 
   const choose = async () => {
+    const token = ++readToken.current;
     try {
       const picked = await pickPdf();
       if (!picked) return;
@@ -56,6 +64,7 @@ export default function ImportScreen() {
         // The file itself is never kept: wipe the bytes as soon as the text is out.
         picked.bytes.fill(0);
       }
+      if (token !== readToken.current) return; // cancelled while reading
       const rows = rowsFromItems(items);
       const ctx = { categories, goals, keywordMap, today: today(), language };
       const result = parseStatement(rows, ctx, { language, today: today(), knownFingerprints: fingerprints });
@@ -70,6 +79,7 @@ export default function ImportScreen() {
       setLines(result.lines);
       setStage('review');
     } catch (e) {
+      if (token !== readToken.current) return; // cancelled: the screen is already idle
       setStage('idle');
       if (e instanceof PdfBlockedError) notify(t.importStatement, t.importBlocked);
       else if (e instanceof PdfEncryptedError) notify(t.importStatement, t.importEncrypted);
@@ -137,7 +147,12 @@ export default function ImportScreen() {
         </>
       ) : null}
 
-      {stage === 'reading' ? <Text variant="muted" style={{ marginTop: spacing.lg }}>{t.readingPdf}</Text> : null}
+      {stage === 'reading' ? (
+        <>
+          <Text variant="muted" style={{ marginTop: spacing.lg }}>{t.readingPdf}</Text>
+          <View style={{ marginTop: spacing.md, alignSelf: 'flex-start' }}><Button tone="secondary" small title={t.cancel} onPress={cancelReading} /></View>
+        </>
+      ) : null}
 
       {stage === 'report' && parsed ? (
         <>
@@ -175,7 +190,7 @@ export default function ImportScreen() {
           {parsed.kind === 'card' && parsed.tradelines.length ? (
             <Row style={{ justifyContent: 'space-between', marginTop: spacing.md }}>
               <Text variant="body" style={{ flex: 1 }}>{t.importSaveCard}</Text>
-              <Switch value={saveCard} onValueChange={setSaveCard} trackColor={{ true: colors.accent }} />
+              <Switch value={saveCard} onValueChange={setSaveCard} trackColor={{ true: colors.accent }} accessibilityLabel={t.importSaveCard} />
             </Row>
           ) : null}
 
@@ -204,7 +219,7 @@ export default function ImportScreen() {
                         <Pressable onPress={() => setPickingCat(i)} accessibilityRole="button" disabled={l.duplicate}>
                           <Text variant="small" color={colors.accent}>{cat ? `${cat.icon ?? ''} ${categoryName(cat, t)}`.trim() : t.pickCategory}</Text>
                         </Pressable>
-                        <Switch value={l.include && !l.duplicate} disabled={l.duplicate} onValueChange={(v) => update(i, { include: v })} trackColor={{ true: colors.accent }} />
+                        <Switch value={l.include && !l.duplicate} disabled={l.duplicate} onValueChange={(v) => update(i, { include: v })} trackColor={{ true: colors.accent }} accessibilityLabel={t.includeLine(l.description)} />
                       </Row>
                     </View>
                   );

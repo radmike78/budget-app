@@ -24,6 +24,9 @@ export default function Backup() {
   const goals = useAppStore((s) => s.goals);
   const rules = useAppStore((s) => s.rules);
   const keywords = useAppStore((s) => s.keywords);
+  const reminders = useAppStore((s) => s.reminders);
+  const debts = useAppStore((s) => s.debts);
+  const imports = useAppStore((s) => s.imports);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const restoreAll = useAppStore((s) => s.restoreAll);
   const [busy, setBusy] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export default function Backup() {
   const snapshot = async () => {
     const db = await getDb();
     const transactions = await allTransactions(db);
-    return buildBackup({ settings, categories, transactions, recurringRules: rules, goals, keywords }, nowIso());
+    return buildBackup({ settings, categories, transactions, recurringRules: rules, goals, keywords, reminders, debts, imports }, nowIso());
   };
 
   const exportCsv = () => run('csv', async () => {
@@ -85,7 +88,8 @@ export default function Backup() {
     return t.encryptedReady;
   });
 
-  const applyRestore = async (payload: unknown) => {
+  /** Returns the message to show; a declined confirmation is a normal outcome, not an error. */
+  const applyRestore = async (payload: unknown): Promise<string> => {
     let data: ReturnType<typeof validateBackup>;
     try {
       data = validateBackup(payload, nowIso());
@@ -94,8 +98,9 @@ export default function Backup() {
       throw e;
     }
     const ok = await confirmDialog(t.replaceEverythingQ, t.replaceEverythingBody(data.transactions.length, data.goals.length), { confirmText: t.restore, cancelText: t.cancel, destructive: true });
-    if (!ok) throw new Error(t.cancelled);
-    await restoreAll({ ...data, settings: { ...data.settings, smartParseEnabled: settings.smartParseEnabled, appLockEnabled: settings.appLockEnabled } });
+    if (!ok) return t.cancelled;
+    // The switches a file may not set keep whatever this phone already has (the daily reminder stays scheduled or not as it is).
+    await restoreAll({ ...data, settings: { ...data.settings, smartParseEnabled: settings.smartParseEnabled, appLockEnabled: settings.appLockEnabled, reminderEnabled: settings.reminderEnabled } });
     return t.restored(data.transactions.length);
   };
 

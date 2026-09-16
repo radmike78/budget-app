@@ -30,7 +30,7 @@ export default function SettingsScreen() {
   const [showLanguage, setShowLanguage] = useState(false);
   if (!settings) return null;
 
-  const reminderText = { title: t.reminderTitle, body: t.reminderBody };
+  const reminderText = { title: t.reminderTitle, body: t.reminderBody, channelName: t.reminderChannelDaily };
 
   const toggleReminder = async (on: boolean) => {
     if (on) {
@@ -91,13 +91,13 @@ export default function SettingsScreen() {
             <Text variant="body">{t.dailyReminder}</Text>
             <Text variant="small">{t.dailyReminderSub}</Text>
           </View>
-          <Switch value={settings.reminderEnabled} onValueChange={toggleReminder} trackColor={{ true: colors.accent }} />
+          <Switch value={settings.reminderEnabled} onValueChange={toggleReminder} trackColor={{ true: colors.accent }} accessibilityLabel={t.dailyReminder} />
         </Row>
         {settings.reminderEnabled ? (
           <Row style={{ marginTop: spacing.md, justifyContent: 'space-between' }}>
-            <Button tone="secondary" small title="−1h" onPress={() => changeHour(-1)} />
+            <Button tone="secondary" small title="−1h" accessibilityLabel={t.reminderEarlier} onPress={() => changeHour(-1)} />
             <Text variant="body">{hourLabel(settings.reminderHour)}</Text>
-            <Button tone="secondary" small title="+1h" onPress={() => changeHour(1)} />
+            <Button tone="secondary" small title="+1h" accessibilityLabel={t.reminderLater} onPress={() => changeHour(1)} />
           </Row>
         ) : null}
       </Card> : null}
@@ -107,11 +107,11 @@ export default function SettingsScreen() {
             <Text variant="body">{t.appLock}</Text>
             <Text variant="small">{t.appLockSub}</Text>
           </View>
-          <Switch value={settings.appLockEnabled} onValueChange={toggleAppLock} trackColor={{ true: colors.accent }} />
+          <Switch value={settings.appLockEnabled} onValueChange={toggleAppLock} trackColor={{ true: colors.accent }} accessibilityLabel={t.appLock} />
         </Row>
       </Card> : null}
       {Platform.OS === 'android' ? (
-        <ListItem title={t.offlineVoice} subtitle={t.offlineVoiceSub} onPress={async () => notify(t.voiceModel, await triggerOfflineModelDownload(languageCode))} />
+        <ListItem title={t.offlineVoice} subtitle={t.offlineVoiceSub} onPress={async () => notify(t.voiceModel, await triggerOfflineModelDownload(languageCode, { ready: t.voiceModelReady, status: t.voiceModelStatus, failed: t.voiceModelFailed }))} />
       ) : null}
       <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? t.smartParseOn : t.smartParseOff} onPress={() => router.push('/settings/smart')} />
 

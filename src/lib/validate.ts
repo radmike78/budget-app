@@ -5,7 +5,7 @@
  * input at it. Covers OWASP MASVS-CODE-4 (input validation) and the storage
  * side of MASVS-STORAGE (nothing untrusted reaches SQLite unchecked).
  */
-import type { Category, Frequency, Goal, KeywordMapping, RecurringRule, Settings, Transaction, TxType } from '@/types';
+import type { Category, Debt, DebtType, Frequency, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, ReminderRepeat, Settings, Transaction, TxType } from '@/types';
 import { isValidDateString } from './dates';
 
 /** A spoken entry is a sentence or two; anything longer is not an entry. */
@@ -24,6 +24,15 @@ const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?$/;
 const FREQUENCIES: Frequency[] = ['weekly', 'biweekly', 'monthly', 'yearly'];
+const REPEATS: ReminderRepeat[] = ['none', 'daily', 'weekly', 'monthly'];
+const DEBT_TYPES: DebtType[] = ['credit_card', 'personal_loan', 'student_loan', 'auto_loan', 'mortgage', 'line_of_credit', 'other'];
+const DEBT_SOURCES: Debt['source'][] = ['credit_report', 'card_statement', 'manual'];
+const IMPORT_KINDS: ImportRecord['kind'][] = ['bank', 'card', 'credit_report'];
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Statement fingerprints are two short hashes; anything else is not one. */
+const FINGERPRINT_RE = /^[A-Za-z0-9]{1,64}$/;
+/** Percent per year; nothing real is above this. */
+const MAX_APR = 1000;
 
 /**
  * Trims, caps and strips control and bidi-override characters from free text.
@@ -76,6 +85,9 @@ export interface ValidBackupData {
   recurringRules: RecurringRule[];
   goals: Goal[];
   keywords: KeywordMapping[];
+  reminders: Reminder[];
+  debts: Debt[];
+  imports: ImportRecord[];
 }
 
 const fail = (reason: string): never => { throw new BackupValidationError(reason); };
@@ -93,6 +105,8 @@ const money = (v: unknown, what: string): number => {
 const bool = (v: unknown): boolean => v === true || v === 1 || v === '1' || v === 'true';
 const day = (v: unknown, what: string): string => (typeof v === 'string' && DATE_RE.test(v) && isValidDateString(v) ? v : fail(`${what} date`));
 const optDay = (v: unknown, what: string): string | null => (v == null || v === '' ? null : day(v, what));
+const optMoney = (v: unknown, what: string): number | null => (v == null || v === '' ? null : money(v, what));
+const oneOf = <T extends string>(v: unknown, values: readonly T[], what: string): T => (values.find((x) => x === v) ?? fail(what)) as T;
 const stamp = (v: unknown, fallback: string): string => (typeof v === 'string' && ISO_RE.test(v) ? v : fallback);
 const txType = (v: unknown, what: string): TxType => (v === 'income' || v === 'expense' ? v : fail(`${what} type`));
 const text = (v: unknown, max: number, what: string, required = false): string => {
@@ -167,6 +181,27 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     });
   }
 
+  // Older backups (version 1) carry no imports, debts or reminders; `list` treats a missing table as empty.
+  const imports: ImportRecord[] = [];
+  const seenImport = new Set<string>();
+  for (const raw of list(o.imports, 'imports')) {
+    assertObj(raw, 'import');
+    const iid = id(raw.id, 'import');
+    if (seenImport.has(iid)) fail('duplicate import id');
+    seenImport.add(iid);
+    const count = typeof raw.count === 'number' ? raw.count : typeof raw.count === 'string' ? Number(raw.count) : 0;
+    if (!Number.isFinite(count) || count < 0 || count > MAX_ROWS) fail('import count');
+    imports.push({
+      id: iid,
+      kind: oneOf(raw.kind, IMPORT_KINDS, 'import kind'),
+      fileName: text(raw.fileName, MAX_TEXT_FIELD, 'import file name'),
+      periodStart: optDay(raw.periodStart, 'import period'),
+      periodEnd: optDay(raw.periodEnd, 'import period'),
+      count: Math.trunc(count),
+      importedAt: stamp(raw.importedAt, now),
+    });
+  }
+
   const transactions: Transaction[] = [];
   const seenTx = new Set<string>();
   for (const raw of list(o.transactions, 'transactions')) {
@@ -175,6 +210,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     if (seenTx.has(tid)) fail('duplicate transaction id');
     seenTx.add(tid);
     const ruleId = optId(raw.recurringRuleId, 'transaction rule');
+    const importId = optId(raw.importId, 'transaction import');
+    const fingerprint = raw.fingerprint == null || raw.fingerprint === '' ? null : typeof raw.fingerprint === 'string' && FINGERPRINT_RE.test(raw.fingerprint) ? raw.fingerprint : fail('transaction fingerprint');
     transactions.push({
       id: tid,
       amount: money(raw.amount, 'transaction'),
@@ -186,6 +223,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       createdAt: stamp(raw.createdAt, now),
       isRecurringInstance: bool(raw.isRecurringInstance),
       recurringRuleId: ruleId && seenRule.has(ruleId) ? ruleId : null,
+      fingerprint,
+      importId: importId && seenImport.has(importId) ? importId : null,
     });
   }
 
@@ -219,6 +258,47 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     keywords.push({ word, categoryId: cat });
   }
 
+  const reminders: Reminder[] = [];
+  const seenReminder = new Set<string>();
+  for (const raw of list(o.reminders, 'reminders')) {
+    assertObj(raw, 'reminder');
+    const rid = id(raw.id, 'reminder');
+    if (seenReminder.has(rid)) fail('duplicate reminder id');
+    seenReminder.add(rid);
+    reminders.push({
+      id: rid,
+      text: text(raw.text, MAX_TEXT_FIELD, 'reminder text', true),
+      date: day(raw.date, 'reminder'),
+      time: typeof raw.time === 'string' && TIME_RE.test(raw.time) ? raw.time : fail('reminder time'),
+      repeat: oneOf(raw.repeat ?? 'none', REPEATS, 'reminder repeat'),
+      // A notification id belongs to the phone that scheduled it; reminders are re-armed after a restore.
+      notificationId: null,
+      createdAt: stamp(raw.createdAt, now),
+    });
+  }
+
+  const debts: Debt[] = [];
+  const seenDebt = new Set<string>();
+  for (const raw of list(o.debts, 'debts')) {
+    assertObj(raw, 'debt');
+    const did = id(raw.id, 'debt');
+    if (seenDebt.has(did)) fail('duplicate debt id');
+    seenDebt.add(did);
+    const aprRaw = raw.apr == null || raw.apr === '' ? null : Number(raw.apr);
+    if (aprRaw != null && (!Number.isFinite(aprRaw) || aprRaw < 0 || aprRaw > MAX_APR)) fail('debt apr');
+    debts.push({
+      id: did,
+      creditor: text(raw.creditor, 80, 'debt creditor', true),
+      type: oneOf(raw.type ?? 'other', DEBT_TYPES, 'debt type'),
+      balance: money(raw.balance ?? 0, 'debt balance'),
+      monthlyPayment: optMoney(raw.monthlyPayment, 'debt payment'),
+      creditLimit: optMoney(raw.creditLimit, 'debt limit'),
+      apr: aprRaw == null ? null : Math.round(aprRaw * 100) / 100,
+      source: oneOf(raw.source ?? 'manual', DEBT_SOURCES, 'debt source'),
+      updatedAt: stamp(raw.updatedAt, now),
+    });
+  }
+
   const theme = s.theme === 'light' || s.theme === 'dark' ? s.theme : 'system';
   const hour = typeof s.reminderHour === 'number' && Number.isInteger(s.reminderHour) && s.reminderHour >= 0 && s.reminderHour <= 23 ? s.reminderHour : 20;
   const balanceRaw = s.startingBalance == null ? NaN : Number(s.startingBalance);
@@ -228,7 +308,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     lastBackupAt: typeof s.lastBackupAt === 'string' && ISO_RE.test(s.lastBackupAt) ? s.lastBackupAt : null,
     startingBalance: Number.isFinite(balanceRaw) && Math.abs(balanceRaw) <= MAX_AMOUNT ? Math.round(balanceRaw * 100) / 100 : null,
     onboardingDone: true,
-    reminderEnabled: bool(s.reminderEnabled),
+    // Nothing schedules the daily reminder after a restore, so the switch starts off.
+    reminderEnabled: false,
     reminderHour: hour,
     // Security-sensitive switches never come from a file: the user turns them on by hand.
     smartParseEnabled: false,
@@ -237,7 +318,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     answerMode: s.answerMode === 'text' || s.answerMode === 'speak' ? s.answerMode : 'auto',
   };
 
-  return { settings, categories, transactions, recurringRules, goals, keywords };
+  return { settings, categories, transactions, recurringRules, goals, keywords, reminders, debts, imports };
 }
 
 /** Shape the Smart Assist model is asked for; everything is re-checked here. */

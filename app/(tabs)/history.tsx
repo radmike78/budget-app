@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +29,8 @@ export default function HistoryScreen() {
   const [range, setRange] = useState<Range>('month');
   const [showCat, setShowCat] = useState(false);
   const [rows, setRows] = useState<Transaction[]>([]);
+  // Queries can finish out of order while typing; only the latest one may set the rows.
+  const requestId = useRef(0);
 
   const ranges: { value: Range; label: string }[] = [
     { value: 'month', label: t.rangeThisMonth },
@@ -46,9 +48,10 @@ export default function HistoryScreen() {
   }, [range]);
 
   const load = useCallback(async () => {
+    const id = ++requestId.current;
     const db = await getDb();
     const list = await queryTransactions(db, { search, type, categoryId, from: bounds.start, to: bounds.end, limit: 500 });
-    setRows(list);
+    if (id === requestId.current) setRows(list);
   }, [search, type, categoryId, bounds]);
 
   useEffect(() => { load(); }, [load, recent]);

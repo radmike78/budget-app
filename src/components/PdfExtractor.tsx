@@ -11,6 +11,10 @@ export interface PdfExtractorHandle {
   extract: (bytes: Uint8Array) => Promise<{ items: TextItem[]; numPages: number }>;
 }
 
+/** How long to wait for the WebView page to report ready before giving up on an import. */
+const READY_TIMEOUT_MS = 20_000;
+type ReadyWaiter = { resolve: () => void; reject: (e: Error) => void };
+
 /**
  * Runs pdf.js inside a hidden, sandboxed WebView (no network, no file access;
  * its own CSP forbids everything but the inlined script) and returns every text
@@ -20,8 +24,9 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
   const web = useRef<WebView>(null);
   const [html, setHtml] = useState<string | null>(null);
   const pending = useRef<{ resolve: (v: { items: TextItem[]; numPages: number }) => void; reject: (e: Error) => void } | null>(null);
-  const readyResolvers = useRef<(() => void)[]>([]);
+  const readyResolvers = useRef<ReadyWaiter[]>([]);
   const ready = useRef(false);
+  const failed = useRef(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -31,11 +36,29 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
       const uri = asset.localUri ?? asset.uri;
       const text = await new File(uri).text();
       if (!cancelled) setHtml(text);
-    })().catch(() => { if (!cancelled) setHtml(''); });
+    })().catch(() => {
+      if (cancelled) return;
+      failed.current = true;
+      setHtml('');
+      readyResolvers.current.splice(0).forEach((w) => w.reject(new Error('extractor unavailable')));
+    });
     return () => { cancelled = true; };
   }, []);
 
-  const waitReady = () => new Promise<void>((resolve) => { if (ready.current) resolve(); else readyResolvers.current.push(resolve); });
+  /** Resolves once the page has posted "ready"; rejects when it never does, so the screen does not stay on "Reading…". */
+  const waitReady = () => new Promise<void>((resolve, reject) => {
+    if (ready.current) { resolve(); return; }
+    if (failed.current) { reject(new Error('extractor unavailable')); return; }
+    const waiter: ReadyWaiter = {
+      resolve: () => { clearTimeout(timer); resolve(); },
+      reject: (e) => { clearTimeout(timer); reject(e); },
+    };
+    const timer = setTimeout(() => {
+      readyResolvers.current = readyResolvers.current.filter((w) => w !== waiter);
+      reject(new Error('extractor timeout'));
+    }, READY_TIMEOUT_MS);
+    readyResolvers.current.push(waiter);
+  });
 
   useImperativeHandle(ref, () => ({
     extract: async (bytes) => {
@@ -69,7 +92,7 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
     }
     if (msg.type === 'ready') {
       ready.current = true;
-      readyResolvers.current.splice(0).forEach((r) => r());
+      readyResolvers.current.splice(0).forEach((w) => w.resolve());
       return;
     }
     const p = pending.current;

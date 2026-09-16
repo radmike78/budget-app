@@ -15,7 +15,8 @@ export interface MoneyToken {
 
 const CURRENCY = '(?:[$€£¥₹]|USD|EUR|GBP|CAD|AUD|CHF|MXN|BRL|JPY|CNY|KRW|R\\$|C\\$|A\\$)?';
 // Number with optional thousands separators and an optional 2-digit decimal part.
-const NUMBER = '(?:\\d{1,3}(?:[,.\\s ]\\d{3})+|\\d+)(?:[.,]\\d{2})?';
+// A space (or NBSP) only groups thousands when the number ends in a decimal comma ("1 234,56"); "CHECK 123 450.00" is two numbers.
+const NUMBER = '(?:\\d{1,3}(?:[\\s ]\\d{3})+(?=,\\d{2})|\\d{1,3}(?:[,.]\\d{3})+|\\d+)(?:[.,]\\d{2})?';
 const MONEY_RE = new RegExp(
   `(?<![\\w.,])(\\(?)\\s?(-|−|–)?\\s?${CURRENCY}\\s?(-|−|–)?(${NUMBER})\\s?${CURRENCY}\\s?(\\)?)\\s?(-|−|–|CR|DR|Cr|Dr|cr|dr)?(?![\\w.,])`,
   'gu',

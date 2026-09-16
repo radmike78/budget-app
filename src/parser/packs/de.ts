@@ -1,4 +1,4 @@
-import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
+import { dayOfMonthRule, ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
 import { periodWords } from '../questionRules';
@@ -82,6 +82,7 @@ export const de: LanguagePack = {
     dayMonthRule(MONTHS, { pre: ['am', 'den', 'vom'], ordinal: '\\.?' }),
     weekdayRule(WEEKDAYS),
     slashRule(true),
+    dayOfMonthRule(/\b(?:am|den|vom) (\d{1,2})\.(?!\d)/),
   ],
   futureDateRules: [
     ISO_RULE,

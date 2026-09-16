@@ -175,6 +175,7 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
       if (/\d[.\-/]$/.test(before)) continue;
       if (/^[.\-/]\d/.test(after)) continue;
       if (/^\s?(people|persons|items?|tickets?|days?|weeks?|months?|years?|hours?|minutes?|miles?|km|kg|lbs?|oz|packs?|personas|personnes|persone|personen|个人|名|人|명)\b/iu.test(after)) continue;
+      if (/^\s?(?:份|杯|个|個|顿|頓|件|张|張|瓶|册|冊|つ|本|枚|台|回|次|개|잔|번|병|명|그릇|장)/u.test(after)) continue;
       // "2 of them" is a count; "5000 of debt" is money.
       if (/^\s?of\b/iu.test(after) && Number(m[2]) < 100) continue;
     }
@@ -319,7 +320,9 @@ function findGoal(name: string, goals: Goal[], c: Compiled): Goal | null {
   for (const g of open) {
     const words = tokenize(g.name.toLowerCase()).filter((w) => !c.stopwords.has(w));
     const overlap = words.filter((w) => needleWords.has(w) || (c.pack.singularForms?.(w) ?? []).some((f) => needleWords.has(f))).length;
-    if (overlap > 0 && (!best || overlap > best.score)) best = { goal: g, score: overlap };
+    // One shared word is not a match for a multi-word goal ("emergency room" vs "Emergency fund").
+    const needed = words.length >= 2 ? Math.max(2, Math.ceil(words.length / 2)) : 1;
+    if (overlap >= needed && (!best || overlap > best.score)) best = { goal: g, score: overlap };
   }
   return best?.goal ?? null;
 }
@@ -663,6 +666,8 @@ function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): 
   if (raw.length > MAX_QUESTION_LENGTH) return null;
   const text = pack.numberWords(normalize(raw, pack));
   if (!text) return null;
+  // "remind me to check how much I spent" is a reminder, not a question.
+  if (pack.reminder.lead.test(text)) return null;
   const q = parseQuestion(text, pack.question, {
     categories: ctx.categories,
     categoryLabels: ctx.categoryLabels,
