@@ -106,6 +106,8 @@ npm run ui:walkthrough  # 26 flows (edit, undo, questions, goals, import, backup
 npm run ui:scenario     # pay periods, roll-over, the overall plan and undo with months of sample data, out/scenario
 ```
 
+The sample data used by `ui:scenario` never ships: it exists only in that script and enters a browser session through the app's own backup restore. `__tests__/release.test.ts` checks that app code carries none of it and that the database migrations insert only categories and settings. In-app instructions live under Settings → Help, in all eight languages.
+
 ## How parsing works
 
 **Tier 1 (always, offline, instant)** in `src/parser/`, driven by the active language pack:

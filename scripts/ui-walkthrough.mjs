@@ -265,7 +265,10 @@ await step('dark theme and answer mode setting', async () => {
   await goto('/settings');
   await text('System').click(); await page.waitForTimeout(300);
 });
-await step('about, smart assist, learned words screens open', async () => {
+await step('help, about, smart assist, learned words screens open', async () => {
+  await goto('/settings/help');
+  await expectText('Adding an entry'); await expectText('Undo');
+  await shot('help');
   for (const r of ['/settings/about', '/settings/smart', '/settings/keywords']) { await goto(r); await shot(r.replace(/\//g, '_')); }
 });
 await step('budget month navigation', async () => {
