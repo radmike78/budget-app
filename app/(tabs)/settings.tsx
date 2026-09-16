@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Platform, ScrollView, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import type { AnswerMode, BudgetPeriodMode, ThemeSetting } from '@/types';
+import type { AnswerMode, Attitude, BudgetPeriodMode, ThemeSetting, Voice } from '@/types';
+import { sampleLine } from '@/lib/personas';
+import { formatMoney } from '@/lib/money';
 import { hasPayRules } from '@/lib/periods';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
@@ -13,7 +15,7 @@ import { triggerOfflineModelDownload } from '@/lib/speech';
 import { LANGUAGE_OPTIONS, useLanguageCode, useT } from '@/i18n';
 import { notify } from '@/lib/dialogs';
 import { Sheet } from '@/components/pickers';
-import { Button, Card, ListItem, Row, Screen, SectionTitle, Segmented, Text } from '@/components/ui';
+import { Button, Card, Chip, ListItem, Row, Screen, SectionTitle, Segmented, Text } from '@/components/ui';
 
 function hourLabel(h: number): string {
   return `${h < 10 ? '0' : ''}${h}:00`;
@@ -66,6 +68,10 @@ export default function SettingsScreen() {
     await updateSettings({ budgetPeriod });
   };
 
+  const voices: { value: Voice; label: string }[] = [{ value: 'plain', label: t.voicePlain }, { value: 'friend', label: t.voiceFriend }, { value: 'coach', label: t.voiceCoach }, { value: 'roaster', label: t.voiceRoaster }];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const example = useMemo(() => sampleLine({ voice: settings.voice, attitude: settings.attitude, language: languageCode }, (n) => formatMoney(n, settings.currency, { compact: true })), [settings.voice, settings.attitude, settings.currency, languageCode]);
+
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const languageLabel = settings.language === 'system' ? `${t.systemLanguage} (${LANGUAGE_OPTIONS.find((o) => o.code === languageCode)?.name ?? languageCode})` : LANGUAGE_OPTIONS.find((o) => o.code === settings.language)?.name ?? settings.language;
 
@@ -96,6 +102,21 @@ export default function SettingsScreen() {
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.budgetPeriod}</Text>
         <Segmented<BudgetPeriodMode> value={settings.budgetPeriod} onChange={changeBudgetPeriod} options={[{ value: 'month', label: t.periodMonth }, { value: 'pay', label: t.periodPay }]} />
         <Text variant="small" style={{ marginTop: spacing.sm }}>{t.budgetPeriodSub}</Text>
+      </Card>
+      <Card style={{ marginBottom: spacing.sm }}>
+        <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.voice}</Text>
+        <Row style={{ flexWrap: 'wrap' }}>
+          {voices.map((v) => <Chip key={v.value} label={v.label} selected={settings.voice === v.value} onPress={() => updateSettings({ voice: v.value })} />)}
+        </Row>
+        {settings.voice !== 'plain' ? (
+          <View style={{ marginTop: spacing.md }}>
+            <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.attitude}</Text>
+            <Segmented<Attitude> value={settings.attitude} onChange={(attitude) => updateSettings({ attitude })} options={[{ value: 'nice', label: t.attitudeNice }, { value: 'playful', label: t.attitudePlayful }, { value: 'spicy', label: t.attitudeSpicy }]} />
+            {example ? <Text variant="body" style={{ marginTop: spacing.md, fontStyle: 'italic' }}>{t.voiceExample}: {example}</Text> : null}
+            {languageCode !== 'en' ? <Text variant="small" style={{ marginTop: spacing.sm }}>{t.voiceEnglishOnly}</Text> : null}
+          </View>
+        ) : null}
+        <Text variant="small" style={{ marginTop: spacing.sm }}>{t.voiceSub}</Text>
       </Card>
       {Platform.OS !== 'web' ? <Card style={{ marginBottom: spacing.sm }}>
         <Row style={{ justifyContent: 'space-between' }}>

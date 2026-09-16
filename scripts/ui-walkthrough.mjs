@@ -277,6 +277,28 @@ await step('budget month navigation', async () => {
   await shot('budget-prev-month');
   await expectText('August');
 });
+await step('a voice talks back after an entry, and plain stays silent', async () => {
+  await goto('/settings');
+  await text('Roaster').click(); await page.waitForTimeout(400);
+  await text('Spicy').click(); await page.waitForTimeout(400);
+  await expectText('For example:');
+  await shot('settings-voice');
+  await goto('/');
+  await entry('spent 20 at Starbucks');
+  await button(/^Save$/).click(); await page.waitForTimeout(700);
+  await page.getByTestId('persona-line').first().waitFor({ timeout: 3000 });
+  await shot('persona-line');
+  // Rent is a necessity: no line, whatever the voice.
+  await entry('rent 400');
+  await button(/^Save$/).click(); await page.waitForTimeout(700);
+  if (await page.getByTestId('persona-line').count()) throw new Error('a joke was made about rent');
+  await goto('/settings');
+  await text('Plain').click(); await page.waitForTimeout(400);
+  await goto('/');
+  await entry('spent 5 at Starbucks');
+  await button(/^Save$/).click(); await page.waitForTimeout(700);
+  if (await page.getByTestId('persona-line').count()) throw new Error('plain voice produced a line');
+});
 await step('overall plan on the budget and today screens', async () => {
   await goto('/budget');
   await button(/Set an overall plan/).click(); await page.waitForTimeout(600);

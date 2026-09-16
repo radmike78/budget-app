@@ -323,6 +323,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     answerMode: s.answerMode === 'text' || s.answerMode === 'speak' ? s.answerMode : 'auto',
     budgetPeriod: s.budgetPeriod === 'pay' ? 'pay' : 'month',
     overallLimit: s.overallLimit == null ? null : optMoney(s.overallLimit, 'overall plan'),
+    voice: s.voice === 'friend' || s.voice === 'coach' || s.voice === 'roaster' ? s.voice : 'plain',
+    attitude: s.attitude === 'nice' || s.attitude === 'spicy' ? s.attitude : 'playful',
   };
 
   const carryovers: CarryDecision[] = [];

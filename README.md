@@ -148,6 +148,8 @@ SQLite schema in `src/db/database.ts` (versioned with `PRAGMA user_version`; v2 
 
 Budget periods are calendar months unless Settings → Budget period is set to *My paydays*: then a period runs from one payday to the day before the next, with paydays taken from the active repeating income rules (a three-paycheck month simply has three periods). Category limits, the optional overall plan on the Budget tab, and roll-over all apply per period. Each category with a limit chooses what happens to the unspent part when the period ends: start fresh, carry it over to the next plan, or ask (a quiet card on Today). Only money that was not spent carries; going past a plan never takes from the next one. Removing an entry shows no dialog; an Undo bar puts it back.
 
+A voice can talk back after each saved entry (Settings → Voice): Plain is the default and says nothing; Friend, Coach and Roaster add one line, with an attitude of Nice, Playful or Spicy. The engine in `src/lib/personas` knows the category, what is left of its plan and goal progress, so the line is useful as well as fun ("$20 at Starbucks? $43 left in Dining out."). It never comments on rent, bills, groceries, health, debt or other necessities, says nothing once a plan is exceeded, is always nice about large amounts, and only teases dining, entertainment, shopping and subscriptions at full strength. Lines are English for now; other app languages keep the plain voice.
+
 Recurring rules are caught up on every launch and whenever a rule is saved: every due occurrence up to today is inserted as a transaction flagged `is_recurring_instance`, and `next_occurrence` moves forward. Monthly rules keep their day-of-month anchor (the 31st becomes the 28th in February and returns to the 31st in March).
 
 Backups: CSV (entries), a readable text summary, a full JSON backup, and a passphrase-encrypted backup (scrypt + XChaCha20-Poly1305). Restore accepts either JSON form and replaces everything on the device after confirmation.
@@ -158,7 +160,7 @@ One-time purchase or a free app with one optional one-time "supporter" unlock fo
 
 ## Status
 
-Everything in the v1 must-have list is implemented, in eight languages: voice + text entry, Tier 1 parser with learning, confirmation card, default + custom categories with optional limits and roll-over, an optional overall plan, budgeting by calendar month or by payday, undo after removing an entry, recurring entries, monthly overview, goals with plain-language pace, CSV/summary/JSON/encrypted export and restore, full offline operation, onboarding without sign-up, light/dark theme, optional daily reminder. Tier 2 assist is implemented behind an opt-in.
+Everything in the v1 must-have list is implemented, in eight languages: voice + text entry, Tier 1 parser with learning, confirmation card, default + custom categories with optional limits and roll-over, an optional overall plan, budgeting by calendar month or by payday, undo after removing an entry, an optional voice that talks back (English), recurring entries, monthly overview, goals with plain-language pace, CSV/summary/JSON/encrypted export and restore, full offline operation, onboarding without sign-up, light/dark theme, optional daily reminder. Tier 2 assist is implemented behind an opt-in.
 
 Not built (v1.5 candidates): household sharing between two devices, home-screen widget, multi-currency entries, trend charts. The non-English copy was written in one pass and should get a native-speaker review before release.
 

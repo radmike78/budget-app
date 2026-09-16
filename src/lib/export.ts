@@ -10,8 +10,9 @@ import { formatMoney } from './money';
 /**
  * v2 added reminders, debts, imports and the transactions' statement fingerprints.
  * v3 adds the budget period, the overall plan, category roll-over and its answers.
+ * v4 adds the voice and attitude settings.
  */
-export const BACKUP_VERSION = 3;
+export const BACKUP_VERSION = 4;
 
 export interface BackupPayload {
   app: 'onlybudget';

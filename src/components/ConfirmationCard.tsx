@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '@/store/useAppStore';
+import { personaLineForContribution, personaLineForTransaction } from '@/components/persona';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, nowIso, today } from '@/lib/dates';
 import { parseMoneyInput } from '@/lib/money';
@@ -19,7 +20,7 @@ import { Button, Field, Row, Segmented, Text } from './ui';
  * Shows what was understood and lets the user fix any field with one tap
  * before saving. Handles transactions, new goals, and goal contributions.
  */
-export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseResult | null; onDone: (message: string) => void; onCancel: () => void }) {
+export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseResult | null; onDone: (message: string, line?: string | null) => void; onCancel: () => void }) {
   const { colors } = useTheme();
   const t = useT();
   const locale = useLocale();
@@ -111,11 +112,11 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
         onDone(t.toastGoalSet(money(amount, { compact: true }), goalName.trim(), targetDate ? longDate(targetDate, today(), fmt) : null));
       } else if (result.kind === 'contribution' && goal) {
         await contributeToGoal(goal.id, amount, { logTransfer, occurredAt: date, rawInput: result.raw });
-        onDone(t.toastAdded(money(amount, { compact: true }), goal.name));
+        onDone(t.toastAdded(money(amount, { compact: true }), goal.name), personaLineForContribution(amount, goal.id));
       } else {
         await addTransaction({ amount, type, categoryId, note: note.trim() || null, rawInput: result.raw, occurredAt: date });
         if (categoryId && categoryId !== result.categoryId && result.raw) await learnCategory(result.raw, categoryId);
-        onDone(t.toastLogged(money(amount, { compact: true }), type === 'income', categoryName(category, t)));
+        onDone(t.toastLogged(money(amount, { compact: true }), type === 'income', categoryName(category, t)), personaLineForTransaction({ amount, type, categoryId, note: note.trim() || null, occurredAt: date }, t));
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } finally {

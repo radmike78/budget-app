@@ -144,6 +144,9 @@ const MIGRATIONS: string[] = [
     amount REAL NOT NULL,
     PRIMARY KEY (category_id, period)
   );`,
+  // v9: the voice that talks back after an entry, and how far it may go.
+  `ALTER TABLE settings ADD COLUMN voice TEXT DEFAULT 'plain';
+  ALTER TABLE settings ADD COLUMN attitude TEXT DEFAULT 'playful';`,
 ];
 
 async function migrate(db: DB): Promise<void> {
@@ -174,7 +177,7 @@ async function seedDefaultCategories(db: DB): Promise<void> {
 export async function resetDatabase(db: DB): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers;');
-    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', budget_period='month', overall_limit=NULL WHERE id=1");
+    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful' WHERE id=1");
   });
   await seedDefaultCategories(db);
 }
