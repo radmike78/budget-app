@@ -98,6 +98,14 @@ npm run typecheck # tsc --noEmit
 npm run icons     # regenerate assets/*.png from scripts/generate-icons.js
 ```
 
+Looking at the real UI (each needs `npm run build:web` first; headless Chromium drives the web build, which uses the same components as the phone apps):
+
+```bash
+npm run ui:shots        # every screen at phone and tablet sizes, out/shots
+npm run ui:walkthrough  # 26 flows (edit, undo, questions, goals, import, backup, languages…), logs any page error, out/walk
+npm run ui:scenario     # pay periods, roll-over, the overall plan and undo with months of sample data, out/scenario
+```
+
 ## How parsing works
 
 **Tier 1 (always, offline, instant)** in `src/parser/`, driven by the active language pack:

@@ -47,3 +47,6 @@ yarn-error.*
 public/pdf.worker.min.mjs
 public/standard_fonts/
 assets/pdf/extractor.html
+
+# UI screenshot and walkthrough output
+out/
