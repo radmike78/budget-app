@@ -7,8 +7,9 @@ import { CURRENCIES, parseMoneyInput } from '@/lib/money';
 import { LANGUAGE_OPTIONS, deviceLanguage, getLocale, useLocale, useT } from '@/i18n';
 import { Sheet } from '@/components/pickers';
 import { Button, Card, CONTENT_MAX_WIDTH, Field, ListItem, Row, Text, useTypeScale } from '@/components/ui';
+import { VoicePicker } from '@/components/VoicePicker';
 
-const PAGES = ['why', 'setup', 'how'] as const;
+const PAGES = ['why', 'setup', 'how', 'voice', 'pick'] as const;
 
 export default function Onboarding() {
   const { colors } = useTheme();
@@ -36,8 +37,8 @@ export default function Onboarding() {
     listRef.current?.scrollToIndex({ index: i, animated: true });
   };
 
-  const finish = async () => {
-    await updateSettings({ currency, startingBalance: parseMoneyInput(balance, locale.format.decimal === ','), onboardingDone: true });
+  const finish = async (voiceWanted: boolean) => {
+    await updateSettings({ currency, startingBalance: parseMoneyInput(balance, locale.format.decimal === ','), onboardingDone: true, ...(voiceWanted ? null : { voice: 'plain' as const }) });
   };
 
   const languageName = settings?.language && settings.language !== 'system'
@@ -83,6 +84,42 @@ export default function Onboarding() {
         </View>
       );
     }
+    if (key === 'voice') {
+      return (
+        <View style={{ width, minHeight: pageHeight, padding: spacing.xl, justifyContent: 'center' }}>
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
+          <Text variant="title">{t.onboardVoiceTitle}</Text>
+          <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.onboardVoiceBody}</Text>
+          <Card style={{ marginTop: spacing.lg }}>
+            {[[t.voiceFriend, t.voiceDescFriend], [t.voiceCoach, t.voiceDescCoach], [t.voiceRoaster, t.voiceDescRoaster]].map(([name, desc], i) => (
+              <View key={name} style={{ marginTop: i === 0 ? 0 : spacing.sm }}>
+                <Text variant="body" style={{ fontWeight: '600' }}>{name}</Text>
+                <Text variant="small">{desc}</Text>
+              </View>
+            ))}
+          </Card>
+          <View style={{ marginTop: spacing.xxl }}><Button title={t.onboardVoiceYes} onPress={() => { if (settings?.voice === 'plain') updateSettings({ voice: 'friend' }); go(4); }} /></View>
+          <View style={{ marginTop: spacing.md }}><Button tone="secondary" title={t.onboardVoiceNo} onPress={() => finish(false)} /></View>
+        </View>
+        </View>
+      );
+    }
+    if (key === 'pick') {
+      return (
+        <View style={{ width, height: pageHeight || undefined }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.xl }} keyboardShouldPersistTaps="handled">
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
+          <Text variant="title" style={{ marginBottom: spacing.lg }}>{t.voice}</Text>
+          <VoicePicker compact />
+          <Row style={{ marginTop: spacing.xl }}>
+            <Button tone="ghost" title={t.back} onPress={() => go(3)} />
+            <Button title={t.done} onPress={() => finish(true)} style={{ flex: 1 }} />
+          </Row>
+        </View>
+        </ScrollView>
+        </View>
+      );
+    }
     return (
       <View style={{ width, minHeight: pageHeight, padding: spacing.xl, justifyContent: 'center' }}>
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
@@ -93,7 +130,7 @@ export default function Onboarding() {
         <Text variant="muted" style={{ marginTop: spacing.lg }}>{t.onboardLearn}</Text>
         <Row style={{ marginTop: spacing.xxl }}>
           <Button tone="ghost" title={t.back} onPress={() => go(1)} />
-          <Button title={t.start} onPress={finish} style={{ flex: 1 }} />
+          <Button title={t.start} onPress={() => go(3)} style={{ flex: 1 }} />
         </Row>
       </View>
       </View>

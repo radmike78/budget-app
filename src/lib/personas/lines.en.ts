@@ -94,3 +94,11 @@ const roaster: LineSet = {
 };
 
 export const LINES_EN: Record<Exclude<Voice, 'plain'>, LineSet> = { friend, coach, roaster };
+
+/** Said once when a voice is chosen, so the user hears who they picked (and which spoken voice). */
+export const GREETINGS_EN: Record<Voice, string[]> = {
+  plain: ['Plain voice. Just the facts from here on.', 'Understood. No commentary, only numbers.'],
+  friend: ['Hey, it is me. I am on your side, lattes and all.', 'Friend here. We are going to be fine.'],
+  coach: ['Coach here. Every entry is a rep. Let us go.', 'Coach checking in. Log it, own it, keep going.'],
+  roaster: ['Roaster here. Your lattes are on notice; your rent is safe with me.', 'Well, well. Someone wants honesty. Let us begin.'],
+};

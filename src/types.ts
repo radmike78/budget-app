@@ -140,6 +140,7 @@ export interface Settings {
   overallLimit: number | null;
   voice: Voice;
   attitude: Attitude;
+  voiceGender: VoiceGender;
 }
 
 /** The user's answer to "carry over what was left?" for one category and one period (its start date). */
@@ -154,6 +155,8 @@ export type AnswerMode = 'auto' | 'text' | 'speak';
 export type Voice = 'plain' | 'friend' | 'coach' | 'roaster';
 /** How far a voice is allowed to go. There is deliberately nothing past spicy. */
 export type Attitude = 'nice' | 'playful' | 'spicy';
+/** Which of the phone's own text-to-speech voices reads answers and lines aloud. */
+export type VoiceGender = 'female' | 'male';
 
 /** A learned word -> category mapping, created when the user corrects a parsed category. */
 export interface KeywordMapping {

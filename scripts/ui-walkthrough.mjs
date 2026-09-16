@@ -56,8 +56,25 @@ const expectLabel = async (t) => { const b = (await bodyText()).toLowerCase(); i
 await step('onboarding', async () => {
   await goto('/');
   await page.getByText('OnlyBudget').first().waitFor({ timeout: 30000 });
-  await text('Next').click(); await text('Next').click(); await text('Start').click(); await page.waitForTimeout(600);
+  await text('Next').click(); await text('Next').click(); await text('Start').click(); await page.waitForTimeout(500);
+  await expectText('Want a voice that talks back?');
+  await shot('onboarding-voice');
+  await text('Yes, let me pick').click(); await page.waitForTimeout(600);
+  await text('Male').click(); await page.waitForTimeout(200);
+  // The question page also lists "Roaster" as text; the picker's card is a button.
+  await page.getByRole('button', { name: /^Roaster/ }).first().click(); await page.waitForTimeout(300);
+  await expectText('Hear it');
+  await shot('onboarding-pick');
+  await button(/^Done$/).click(); await page.waitForTimeout(800);
   await expectText('Nothing here yet');
+  // The pick sticks: Settings shows it, and the Voice screen opens.
+  await goto('/settings');
+  await expectText('Roaster · Playful · Male');
+  await goto('/settings/voice');
+  await expectText('Teases your lattes');
+  await shot('voice-screen');
+  await text('Plain').click(); await page.waitForTimeout(300);
+  await goto('/');
 });
 await step('add and save an expense', async () => {
   await entry('spent 12 on lunch');
@@ -278,10 +295,10 @@ await step('budget month navigation', async () => {
   await expectText('August');
 });
 await step('a voice talks back after an entry, and plain stays silent', async () => {
-  await goto('/settings');
-  await text('Roaster').click(); await page.waitForTimeout(400);
+  await goto('/settings/voice');
+  await page.getByRole('button', { name: /^Roaster/ }).first().click(); await page.waitForTimeout(400);
   await text('Spicy').click(); await page.waitForTimeout(400);
-  await expectText('For example:');
+  await expectText('For example');
   await shot('settings-voice');
   await goto('/');
   await entry('spent 20 at Starbucks');
@@ -292,12 +309,28 @@ await step('a voice talks back after an entry, and plain stays silent', async ()
   await entry('rent 400');
   await button(/^Save$/).click(); await page.waitForTimeout(700);
   if (await page.getByTestId('persona-line').count()) throw new Error('a joke was made about rent');
-  await goto('/settings');
-  await text('Plain').click(); await page.waitForTimeout(400);
+  await goto('/settings/voice');
+  await page.getByRole('button', { name: /^Plain/ }).first().click(); await page.waitForTimeout(400);
   await goto('/');
   await entry('spent 5 at Starbucks');
   await button(/^Save$/).click(); await page.waitForTimeout(700);
   if (await page.getByTestId('persona-line').count()) throw new Error('plain voice produced a line');
+});
+await step('switching the voice by talking (typed here) applies at once and greets', async () => {
+  await goto('/');
+  await entry('switch to the coach and make it spicy');
+  await expectText('Voice: Coach · Spicy · Male.');
+  await shot('voice-command');
+  await entry('female voice');
+  await expectText('Voice: Coach · Spicy · Female.');
+  await entry('plain voice');
+  await expectText('Voice: Plain · Female.');
+  await button(/^Done$/).click(); await page.waitForTimeout(300);
+  await entry('spent 4 at Starbucks');
+  await button(/^Save$/).click(); await page.waitForTimeout(700);
+  if (await page.getByTestId('persona-line').count()) throw new Error('plain voice produced a line after a spoken switch');
+  await goto('/history');
+  await expectNoText('switch to the coach');
 });
 await step('overall plan on the budget and today screens', async () => {
   await goto('/budget');

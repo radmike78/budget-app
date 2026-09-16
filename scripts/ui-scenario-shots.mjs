@@ -105,7 +105,8 @@ for (const profile of PROFILES) {
   try {
     await goto('/');
     await page.getByText(APP_NAME).first().waitFor({ timeout: 30000 });
-    await text('Next').click(); await text('Next').click(); await text('Start').click(); await page.waitForTimeout(600);
+    await text('Next').click(); await text('Next').click(); await text('Start').click(); await page.waitForTimeout(400);
+    await page.getByText('No thanks', { exact: false }).first().click(); await page.waitForTimeout(600);
     // The app's own export gives the category list; the scenario is layered on top and restored.
     await goto('/settings/backup');
     const [download] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), button(/Full backup/).click()]);

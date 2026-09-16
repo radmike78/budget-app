@@ -13,7 +13,7 @@
  * - A line that was said recently is not said again while others are available.
  */
 import type { Attitude, TxType, Voice } from '@/types';
-import { LINES_EN, type LineSet, type Situation } from './lines.en';
+import { GREETINGS_EN, LINES_EN, type LineSet, type Situation } from './lines.en';
 
 export type { Situation } from './lines.en';
 
@@ -118,6 +118,13 @@ export function personaLine(e: PersonaEvent, prefs: PersonaPrefs, money: (n: num
   const choices = fresh.length > 0 ? fresh : keys.map((_, i) => i);
   const idx = choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))];
   return { text: fill(pool[idx], e, money), key: keys[idx] };
+}
+
+/** The line a voice says when it is chosen. English only, like everything else here. */
+export function greeting(voice: Voice, language: string, random: () => number = Math.random): string | null {
+  if (language !== 'en') return null;
+  const pool = GREETINGS_EN[voice];
+  return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))] ?? null;
 }
 
 /** Keeps the last few line keys so the same joke does not come back too soon. */

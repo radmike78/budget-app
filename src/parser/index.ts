@@ -2,14 +2,16 @@ import type { Category, Goal, GoalKind, ReminderRepeat, TxType } from '@/types';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/lib/defaultCategories';
 import { applyRules } from './dateRules';
 import { nextMonthDay, nextWeekday, pad2 } from './reminderRules';
+import { parseVoiceCommand, type VoiceCommand } from './commandRules';
 import { parseQuestion, type ParsedQuestion, type QuestionPeriod } from './questionRules';
 import { normalizeDecimalComma } from './numbers';
 import { getPack } from './packs';
 import type { LanguagePack } from './types';
 
+export type { VoiceCommand } from './commandRules';
 export type { ParsedQuestion, QuestionPeriod };
 
-export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'unknown';
+export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'command' | 'unknown';
 
 export interface ParseResult {
   kind: ParseKind;
@@ -35,6 +37,8 @@ export interface ParseResult {
   reminderRepeat: ReminderRepeat;
   /** Question about spending or income ("how much have I spent this week on Starbucks?"). */
   question: ParsedQuestion | null;
+  /** A spoken settings change ("switch to the coach", "female voice"). Applied at once, never saved as an entry. */
+  command: VoiceCommand | null;
   /** 0..1 overall confidence in the parse */
   confidence: number;
   /** True when the app should ask the user to check the result more carefully (or escalate to Tier 2). */
@@ -341,7 +345,7 @@ function baseResult(raw: string, today: string): ParseResult {
   return {
     kind: 'unknown', raw, amount: null, type: 'expense', typeConfidence: 0, categoryId: null, categoryConfidence: 0,
     note: null, occurredAt: today, dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
-    reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null,
+    reminderText: null, reminderTime: null, reminderRepeat: 'none', command: null, question: null,
     confidence: 0, needsReview: true, hints: [],
   };
 }
@@ -684,6 +688,8 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
   if (!raw) return [baseResult(raw, ctx.today)];
   const question = parseQuestionText(raw, ctx, pack);
   if (question) return [question];
+  const command = ctx.language === 'en' && raw.length <= MAX_QUESTION_LENGTH ? parseVoiceCommand(raw) : null;
+  if (command) return [{ ...baseResult(raw, ctx.today), kind: 'command', command, confidence: 1, needsReview: false }];
   const sentences = splitSentences(raw);
   const results: ParseResult[] = [];
   let sharedDate: string | null = null;

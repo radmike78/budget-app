@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
@@ -42,7 +42,7 @@ export default function HomeScreen() {
     setToastLine(line ?? null);
     // The voices speak English only, and only under the same rule as answers to questions.
     const mode = settings?.answerMode ?? 'auto';
-    if (line && (mode === 'speak' || (mode === 'auto' && lastSource === 'voice'))) speak(line, 'en');
+    if (line && (mode === 'speak' || (mode === 'auto' && lastSource === 'voice'))) speak(line, 'en', settings?.voiceGender ?? 'female');
   };
 
   // Today always shows the period that contains today, even after browsing older ones on the Budget tab.
@@ -74,7 +74,7 @@ export default function HomeScreen() {
         <Card tone="accent" style={{ marginTop: spacing.md }}>
           <Text variant="heading" style={{ lineHeight: 26 }}>{answer.text}</Text>
           <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
-            <Button tone="ghost" small title={t.readAloud} onPress={() => speak(answer.text, language)} />
+            <Button tone="ghost" small title={t.readAloud} onPress={() => speak(answer.text, language, settings.voiceGender)} />
             <Button tone="ghost" small title={t.done} onPress={dismissAnswer} />
           </Row>
         </Card>
@@ -82,7 +82,12 @@ export default function HomeScreen() {
       {toast ? (
         <Card tone="accent" style={{ marginTop: spacing.md, paddingVertical: spacing.md }}>
           <Text variant="body">{toast}</Text>
-          {toastLine ? <Text variant="heading" testID="persona-line" style={{ marginTop: spacing.xs, lineHeight: 24 }}>{toastLine}</Text> : null}
+          {toastLine ? (
+            <Pressable accessibilityRole="button" accessibilityHint={t.voiceTip} onPress={() => router.push('/settings/voice')}>
+              <Text variant="heading" testID="persona-line" style={{ marginTop: spacing.xs, lineHeight: 24 }}>{toastLine}</Text>
+              <Text variant="small" style={{ marginTop: 2 }}>{t.voiceChangeHint}</Text>
+            </Pressable>
+          ) : null}
         </Card>
       ) : null}
       <CarryQuestions />

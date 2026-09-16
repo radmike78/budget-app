@@ -72,6 +72,7 @@ export default function RootLayout() {
           <Stack.Screen name="recurring/index" options={{ title: t.repeatingEntries }} />
           <Stack.Screen name="recurring/[id]" options={{ title: t.repeatingEntries, presentation: 'modal' }} />
           <Stack.Screen name="settings/help" options={{ title: t.help }} />
+          <Stack.Screen name="settings/voice" options={{ title: t.voice }} />
           <Stack.Screen name="settings/about" options={{ title: t.aboutApp }} />
           <Stack.Screen name="settings/backup" options={{ title: t.backupExport }} />
           <Stack.Screen name="settings/smart" options={{ title: t.smartParse }} />

@@ -33,7 +33,7 @@ const toGoal = (r: GoalRow): Goal => ({
   id: r.id, name: r.name, kind: r.kind === 'debt' ? 'debt' : 'saving', targetAmount: r.target_amount, currentAmount: r.current_amount, targetDate: r.target_date, createdAt: r.created_at, completed: r.completed === 1,
 });
 
-type SettingsRow = { currency: string; theme: Settings['theme']; last_backup_at: string | null; starting_balance: number | null; onboarding_done: number; reminder_enabled: number; reminder_hour: number; smart_parse_enabled: number; language: string | null; app_lock: number | null; answer_mode: string | null; budget_period?: string | null; overall_limit?: number | null; voice?: string | null; attitude?: string | null };
+type SettingsRow = { currency: string; theme: Settings['theme']; last_backup_at: string | null; starting_balance: number | null; onboarding_done: number; reminder_enabled: number; reminder_hour: number; smart_parse_enabled: number; language: string | null; app_lock: number | null; answer_mode: string | null; budget_period?: string | null; overall_limit?: number | null; voice?: string | null; attitude?: string | null; voice_gender?: string | null };
 const VOICES: Voice[] = ['plain', 'friend', 'coach', 'roaster'];
 const ATTITUDES: Attitude[] = ['nice', 'playful', 'spicy'];
 export const toVoice = (v: unknown): Voice => ((VOICES as unknown[]).includes(v) ? (v as Voice) : 'plain');
@@ -42,7 +42,7 @@ const toSettings = (r: SettingsRow): Settings => ({
   currency: r.currency, theme: r.theme, lastBackupAt: r.last_backup_at, startingBalance: r.starting_balance, onboardingDone: r.onboarding_done === 1,
   reminderEnabled: r.reminder_enabled === 1, reminderHour: r.reminder_hour, smartParseEnabled: r.smart_parse_enabled === 1, language: r.language ?? 'system', appLockEnabled: r.app_lock === 1, answerMode: r.answer_mode === 'text' || r.answer_mode === 'speak' ? r.answer_mode : 'auto',
   budgetPeriod: r.budget_period === 'pay' ? 'pay' : 'month', overallLimit: typeof r.overall_limit === 'number' && r.overall_limit > 0 ? r.overall_limit : null,
-  voice: toVoice(r.voice), attitude: toAttitude(r.attitude),
+  voice: toVoice(r.voice), attitude: toAttitude(r.attitude), voiceGender: r.voice_gender === 'male' ? 'male' : 'female',
 });
 
 // ---------- transactions ----------
@@ -304,8 +304,8 @@ export async function getSettings(db: DB): Promise<Settings> {
 
 export async function saveSettings(db: DB, s: Settings): Promise<void> {
   await db.runAsync(
-    `UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = ?, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ?, budget_period = ?, overall_limit = ?, voice = ?, attitude = ? WHERE id = 1`,
-    [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.onboardingDone ? 1 : 0, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto', s.budgetPeriod === 'pay' ? 'pay' : 'month', s.overallLimit ?? null, toVoice(s.voice), toAttitude(s.attitude)],
+    `UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = ?, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ?, budget_period = ?, overall_limit = ?, voice = ?, attitude = ?, voice_gender = ? WHERE id = 1`,
+    [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.onboardingDone ? 1 : 0, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto', s.budgetPeriod === 'pay' ? 'pay' : 'month', s.overallLimit ?? null, toVoice(s.voice), toAttitude(s.attitude), s.voiceGender === 'male' ? 'male' : 'female'],
   );
 }
 
@@ -368,8 +368,8 @@ export async function replaceAllData(
     }
     const s = data.settings;
     await db.runAsync(
-      'UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = 1, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ?, budget_period = ?, overall_limit = ?, voice = ?, attitude = ? WHERE id = 1',
-      [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto', s.budgetPeriod === 'pay' ? 'pay' : 'month', s.overallLimit ?? null, toVoice(s.voice), toAttitude(s.attitude)],
+      'UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = 1, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ?, budget_period = ?, overall_limit = ?, voice = ?, attitude = ?, voice_gender = ? WHERE id = 1',
+      [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto', s.budgetPeriod === 'pay' ? 'pay' : 'month', s.overallLimit ?? null, toVoice(s.voice), toAttitude(s.attitude), s.voiceGender === 'male' ? 'male' : 'female'],
     );
   });
 }
