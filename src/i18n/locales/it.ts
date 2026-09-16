@@ -332,6 +332,20 @@ export const it: LocaleDef = {
     smartParse: 'Assistenza intelligente',
     smartParseOn: 'Attiva. Usata solo quando l’analisi integrata è incerta.',
     smartParseOff: 'Disattiva. Tutto viene analizzato sul tuo telefono.',
+    answerMode: 'Risposte alle domande',
+    answerModeSub: 'Chiedi «quanto ho speso questa settimana in caffè?» nella scheda Oggi.',
+    answerText: 'Sullo schermo',
+    answerSpeak: 'Leggi ad alta voce',
+    answerAuto: 'Ad alta voce se chiedo a voce',
+    readAloud: 'Leggi ad alta voce',
+    periodNames: { today: 'oggi', yesterday: 'ieri', week: 'questa settimana', lastWeek: 'la settimana scorsa', month: 'questo mese', lastMonth: 'il mese scorso', year: 'quest\'anno', lastYear: 'l\'anno scorso', all: 'in totale' } as Record<string, string>,
+    answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
+      const p = period.charAt(0).toUpperCase() + period.slice(1);
+      const n = `${count} ${count === 1 ? 'voce' : 'voci'}`;
+      return income ? `${p} hai incassato ${amount}${what ? ` da ${what}` : ''}, in ${n}.` : `${p} hai speso ${amount}${what ? ` per ${what}` : ''}, in ${n}.`;
+    },
+    answerNone: (period: string, what: string | null, income: boolean) => (income ? `Non è entrato nulla${what ? ` da ${what}` : ''} ${period}.` : `Nessuna voce${what ? ` per ${what}` : ''} ${period}.`),
+    answerFallback: (target: string, category: string) => `Nessuna voce menziona ${target}, quindi questo è il totale di ${category}.`,
     about: 'Informazioni',
     aboutApp: 'Informazioni su OnlyBudget',
     aboutSub: 'Nessuna banca collegata. Niente pubblicità. Nessun tracciamento. Mai.',

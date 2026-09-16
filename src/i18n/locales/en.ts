@@ -351,6 +351,20 @@ export const en = {
     smartParse: 'Smart parsing assist',
     smartParseOn: 'On. Used only when the built-in parser is unsure.',
     smartParseOff: 'Off. Everything is parsed on your phone.',
+    answerMode: 'Answers to questions',
+    answerModeSub: 'Ask "how much have I spent this week on coffee?" on the Today tab.',
+    answerText: 'On screen',
+    answerSpeak: 'Read aloud',
+    answerAuto: 'Aloud when I ask by voice',
+    readAloud: 'Read aloud',
+    periodNames: { today: 'today', yesterday: 'yesterday', week: 'this week', lastWeek: 'last week', month: 'this month', lastMonth: 'last month', year: 'this year', lastYear: 'last year', all: 'in total' } as Record<string, string>,
+    answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
+      const p = period.charAt(0).toUpperCase() + period.slice(1);
+      const n = `${count} ${count === 1 ? 'entry' : 'entries'}`;
+      return income ? `${p} you've brought in ${amount}${what ? ` from ${what}` : ''}, across ${n}.` : `${p} you've spent ${amount}${what ? ` on ${what}` : ''}, across ${n}.`;
+    },
+    answerNone: (period: string, what: string | null, income: boolean) => (income ? `Nothing came in${what ? ` from ${what}` : ''} ${period}.` : `Nothing logged${what ? ` for ${what}` : ''} ${period}.`),
+    answerFallback: (target: string, category: string) => `No entry mentions ${target}, so this is the ${category} total.`,
     about: 'About',
     aboutApp: 'About OnlyBudget',
     aboutSub: 'No bank linking. No ads. No tracking. Ever.',

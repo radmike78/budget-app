@@ -2,6 +2,7 @@ import type { TxType } from '@/types';
 
 /** A date rule: regex over normalized text, resolver returns YYYY-MM-DD or null. */
 import type { ReminderPack } from './reminderRules';
+import type { QuestionPack } from './questionRules';
 
 export interface DateRule {
   re: RegExp;
@@ -66,6 +67,8 @@ export interface LanguagePack {
   listSeparators: string[];
   /** Spoken reminders: lead phrases, clock times, repeat words, future days. */
   reminder: ReminderPack;
+  /** Spoken questions about spending: lead phrases, period words, leftovers to strip. */
+  question: QuestionPack;
 }
 
 export type KeywordEntry = { categoryId: string; kind: TxType };

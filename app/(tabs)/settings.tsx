@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Platform, ScrollView, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import type { ThemeSetting } from '@/types';
+import type { AnswerMode, ThemeSetting } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { CURRENCIES, currencyInfo } from '@/lib/money';
@@ -79,6 +79,11 @@ export default function SettingsScreen() {
       <Card style={{ marginBottom: spacing.sm }}>
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.appearance}</Text>
         <Segmented<ThemeSetting> value={settings.theme} onChange={(theme) => updateSettings({ theme })} options={[{ value: 'system', label: t.themeSystem }, { value: 'light', label: t.themeLight }, { value: 'dark', label: t.themeDark }]} />
+      </Card>
+      <Card style={{ marginBottom: spacing.sm }}>
+        <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.answerMode}</Text>
+        <Segmented<AnswerMode> value={settings.answerMode} onChange={(answerMode) => updateSettings({ answerMode })} options={[{ value: 'text', label: t.answerText }, { value: 'speak', label: t.answerSpeak }, { value: 'auto', label: t.answerAuto }]} />
+        <Text variant="small" style={{ marginTop: spacing.sm }}>{t.answerModeSub}</Text>
       </Card>
       {Platform.OS !== 'web' ? <Card style={{ marginBottom: spacing.sm }}>
         <Row style={{ justifyContent: 'space-between' }}>

@@ -116,7 +116,11 @@ export interface Settings {
   language: string;
   /** Ask for the phone's biometrics or passcode when the app opens. */
   appLockEnabled: boolean;
+  /** How answers to spoken questions are given: on screen, read aloud, or aloud only when asked by voice. */
+  answerMode: AnswerMode;
 }
+
+export type AnswerMode = 'auto' | 'text' | 'speak';
 
 /** A learned word -> category mapping, created when the user corrects a parsed category. */
 export interface KeywordMapping {

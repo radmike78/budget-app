@@ -1,6 +1,7 @@
 import { ISO_RULE, cjkByMonthRule, cjkMonthDayRule, dayOfMonthRule, relativeFutureRules, relativePastRules, weekdayRule, wordRule } from '../dateRules';
 import { cjkNumeralsToDigits, expandK } from '../numbers';
 import type { LanguagePack } from '../types';
+import { periodWords } from '../questionRules';
 import { cjkClockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOnRule, repeatWords, weeklyOnRule, wordTimeRules } from '../reminderRules';
 import { fromDateString } from '@/lib/dates';
 
@@ -127,6 +128,26 @@ export const zh: LanguagePack = {
     ],
     dayLate: [futureDayOfMonthRule(/(\d{1,2})[号日]/u)],
     strip: [/^(?:我|要|去|得|该|一下|记得|记住|别忘了|不要忘了|需要|到时候|到时|然后|的时候|时候|的)+/u, /(?:一下|吧|哦|啊|呀|哈|好吗|可以吗|的|了|的事|这件事|这事)+$/u],
+  },
+  question: {
+    lead: /(?:(?:我|我们|咱们)?(?:总共|一共|总计)?(?:花了|花費了|花费了|用了|消费了|消費了|支出了|花掉了|付了|花|用|消费|支出)(?:多少|几多|多少钱|多少錢|几块|几块钱)(?:钱|錢)?|(?:多少钱|多少錢|多少)(?:花在|用在|花了|用了|是)?|(?:花了|用了|消费了|支出了|付了)(?:多少|几)(?:钱|錢)?|(?:支出|花费|花費|消费|消費|开销|開銷|开支|開支|花销|花銷)(?:是|总共是|一共是|有|总共有|一共有|总额|總額|合计|合計|总计|總計)?(?:多少|多少钱|多少錢|几多|多大)|(?:总共|一共|总计|合计)(?:花了|用了|消费了|支出了)?(?:多少|多少钱|多少錢))(?:钱|錢|呢|啊|呀|吗|嗎|？|\?)*/u,
+    incomeLead: /(?:(?:我|我们|咱们)?(?:总共|一共)?(?:赚了|賺了|挣了|掙了|收到了|收了|进账了|進賬了|入账了|入賬了|拿到了|挣|赚|赚到)(?:多少|多少钱|多少錢|几多)(?:钱|錢)?|(?:收入|进账|進賬|入账|入賬|收益|工资|工資)(?:是|总共是|一共是|有|总共有|总额|總額|合计|合計)?(?:多少|多少钱|多少錢|几多))(?:钱|錢|呢|啊|呀|吗|嗎|？|\?)*/u,
+    periods: [
+      periodWords(['今天', '今日', '今早', '今天早上', '今天下午', '今晚', '今天晚上'], 'today', { boundary: false }),
+      periodWords(['昨天', '昨日'], 'yesterday', { boundary: false }),
+      periodWords(['上周', '上週', '上星期', '上个星期', '上個星期', '上礼拜', '上禮拜', '上个礼拜', '上個禮拜', '前一周', '过去一周', '過去一周'], 'lastWeek', { boundary: false }),
+      periodWords(['这周', '這周', '这一周', '這一周', '本周', '本週', '这星期', '這星期', '这个星期', '這個星期', '本星期', '这礼拜', '這禮拜', '这个礼拜', '這個禮拜', '本礼拜', '这周以来', '這周以來'], 'week', { boundary: false }),
+      periodWords(['上个月', '上個月', '上月', '前一个月', '过去一个月', '過去一個月'], 'lastMonth', { boundary: false }),
+      periodWords(['这个月', '這個月', '这月', '這月', '本月', '这个月以来', '這個月以來', '本月以来', '本月以來', '这个月到现在', '這個月到現在'], 'month', { boundary: false }),
+      periodWords(['去年', '上一年', '前一年'], 'lastYear', { boundary: false }),
+      periodWords(['今年', '本年', '这一年', '這一年', '今年以来', '今年以來', '今年到现在', '今年到現在'], 'year', { boundary: false }),
+      periodWords(['总共', '總共', '一共', '总计', '總計', '合计', '合計', '全部', '所有', '到现在为止', '到現在為止', '到目前为止', '到目前為止', '至今', '从头到现在', '一直以来', '一直以來', '总的', '總的', '总', '總'], 'all', { boundary: false }),
+    ],
+    strip: [
+      /^(?:(?:在|花在|用在|给|給|为|為|为了|為了|去|到|跟|和|的|了|我|我们|我們|咱们|咱們|钱|錢|是|有|大概|大约|大約|差不多)\s*)+/u,
+      /(?:\s*(?:上|上面|里|裡|里面|裡面|方面|上的|的|了|钱|錢|花|用|花的|用的|花费|花費|消费|消費|那里|那裡|这里|這裡|吧|呢|啊|呀|吗|嗎))+$/u,
+      /(?:钱|錢)/gu,
+    ],
   },
   contextualStrings: ['块', '元', '午饭', '房租', '工资', '目标', '外卖', '打车'],
 };

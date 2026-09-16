@@ -1,6 +1,7 @@
 import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
+import { periodWords } from '../questionRules';
 import { clockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOnRule, repeatWords, weeklyOnRule, wordTimeRules } from '../reminderRules';
 
 const MONTHS = { names: { januar: 0, jänner: 0, jan: 0, februar: 1, feb: 1, märz: 2, maerz: 2, mär: 2, april: 3, apr: 3, mai: 4, juni: 5, jun: 5, juli: 6, jul: 6, august: 7, aug: 7, september: 8, sep: 8, sept: 8, oktober: 9, okt: 9, november: 10, nov: 10, dezember: 11, dez: 11 } };
@@ -144,6 +145,27 @@ export const de: LanguagePack = {
     ],
     dayLate: [futureDayOfMonthRule(/(?<![\p{L}])(?:am|zum|bis zum) (\d{1,2}\.|ersten)(?![\p{N}])(?!\s*(?:uhr|jeden|jedes|des))/iu, { ersten: 1 })],
     strip: [/^(?:(?:daran|dran|an den|an die|an das|an|zu|dass|um|für|bitte|ich muss|ich soll|ich sollte|dass ich|und)\s*,?\s+)+/iu, /(?:\s+(?:bitte|danke|zu erinnern|erinnern|soll|muss|sollte))+$/iu],
+  },
+  question: {
+    lead: /(?<![\p{L}])(?:(?:wie ?viel|wieviel|was) (?:geld )?(?:habe ich|hab ich|hab' ich|haben wir|hatte ich|hatten wir)(?=[^?]*(?<![\p{L}])(?:ausgegeben|bezahlt|gezahlt|verbraten|ausgeben|verpulvert|gelassen)(?![\p{L}]))|(?:wie ?viel|wieviel) (?:geld )?(?:ging|ist|geht) (?:für|an|in|bei|drauf|weg)|(?:wie ?viel|wieviel) (?:geld )?(?:für|bei|an|in|im|beim|auf)(?![\p{L}])|(?:meine |die |gesamte )?ausgaben (?:insgesamt|gesamt|in summe|bisher)|was (?:kostet|kosten|kostete|hat) mich)/u,
+    incomeLead: /(?<![\p{L}])(?:(?:wie ?viel|wieviel|was) (?:geld )?(?:habe ich|hab ich|hab' ich|haben wir|hatte ich)(?=[^?]*(?<![\p{L}])(?:verdient|eingenommen|bekommen|erhalten|reinbekommen|kassiert)(?![\p{L}]))|(?:wie ?viel|wieviel) (?:geld )?(?:kam|ist|kommt) (?:rein|herein|eingegangen)|(?:meine |die )?einnahmen (?:insgesamt|gesamt|in summe|bisher)|(?:mein |das )?einkommen (?:insgesamt|gesamt|bisher))/u,
+    periods: [
+      periodWords(['heute', 'heute morgen', 'heute nachmittag', 'heute abend'], 'today'),
+      periodWords(['gestern'], 'yesterday'),
+      periodWords(['letzte woche', 'in der letzten woche', 'vergangene woche', 'in der vergangenen woche', 'vorige woche'], 'lastWeek'),
+      periodWords(['diese woche', 'in dieser woche', 'die woche', 'in der woche'], 'week'),
+      periodWords(['letzten monat', 'im letzten monat', 'vergangenen monat', 'im vergangenen monat', 'vorigen monat', 'letzter monat'], 'lastMonth'),
+      periodWords(['diesen monat', 'in diesem monat', 'den monat', 'im monat', 'dieser monat', 'bisher diesen monat'], 'month'),
+      periodWords(['letztes jahr', 'im letzten jahr', 'vergangenes jahr', 'im vergangenen jahr', 'voriges jahr'], 'lastYear'),
+      periodWords(['dieses jahr', 'in diesem jahr', 'das jahr', 'im jahr'], 'year'),
+      periodWords(['insgesamt', 'in summe', 'bisher', 'bis jetzt', 'überhaupt', 'ueberhaupt', 'seit anfang', 'alles zusammen', 'gesamt'], 'all'),
+    ],
+    strip: [
+      /(?<![\p{L}])(?:ausgegeben|bezahlt|gezahlt|verbraten|ausgeben|verpulvert|gelassen|verdient|eingenommen|bekommen|erhalten|reinbekommen|kassiert)(?![\p{L}])/gu,
+      /^(?:(?:für|fuer|bei|an|in|im|beim|auf|mit|zu|zum|zur|den|die|das|der|dem|meine|meinen|mein|und|geld|habe|hab|ich|wir|schon|bereits|eigentlich|denn|so|jetzt)\s+)+/u,
+      /(?:\s+(?:insgesamt|bisher|bitte|danke|geld|schon|bereits|eigentlich|denn|so|jetzt|dieser|diese|dieses|den|die|das))+$/u,
+      /(?<![\p{L}])(?:geld|euro|euros|dollar)(?![\p{L}])/gu,
+    ],
   },
   contextualStrings: ['Euro', 'Einkauf', 'Miete', 'Gehalt', 'Ziel', 'Netflix', 'Uber', 'Mittagessen'],
 };

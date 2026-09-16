@@ -1,6 +1,7 @@
 import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, dayOfMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
+import { periodWords } from '../questionRules';
 import { clockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOnRule, repeatWords, weeklyOnRule, wordTimeRules } from '../reminderRules';
 
 const MONTHS = { names: { enero: 0, ene: 0, febrero: 1, feb: 1, marzo: 2, mar: 2, abril: 3, abr: 3, mayo: 4, may: 4, junio: 5, jun: 5, julio: 6, jul: 6, agosto: 7, ago: 7, septiembre: 8, setiembre: 8, sept: 8, sep: 8, set: 8, octubre: 9, oct: 9, noviembre: 10, nov: 10, diciembre: 11, dic: 11 } };
@@ -33,7 +34,7 @@ export const es: LanguagePack = {
     gift_income: ['regalo de', 'me regaló', 'me regalaron', 'me dio', 'me dieron', 'dinero de cumpleaños', 'de mi madre', 'de mi padre', 'de mamá', 'de papá', 'de la abuela', 'del abuelo', 'aguinaldo'],
     other_income: ['reembolso', 'devolución', 'devolucion', 'me devolvieron', 'cashback', 'intereses', 'dividendos', 'bono', 'bonus', 'declaración de la renta', 'hacienda me devolvió', 'premio', 'lotería', 'loteria', 'pensión', 'pension', 'beca', 'subsidio', 'paro', 'ayuda', 'me pagó lo que le presté', 'me devolvió', 'bizum de', 'transferencia de'],
     groceries: ['supermercado', 'súper', 'super', 'mercado', 'compra de la semana', 'compra del súper', 'verduras', 'verdura', 'frutas', 'fruta', 'carne', 'pan', 'leche', 'huevos', 'mercadona', 'carrefour', 'lidl', 'aldi', 'dia', 'alcampo', 'eroski', 'walmart', 'soriana', 'chedraui', 'jumbo', 'líder', 'lider', 'éxito', 'exito', 'coto', 'carnicería', 'carniceria', 'panadería', 'panaderia', 'frutería', 'fruteria', 'pescadería', 'despensa', 'alimentos', 'víveres', 'viveres'],
-    dining: ['almuerzo', 'comida', 'cena', 'desayuno', 'merienda', 'brunch', 'café', 'cafe', 'cafetería', 'cafeteria', 'restaurante', 'restaurant', 'resto', 'bar', 'cerveza', 'cervezas', 'cañas', 'vino', 'copas', 'tapas', 'pizza', 'hamburguesa', 'tacos', 'sushi', 'bocadillo', 'bocata', 'comer fuera', 'pedido', 'rappi', 'glovo', 'uber eats', 'didi food', 'pedidosya', 'just eat', 'starbucks', 'mcdonalds', "mcdonald's", 'burger king', 'helado', 'postre', 'churros', 'kebab', 'menú del día', 'menu del dia', 'comida a domicilio', 'domicilio', 'tapeo', 'aperitivo', 'refresco', 'bebida', 'bebidas'],
+    dining: ['almuerzo', 'comida', 'cena', 'desayuno', 'merienda', 'brunch', 'café', 'cafe', 'cafetería', 'cafeteria', 'restaurante', 'restaurantes', 'salir a comer', 'comer fuera', 'restaurant', 'resto', 'bar', 'cerveza', 'cervezas', 'cañas', 'vino', 'copas', 'tapas', 'pizza', 'hamburguesa', 'tacos', 'sushi', 'bocadillo', 'bocata', 'comer fuera', 'pedido', 'rappi', 'glovo', 'uber eats', 'didi food', 'pedidosya', 'just eat', 'starbucks', 'mcdonalds', "mcdonald's", 'burger king', 'helado', 'postre', 'churros', 'kebab', 'menú del día', 'menu del dia', 'comida a domicilio', 'domicilio', 'tapeo', 'aperitivo', 'refresco', 'bebida', 'bebidas'],
     rent: ['alquiler', 'renta', 'hipoteca', 'arriendo', 'casero', 'piso', 'departamento', 'comunidad', 'seguro de hogar', 'fianza', 'expensas'],
     utilities: ['luz', 'electricidad', 'factura de la luz', 'agua', 'factura del agua', 'gas', 'factura del gas', 'internet', 'wifi', 'fibra', 'teléfono', 'telefono', 'móvil', 'movil', 'celular', 'factura', 'recibo', 'calefacción', 'calefaccion', 'movistar', 'vodafone', 'orange', 'telcel', 'claro', 'cable', 'servicios', 'basura'],
     transport: ['gasolina', 'nafta', 'bencina', 'combustible', 'diésel', 'diesel', 'uber', 'cabify', 'didi', 'taxi', 'tren', 'metro', 'autobús', 'autobus', 'bus', 'colectivo', 'camión', 'micro', 'transporte', 'peaje', 'estacionamiento', 'aparcamiento', 'parking', 'coche', 'carro', 'auto', 'seguro del coche', 'seguro del auto', 'taller', 'mecánico', 'mecanico', 'neumáticos', 'llantas', 'vuelo', 'avión', 'avion', 'billete', 'boleto', 'pasaje', 'bici', 'bicicleta', 'patinete', 'renfe', 'ave', 'bonobús', 'abono transporte', 'tarjeta de transporte', 'itv', 'lavado del coche', 'alquiler de coche', 'lavado'],
@@ -125,6 +126,26 @@ export const es: LanguagePack = {
     ],
     dayLate: [futureDayOfMonthRule(/(?<![\p{L}])(?:el|para el|el día|el dia|día|dia) (\d{1,2}|primero)(?![\p{L}\p{N}:])/iu, { primero: 1 })],
     strip: [/^(?:(?:de|que|para|sobre|a|y|por favor|tengo que|debo|hay que|que tengo que|que debo)\s+)+/iu, /(?:\s+(?:por favor|gracias|vale))+$/iu],
+  },
+  question: {
+    lead: /(?<![\p{L}])(?:cuánto|cuanto|qué|que) (?:dinero )?(?:he|hemos|llevo|llevamos|había|habia) (?:gastado|pagado)|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:gasté|gaste|gastamos|pagué|pague|pagamos|me gasté|me gaste|llevo gastado|llevo gastando|se (?:me )?(?:fue|ha ido))|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:en|para|con|de|por)(?![\p{L}])|(?<![\p{L}])(?:mis |el |mi )?gastos? (?:totales?|en total)|(?<![\p{L}])(?:cuánto|cuanto) es mi gasto/u,
+    incomeLead: /(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:he|hemos) (?:ganado|ingresado|recibido|cobrado)|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:gané|gane|ganamos|ingresé|ingrese|recibí|recibi|cobré|cobre|me (?:entró|entro|ha entrado))|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:entró|entro|ha entrado)|(?<![\p{L}])(?:mis |el |mi )?ingresos? (?:totales?|en total)/u,
+    periods: [
+      periodWords(['hoy', 'esta mañana', 'esta tarde', 'esta noche'], 'today'),
+      periodWords(['ayer'], 'yesterday'),
+      periodWords(['la semana pasada', 'semana pasada', 'la última semana', 'la ultima semana'], 'lastWeek'),
+      periodWords(['esta semana', 'en la semana', 'la semana'], 'week'),
+      periodWords(['el mes pasado', 'mes pasado', 'el último mes', 'el ultimo mes'], 'lastMonth'),
+      periodWords(['este mes', 'en el mes', 'el mes', 'en lo que va de mes', 'en lo que va del mes'], 'month'),
+      periodWords(['el año pasado', 'año pasado', 'el ano pasado'], 'lastYear'),
+      periodWords(['este año', 'este ano', 'en el año', 'en lo que va de año', 'en lo que va del año'], 'year'),
+      periodWords(['en total', 'de todo', 'hasta ahora', 'desde el principio', 'en toda la vida', 'total'], 'all'),
+    ],
+    strip: [
+      /^(?:(?:en|para|con|de|del|por|a|al|la|el|los|las|mi|mis|y|dinero|he|hemos|ya|me|se|lo|que)\s+)+/u,
+      /(?:\s+(?:en total|hasta ahora|por favor|gracias|ya|dinero|hoy|el|la|mi))+$/u,
+      /(?<![\p{L}])(?:dinero|euros|pesos|dólares|dolares)(?![\p{L}])/gu,
+    ],
   },
   contextualStrings: ['euros', 'dólares', 'pesos', 'supermercado', 'alquiler', 'nómina', 'meta', 'Netflix', 'Uber'],
 };

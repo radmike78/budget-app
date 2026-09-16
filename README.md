@@ -7,7 +7,11 @@ A minimal, honest budgeting app. No bank sync, no accounts, no ads, no bait-and-
 "got paid 2400"                     → $2,400 · Money in · Salary
 "goal: save 500 for a trip by dec"  → Goal: Trip, $500 by December 31
 "add 100 to the trip goal"          → +$100 toward Trip (logged as a transfer)
+"remind me to pay rent on the 1st"  → Reminder: Pay rent, Oct 1 at 09:00
+"how much did I spend on coffee this week?" → "This week you've spent $14.37 on coffee, across 2 entries."
 ```
+
+Questions are answered, never saved. Ask by voice and the answer is read back aloud with the phone's own voices; type it and it stays on screen. Settings → Answers to questions changes that.
 
 ## Principles (non-negotiable)
 

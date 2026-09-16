@@ -5,7 +5,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { currentMonthKey, today } from '@/lib/dates';
 import { balanceSentence, goalProgress, monthSummarySentence, topCategorySentence } from '@/lib/plain';
-import { categoryName, useLocale, useMoney, useT } from '@/i18n';
+import { categoryName, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
+import { speak } from '@/lib/speak';
 import { EntryBar } from '@/components/EntryBar';
 import { ConfirmationCard } from '@/components/ConfirmationCard';
 import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
@@ -27,7 +28,8 @@ export default function HomeScreen() {
   const recent = useAppStore((s) => s.recent);
   const goals = useAppStore((s) => s.goals);
   const lifetime = useAppStore((s) => s.lifetime);
-  const { pending, pendingMany, busy, submit, dismiss } = useEntryFlow();
+  const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer } = useEntryFlow();
+  const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -51,6 +53,15 @@ export default function HomeScreen() {
   return (
     <Screen keyboard>
       <EntryBar onSubmit={submit} busy={busy} />
+      {answer ? (
+        <Card tone="accent" style={{ marginTop: spacing.md }}>
+          <Text variant="heading" style={{ lineHeight: 26 }}>{answer.text}</Text>
+          <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
+            <Button tone="ghost" small title={t.readAloud} onPress={() => speak(answer.text, language)} />
+            <Button tone="ghost" small title={t.done} onPress={dismissAnswer} />
+          </Row>
+        </Card>
+      ) : null}
       {toast ? (
         <Card tone="accent" style={{ marginTop: spacing.md, paddingVertical: spacing.md }}>
           <Text variant="body">{toast}</Text>

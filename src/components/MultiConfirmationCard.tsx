@@ -35,7 +35,7 @@ interface Draft {
 function toDraft(r: ParseResult, i: number): Draft {
   return {
     key: `${i}-${r.raw}`,
-    kind: r.kind === 'unknown' ? 'transaction' : r.kind,
+    kind: r.kind === 'unknown' || r.kind === 'question' ? 'transaction' : r.kind,
     raw: r.raw,
     amountText: r.amount != null ? String(r.amount) : '',
     type: r.type,

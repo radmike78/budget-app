@@ -12,7 +12,9 @@ import { Text, useTypeScale } from './ui';
  * The single prominent input: a text field and a big mic button.
  * Voice results go straight to `onSubmit`; typed text goes on return/tap.
  */
-export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: string) => void; busy?: boolean; autoFocus?: boolean }) {
+export type EntrySource = 'voice' | 'typed';
+
+export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: string, source: EntrySource) => void; busy?: boolean; autoFocus?: boolean }) {
   const { colors } = useTheme();
   const scale = useTypeScale();
   const t = useT();
@@ -20,7 +22,7 @@ export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: strin
   const inputRef = useRef<TextInput>(null);
   const voice = useVoiceInput((final) => {
     setText('');
-    onSubmit(final);
+    onSubmit(final, 'voice');
   });
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: strin
     const value = text.trim();
     if (!value) return;
     setText('');
-    onSubmit(value);
+    onSubmit(value, 'typed');
   };
 
   const toggleMic = async () => {

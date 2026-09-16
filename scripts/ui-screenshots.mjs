@@ -54,6 +54,7 @@ const PROFILES = only.length ? ALL_PROFILES.filter((p) => only.includes(p.name))
 const ENTRIES = [
   'got paid 2400',
   'spent 12 on lunch',
+  'Spent $9.87 at Starbucks and $58 at Korean BBQ',
   'gas 40 yesterday',
   'netflix 15.49',
   "I spent $67.99 at Macy's and $121.53 at Fleming's Steakhouse",
@@ -103,14 +104,22 @@ for (const profile of PROFILES) {
       await page.keyboard.press('Enter');
       await page.waitForTimeout(700);
       if (i === 1) await shot('05-confirmation-card');
-      if (i === 4) await shot('06-multi-entry-card');
-      if (i === 5) await shot('07-goal-card');
-      if (i === 7) await shot('08-reminder-card');
+      if (i === 2) await shot('06-multi-entry-card');
+      if (i === 6) await shot('07-goal-card');
+      if (i === 8) await shot('08-reminder-card');
       const button = page.getByRole('button', { name: /^(Save|Save all|Set goal|Set reminder)$/ }).first();
       await button.waitFor({ state: 'visible', timeout: 8000 });
       await button.click();
       await page.waitForTimeout(700);
     }
+    // A spoken question is answered on screen instead of saved.
+    await input.click();
+    await input.fill('How much have I spent this week on Starbucks?');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(900);
+    await shot('09-answer');
+    await page.getByRole('button', { name: 'Done' }).first().click().catch(() => {});
+    await page.waitForTimeout(300);
     await shot('09-today');
     await goto('/budget'); await shot('10-budget');
     await goto('/goals'); await shot('11-goals');

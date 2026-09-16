@@ -2,11 +2,14 @@ import type { Category, Goal, GoalKind, ReminderRepeat, TxType } from '@/types';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/lib/defaultCategories';
 import { applyRules } from './dateRules';
 import { nextMonthDay, nextWeekday, pad2 } from './reminderRules';
+import { parseQuestion, type ParsedQuestion, type QuestionPeriod } from './questionRules';
 import { normalizeDecimalComma } from './numbers';
 import { getPack } from './packs';
 import type { LanguagePack } from './types';
 
-export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'unknown';
+export type { ParsedQuestion, QuestionPeriod };
+
+export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'unknown';
 
 export interface ParseResult {
   kind: ParseKind;
@@ -30,6 +33,8 @@ export interface ParseResult {
   reminderText: string | null;
   reminderTime: string | null;
   reminderRepeat: ReminderRepeat;
+  /** Question about spending or income ("how much have I spent this week on Starbucks?"). */
+  question: ParsedQuestion | null;
   /** 0..1 overall confidence in the parse */
   confidence: number;
   /** True when the app should ask the user to check the result more carefully (or escalate to Tier 2). */
@@ -49,6 +54,8 @@ export interface ParseContext {
   nowTime?: string;
   /** Language code ('en', 'es', ...). Defaults to English. */
   language?: string;
+  /** Display names of default categories in the user's language, so "dining out" is recognised as a category in a question. */
+  categoryLabels?: Record<string, string>;
 }
 
 /** Hint identifiers; the UI maps these to translated sentences. */
@@ -331,7 +338,7 @@ function baseResult(raw: string, today: string): ParseResult {
   return {
     kind: 'unknown', raw, amount: null, type: 'expense', typeConfidence: 0, categoryId: null, categoryConfidence: 0,
     note: null, occurredAt: today, dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
-    reminderText: null, reminderTime: null, reminderRepeat: 'none',
+    reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null,
     confidence: 0, needsReview: true, hints: [],
   };
 }
@@ -648,10 +655,30 @@ export function splitSentences(raw: string): string[] {
  * income/expense verb carry forward to later entries that have none
  * ("yesterday I spent 12 on lunch and 40 on gas. Then $9 at Zizzle.").
  */
+const MAX_QUESTION_LENGTH = 160;
+
+/** "how much have I spent this week on Starbucks?" -> a question result, or null when the text is not a question. */
+function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): ParseResult | null {
+  // Questions are short sentences; long input is an entry (or noise) and skips these patterns.
+  if (raw.length > MAX_QUESTION_LENGTH) return null;
+  const text = pack.numberWords(normalize(raw, pack));
+  if (!text) return null;
+  const q = parseQuestion(text, pack.question, {
+    categories: ctx.categories,
+    categoryLabels: ctx.categoryLabels,
+    detect: (t) => { const m = detectCategory(t, ctx, pack); return m ? { categoryId: m.categoryId, matched: m.matched } : null; },
+    restoreCase: (fragment) => restoreCase(fragment, raw) ?? fragment,
+  });
+  if (!q) return null;
+  return { ...baseResult(raw, ctx.today), kind: 'question', type: q.type, question: q, confidence: 0.9, needsReview: false };
+}
+
 export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
   const pack = getPack(ctx.language);
   const raw = input.trim();
   if (!raw) return [baseResult(raw, ctx.today)];
+  const question = parseQuestionText(raw, ctx, pack);
+  if (question) return [question];
   const sentences = splitSentences(raw);
   const results: ParseResult[] = [];
   let sharedDate: string | null = null;
