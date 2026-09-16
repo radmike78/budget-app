@@ -6,7 +6,7 @@ import { spacing, useTheme } from '@/theme';
 import { CURRENCIES, parseMoneyInput } from '@/lib/money';
 import { LANGUAGE_OPTIONS, deviceLanguage, getLocale, useLocale, useT } from '@/i18n';
 import { Sheet } from '@/components/pickers';
-import { Button, Card, CONTENT_MAX_WIDTH, Field, ListItem, Row, Text } from '@/components/ui';
+import { Button, Card, CONTENT_MAX_WIDTH, Field, ListItem, Row, Text, useTypeScale } from '@/components/ui';
 
 const PAGES = ['why', 'setup', 'how'] as const;
 
@@ -46,13 +46,14 @@ export default function Onboarding() {
 
   // Pages centre their content vertically inside the list's measured height.
   const [pageHeight, setPageHeight] = useState(0);
+  const typeScale = useTypeScale();
   const renderPage = (key: string) => {
     if (key === 'why') {
       return (
         <View style={{ width, minHeight: pageHeight, padding: spacing.xl, justifyContent: 'center' }}>
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
           <Text variant="display">{t.onboardHeadline}</Text>
-          <Text variant="muted" style={{ marginTop: spacing.xl, fontSize: 17 }}>{t.onboardBody}</Text>
+          <Text variant="muted" style={{ marginTop: spacing.xl, fontSize: 17 * typeScale, lineHeight: 24 * typeScale }}>{t.onboardBody}</Text>
           <View style={{ marginTop: spacing.xxl }}><Button title={t.next} onPress={() => go(1)} /></View>
           <View style={{ marginTop: spacing.md, alignItems: 'center' }}><Button tone="ghost" small title={`${t.language}: ${languageName}`} onPress={() => setShowLanguage(true)} /></View>
         </View>

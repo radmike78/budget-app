@@ -11,7 +11,7 @@ import { ConfirmationCard } from '@/components/ConfirmationCard';
 import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
 import { TransactionRow } from '@/components/TransactionRow';
 import { useEntryFlow } from '@/components/useEntryFlow';
-import { Button, Card, EmptyState, Row, Screen, SectionTitle, Spacer, Text } from '@/components/ui';
+import { Button, Card, EmptyState, Row, Screen, SectionTitle, Spacer, Text, useTypeScale } from '@/components/ui';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -101,10 +101,11 @@ export default function HomeScreen() {
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+  const scale = useTypeScale();
   return (
     <View>
       <Text variant="label">{label}</Text>
-      <Text variant="money" color={color} style={{ fontSize: 20, marginTop: 2 }}>{value}</Text>
+      <Text variant="money" color={color} style={{ fontSize: 20 * scale, marginTop: 2 }}>{value}</Text>
     </View>
   );
 }

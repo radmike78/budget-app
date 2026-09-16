@@ -9,7 +9,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme';
 import { configureNotificationHandler } from '@/lib/reminders';
 import { useT } from '@/i18n';
-import { Text } from '@/components/ui';
+import { Text, useIsWide, useTypeScale } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -18,6 +18,8 @@ configureNotificationHandler();
 export default function RootLayout() {
   const { colors, isDark } = useTheme();
   const t = useT();
+  const typeScale = useTypeScale();
+  const wide = useIsWide();
   const ready = useAppStore((s) => s.ready);
   const onboardingDone = useAppStore((s) => s.settings?.onboardingDone ?? false);
   const init = useAppStore((s) => s.init);
@@ -52,7 +54,8 @@ export default function RootLayout() {
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
           headerTintColor: colors.text,
-          headerTitleStyle: { fontWeight: '600' },
+          headerTitleStyle: { fontWeight: '600', fontSize: 17 * typeScale },
+          headerTitleAlign: wide ? 'center' : undefined,
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: colors.bg },
