@@ -94,6 +94,7 @@ for (const profile of PROFILES) {
     await clickText('Next');
     await shot('03-onboarding-3');
     await clickText('Start');
+    await clickText('No thanks');
     await page.waitForTimeout(800);
     await shot('04-today-empty');
 

@@ -11,6 +11,7 @@ import { getDb } from '@/db/database';
 import { queryTransactions } from '@/db/repositories';
 import { answerQuestion, periodRange } from '@/lib/questions';
 import { speak } from '@/lib/speak';
+import { greeting } from '@/lib/personas';
 import type { EntrySource } from './EntryBar';
 
 export interface SpokenAnswer {
@@ -51,7 +52,7 @@ export function useEntryFlow() {
     const mode = settings?.answerMode ?? 'auto';
     const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
     setAnswer({ text, spoken });
-    if (spoken) await speak(text, language);
+    if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
   }, [t, money]);
 
   const submit = useCallback(async (raw: string, source: EntrySource = 'typed') => {
@@ -64,6 +65,25 @@ export function useEntryFlow() {
     const language = resolveLanguage(settings?.language);
     const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames };
     const entries = parseEntries(text, ctx);
+    if (entries.length === 1 && entries[0].kind === 'command' && entries[0].command) {
+      // A settings change, never an entry: applied at once, then the chosen voice says hello.
+      setPending(null);
+      setPendingMany(null);
+      const cmd = entries[0].command;
+      await useAppStore.getState().updateSettings({ ...(cmd.voice ? { voice: cmd.voice } : null), ...(cmd.attitude ? { attitude: cmd.attitude } : null), ...(cmd.gender ? { voiceGender: cmd.gender } : null) });
+      const next = useAppStore.getState().settings;
+      if (!next) return;
+      const names = { plain: t.voicePlain, friend: t.voiceFriend, coach: t.voiceCoach, roaster: t.voiceRoaster };
+      const attitudes = { nice: t.attitudeNice, playful: t.attitudePlayful, spicy: t.attitudeSpicy };
+      const summary = next.voice === 'plain' ? `${names[next.voice]} · ${next.voiceGender === 'male' ? t.voiceMale : t.voiceFemale}` : `${names[next.voice]} · ${attitudes[next.attitude]} · ${next.voiceGender === 'male' ? t.voiceMale : t.voiceFemale}`;
+      const hello = greeting(next.voice, language);
+      const text = hello ? `${t.voiceSwitched(summary)} ${hello}` : t.voiceSwitched(summary);
+      const mode = next.answerMode;
+      const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
+      setAnswer({ text, spoken });
+      if (spoken) await speak(hello ?? text, language, next.voiceGender);
+      return;
+    }
     if (entries.length === 1 && entries[0].kind === 'question') {
       // A question is answered, never saved: nothing reaches the confirmation card.
       setPending(null);
