@@ -189,7 +189,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
           <Text variant="muted" style={{ marginBottom: spacing.md }}>{t.goalSoFar(goal.name, money(goal.currentAmount, { compact: true }), money(goal.targetAmount, { compact: true }))}</Text>
           <Row style={{ justifyContent: 'space-between', marginBottom: spacing.lg }}>
             <Text variant="body" style={{ flex: 1 }}>{goal.kind === 'debt' ? t.alsoLogPayment : t.alsoLogTransfer}</Text>
-            <Switch value={logTransfer} onValueChange={setLogTransfer} trackColor={{ true: colors.accent }} />
+            <Switch value={logTransfer} onValueChange={setLogTransfer} trackColor={{ true: colors.accent }} accessibilityLabel={goal.kind === 'debt' ? t.alsoLogPayment : t.alsoLogTransfer} />
           </Row>
           <Row style={{ marginBottom: spacing.lg }}>
             <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />

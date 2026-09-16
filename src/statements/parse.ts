@@ -30,6 +30,9 @@ const SECTION_IN = /^(deposits?( and (other )?(credits|additions))?|credits|addi
 const SECTION_OUT = /^(withdrawals?( and (other )?(debits|subtractions))?|debits|other debits|checks( paid)?|electronic withdrawals|card purchases|purchases( and adjustments)?|fees( charged)?|interest charged|money out|cargos|retiros|débits|uscite|addebiti|lastschriften|abbuchungen|umsätze)\b/i;
 const SUMMARY_ROW = /\b(total|subtotal|beginning balance|ending balance|opening balance|closing balance|previous balance|new balance|balance forward|statement balance|minimum payment|payment due|credit limit|available credit|totale|saldo (anterior|final)|solde|ancien solde|nouveau solde|anfangssaldo|endsaldo|summe)\b/i;
 
+/** The same summary words, directly after a leading date ("01/31 Ending balance 1,200.00"). */
+const SUMMARY_ROW_AFTER_DATE = new RegExp(`^\\s*(?:${SUMMARY_ROW.source.slice(3, -3)})\\b(?:\\s+(?:deposits?|withdrawals?|credits?|debits?|fees?|charges?|payments?|purchases?|activity|for the period))?\\s*:?\\s*[-(]?[$€£]?\\d`, 'i');
+
 const ISSUER_RE = /\b(chase|capital one|american express|amex|discover|citi|bank of america|wells fargo|barclays|synchrony|u\.?s\.? bank|apple card|navy federal|usaa|pnc|td bank|truist|hsbc|santander|revolut|monzo|n26|bbva|ing|deutsche bank|commerzbank|crédit agricole|bnp|société générale|unicredit|intesa|rakuten|mufg|shinhan|hyundai card|samsung card|visa|mastercard)\b/i;
 
 interface Column { x: number; role: 'in' | 'out' | 'amount' | 'balance' | 'date' | 'desc' }
@@ -81,8 +84,8 @@ function fnv(s: string): string {
   return h.toString(36).padStart(7, '0');
 }
 
-export function fingerprintOf(date: string, amount: number, direction: 'in' | 'out', description: string): string {
-  const key = `${date}|${amount.toFixed(2)}|${direction}|${description.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().slice(0, 40)}`;
+export function fingerprintOf(date: string, amount: number, direction: 'in' | 'out', description: string, occurrence = 0): string {
+  const key = `${date}|${amount.toFixed(2)}|${direction}|${description.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().slice(0, 40)}${occurrence ? `|${occurrence}` : ''}`;
   return `${fnv(key)}${fnv(key.split('').reverse().join(''))}`;
 }
 
@@ -98,7 +101,10 @@ function lineCandidates(rows: Row[], cols: Column[] | null, language: string): C
   const out: Candidate[] = [];
   for (const row of rows) {
     const text = row.text;
-    if (SUMMARY_ROW.test(text) && !/\b(fee|interest charge)\b/i.test(text)) continue;
+    // Summary rows carry no leading date ("Total deposits 1,200.00"); "01/05 TOTAL WINE 45.00" is a purchase.
+    const leadingDate = /^\s*\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?\b|^\s*\d{4}-\d{2}-\d{2}\b|^\s*[A-Za-zéû]{3,9}\.? \d{1,2}\b/.exec(text);
+    const summaryAtStart = leadingDate ? SUMMARY_ROW_AFTER_DATE.test(text.slice(leadingDate[0].length)) : SUMMARY_ROW.test(text);
+    if (summaryAtStart && !/\b(fee|interest charge)\b/i.test(text)) continue;
     const dates = findDates(text, language);
     if (!dates.length || dates[0].start > 3) continue;
     const money = findMoney(text);
@@ -242,7 +248,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
   let section: 'in' | 'out' | null = null;
   let prevBalance: number | null = null;
   let unsure = 0;
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const candidateRows = new Set(candidates.map((c) => c.row));
   let ci = 0;
   for (const row of rows) {
@@ -266,9 +272,13 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
     if (!date) continue;
     const description = cleanDescription(c.descText);
     const cat = categorize(c.descText, description, decided.direction, kind, ctx, ctx.categories);
-    const fingerprint = fingerprintOf(date, decided.amount, decided.direction, c.descText);
-    const duplicate = (opts.knownFingerprints?.has(fingerprint) ?? false) || seen.has(fingerprint);
-    seen.add(fingerprint);
+    // Two identical lines on one statement (two 2.90 fares on the same day) are two real entries:
+    // the second gets an occurrence index, so only lines already in the app's history count as duplicates.
+    const base = fingerprintOf(date, decided.amount, decided.direction, c.descText);
+    const occurrence = seen.get(base) ?? 0;
+    seen.set(base, occurrence + 1);
+    const fingerprint = occurrence ? fingerprintOf(date, decided.amount, decided.direction, c.descText, occurrence) : base;
+    const duplicate = opts.knownFingerprints?.has(fingerprint) ?? false;
     const include = !duplicate && cat.lineKind !== 'transfer' && cat.lineKind !== 'payment';
     lines.push({
       fingerprint, date, month: monthOf(date), rawDate: c.hit.raw, description, amount: decided.amount, direction: decided.direction,

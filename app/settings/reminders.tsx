@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Platform, View } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { AppState, Platform, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
@@ -20,6 +20,11 @@ export default function RemindersScreen() {
   const rearm = useAppStore((s) => s.rearmReminders);
 
   useFocusEffect(useCallback(() => { rearm().catch(() => {}); }, [rearm]));
+  // Coming back from the system settings (after allowing notifications) re-arms too, so the note below clears.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') rearm().catch(() => {}); });
+    return () => sub.remove();
+  }, [rearm]);
 
   const sorted = [...reminders].sort((a, b) => (nextOccurrence(a)?.getTime() ?? 0) - (nextOccurrence(b)?.getTime() ?? 0));
   const remove = async (id: string, text: string) => {

@@ -1,13 +1,14 @@
 /**
  * Builders for the export formats. Pure functions; file writing lives in files.ts.
  */
-import type { Category, Goal, KeywordMapping, RecurringRule, Settings, Transaction } from '@/types';
+import type { Category, Debt, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
-import { monthLabel, monthKey } from './dates';
+import { longDate, monthLabel, monthKey } from './dates';
 import { formatMoney } from './money';
 
-export const BACKUP_VERSION = 1;
+/** v2 adds reminders, debts, imports and the transactions' statement fingerprints. */
+export const BACKUP_VERSION = 2;
 
 export interface BackupPayload {
   app: 'onlybudget';
@@ -19,11 +20,18 @@ export interface BackupPayload {
   recurringRules: RecurringRule[];
   goals: Goal[];
   keywords: KeywordMapping[];
+  reminders: Reminder[];
+  debts: Debt[];
+  imports: ImportRecord[];
 }
 
-function csvCell(v: string | number | null | undefined): string {
+/** A cell starting with one of these would be run as a formula by spreadsheets (CSV injection). */
+const FORMULA_START = /^[=+\-@\t\r]/;
+
+export function csvCell(v: string | number | null | undefined): string {
   if (v == null) return '';
-  const s = String(v);
+  let s = String(v);
+  if (FORMULA_START.test(s)) s = `'${s}`;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
@@ -84,7 +92,7 @@ export function summaryText(transactions: Transaction[], categories: Category[],
   if (openGoals.length) {
     lines.push(S.goalsHeading);
     for (const g of openGoals) {
-      lines.push(`  ${g.name}: ${money(g.currentAmount)} of ${money(g.targetAmount)}${g.targetDate ? ` by ${g.targetDate}` : ''}`);
+      lines.push(S.goalLine(g.name, money(g.currentAmount), money(g.targetAmount), g.targetDate ? longDate(g.targetDate, generatedAt.slice(0, 10), locale.format) : null));
     }
     lines.push('');
   }
@@ -92,8 +100,12 @@ export function summaryText(transactions: Transaction[], categories: Category[],
   return lines.join('\n');
 }
 
-export function buildBackup(data: Omit<BackupPayload, 'app' | 'version' | 'exportedAt'>, exportedAt: string): BackupPayload {
-  return { app: 'onlybudget', version: BACKUP_VERSION, exportedAt, ...data };
+type BackupData = Omit<BackupPayload, 'app' | 'version' | 'exportedAt'>;
+
+export function buildBackup(data: Omit<BackupData, 'reminders' | 'debts' | 'imports'> & Partial<Pick<BackupData, 'reminders' | 'debts' | 'imports'>>, exportedAt: string): BackupPayload {
+  // A scheduled notification id only means something on the phone that scheduled it.
+  const reminders = (data.reminders ?? []).map((r) => ({ ...r, notificationId: null }));
+  return { app: 'onlybudget', version: BACKUP_VERSION, exportedAt, ...data, reminders, debts: data.debts ?? [], imports: data.imports ?? [] };
 }
 
 export function isBackupPayload(x: unknown): x is BackupPayload {

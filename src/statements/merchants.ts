@@ -104,7 +104,8 @@ export function guessKind(rawDescription: string, direction: 'in' | 'out', state
   if (TRANSFER_RE.test(text) && !PAYMENT_RE.test(text) && !INCOME_RE.test(text)) return { kind: 'transfer', categoryId: 'savings', confidence: 0.8 };
   if (direction === 'in') {
     if (INTEREST_RE.test(text) || FEE_RE.test(text)) return { kind: 'income', categoryId: 'other_income', confidence: 0.6 };
-    return { kind: 'income', categoryId: merchant && merchant.categoryId !== 'debt' && merchant.categoryId !== 'savings' ? merchant.categoryId : 'other_income', confidence: merchant ? 0.8 : 0.5 };
+    const incomeCategory = merchant && (merchant.categoryId === 'salary' || merchant.categoryId === 'freelance' || merchant.categoryId === 'gift_income' || merchant.categoryId === 'other_income');
+    return { kind: 'income', categoryId: incomeCategory ? merchant.categoryId : 'other_income', confidence: incomeCategory ? 0.8 : 0.5 };
   }
   if (INTEREST_RE.test(text) || FEE_RE.test(text)) return { kind: 'fee', categoryId: 'other_expense', confidence: 0.8 };
   if (PAYMENT_RE.test(text) && (merchant?.categoryId === 'debt' || /card|loan|visa|mastercard|amex/.test(text))) return { kind: 'expense', categoryId: 'debt', confidence: 0.85 };

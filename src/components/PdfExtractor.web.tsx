@@ -27,7 +27,11 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
       const pdfjs = await lib();
       let doc: Awaited<ReturnType<typeof pdfjs.getDocument>['promise']>;
       try {
-        doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false, disableFontFace: true, useSystemFonts: false, stopAtErrors: false, enableXfa: false }).promise;
+        // The standard 14 fonts are served from our own origin (copied by the build scripts);
+        // pdf.js needs them to read text set in non-embedded fonts. CSP: connect-src 'self'.
+        // pdf.js transfers the buffer it is given to its worker (detaching it), so it gets a
+        // copy: the caller keeps its own bytes and can wipe them once the text is out.
+        doc = await pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, disableFontFace: true, useSystemFonts: false, standardFontDataUrl: '/standard_fonts/', stopAtErrors: false, enableXfa: false }).promise;
       } catch (e) {
         if (e instanceof Error && e.name === 'PasswordException') throw new PdfEncryptedError();
         throw e;

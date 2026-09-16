@@ -39,3 +39,14 @@ describe('monthlyEquivalent', () => {
     expect(monthlyEquivalent({ amount: 10, frequency: 'weekly' })).toBeCloseTo(43.33, 1);
   });
 });
+
+describe('monthly rules keep their anchor day across short months', () => {
+  it('a rule on the 31st returns to the 31st after February', () => {
+    const r = dueOccurrences({ nextOccurrence: '2026-02-28', frequency: 'monthly', anchorDay: 31 }, '2026-04-30');
+    expect(r.due).toEqual(['2026-02-28', '2026-03-31', '2026-04-30']);
+    expect(r.nextOccurrence).toBe('2026-05-31');
+  });
+  it('without an anchor the day of the next occurrence is used', () => {
+    expect(dueOccurrences({ nextOccurrence: '2026-02-28', frequency: 'monthly' }, '2026-03-31').due).toEqual(['2026-02-28', '2026-03-28']);
+  });
+});

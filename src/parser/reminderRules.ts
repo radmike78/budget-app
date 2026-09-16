@@ -171,7 +171,9 @@ export function futureDayOfMonthRule(re: RegExp, words: Record<string, number> =
       let y = td.getFullYear();
       let mo = td.getMonth();
       if (day < td.getDate()) { mo += 1; if (mo > 11) { mo = 0; y += 1; } }
-      return toDateString(new Date(y, mo, Math.min(day, daysInMonth(y, mo))));
+      // "the 31st" in a 30-day month means the next real 31st, not the 30th.
+      for (let guard = 0; guard < 12 && day > daysInMonth(y, mo); guard += 1) { mo += 1; if (mo > 11) { mo = 0; y += 1; } }
+      return toDateString(new Date(y, mo, day));
     },
   };
 }

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category, TxType } from '@/types';
@@ -10,6 +10,7 @@ import { Button, Chip, Field, Icon, ListItem, Row, Text } from './ui';
 /** Bottom sheet container used by all pickers. */
 export function Sheet({ visible, onClose, title, children, tall }: { visible: boolean; onClose: () => void; title?: string; children: React.ReactNode; tall?: boolean }) {
   const { colors } = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // On tablets a sheet spanning the whole width reads badly; keep it a phone-sized column, centred.
@@ -19,7 +20,7 @@ export function Sheet({ visible, onClose, title, children, tall }: { visible: bo
   const widthStyle = wide ? { left: side, right: side, marginBottom: spacing.xl, borderBottomLeftRadius: radius.lg + 6, borderBottomRightRadius: radius.lg + 6 } : null;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel={t.close} />
       <View style={[styles.sheet, widthStyle, { backgroundColor: colors.bg, paddingBottom: insets.bottom + spacing.lg, maxHeight: tall ? '92%' : '80%' }]}>
         <View style={[styles.handle, { backgroundColor: colors.border }]} />
         {title ? <Text variant="heading" style={{ marginBottom: spacing.md }}>{title}</Text> : null}
@@ -62,6 +63,8 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
   const s = useT();
   const fmt = useDateFormat();
   const [custom, setCustom] = useState(value);
+  // The typed field follows the current value each time the sheet opens.
+  useEffect(() => { if (visible) setCustom(value); }, [visible, value]);
   const quick = mode === 'reminder'
     ? [
         { label: s.today, date: t },
@@ -107,6 +110,7 @@ const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 export function TimePicker({ visible, onClose, value, onPick }: { visible: boolean; onClose: () => void; value: string; onPick: (t: string) => void }) {
   const s = useT();
   const [custom, setCustom] = useState(value);
+  useEffect(() => { if (visible) setCustom(value); }, [visible, value]);
   const valid = TIME_RE.test(custom);
   const normalized = valid ? custom.padStart(5, '0') : custom;
   return (

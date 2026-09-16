@@ -5,14 +5,20 @@
 /** "1.200,50" -> "1200.50" for decimal-comma locales; "1 200" -> "1200". */
 export function normalizeDecimalComma(text: string): string {
   return text
-    .replace(/(\d)[\s  ](\d{3})\b/g, '$1$2')
+    // "1 800" is one number, but "el 3 100 euros" is the 3rd and 100 euros.
+    .replace(/(?<!\b(?:el|d[ií]a|le|il|am|den|vom|il giorno)\s)(\d)[\s  ](\d{3})\b/g, '$1$2')
+    // "1,234.56" written the other way round: the last separator is the decimal.
+    .replace(/(\d{1,3}(?:,\d{3})+)\.(\d{1,2})(?!\d)/g, (_m, int: string, dec: string) => `${int.replace(/,/g, '')}.${dec}`)
     .replace(/(\d)\.(\d{3})(?!\d)/g, '$1$2')
     .replace(/(\d),(\d{1,2})(?!\d)/g, '$1.$2');
 }
 
 /** "2,400" -> "2400" for decimal-point locales. */
 export function normalizeDecimalPoint(text: string): string {
-  return text.replace(/(\d),(\d{3})\b/g, '$1$2');
+  return text
+    // "1.234,56" written the European way: the last separator is the decimal.
+    .replace(/(\d{1,3}(?:\.\d{3})+),(\d{1,2})(?!\d)/g, (_m, int: string, dec: string) => `${int.replace(/\./g, '')}.${dec}`)
+    .replace(/(\d),(\d{3})\b/g, '$1$2');
 }
 
 /** "2.4k" -> "2400". */
@@ -56,9 +62,22 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
     let total = 0;
     let current = 0;
     let saw = false;
-    for (const w of run) {
-      if (table.connectors.includes(w)) continue;
+    let lastSmall = false;
+    let afterConnector = false;
+    for (let idx = 0; idx < run.length; idx += 1) {
+      const w = run[idx];
+      if (table.connectors.includes(w)) { afterConnector = true; continue; }
       if (table.one.includes(w)) { if (current === 0) current = 1; continue; }
+      // "doce cincuenta", "zwölf fünfzig": a tens word that cannot extend the number is a cents group.
+      // German says the unit first ("fünf und zwanzig"), so a tens word after a connector still extends it.
+      const startsCents = saw && !afterConnector && ((w in table.tens && current % 100 !== 0) || (w in table.units && table.units[w] >= 10 && current % 100 !== 0) || (w in table.units && table.units[w] < 10 && lastSmall && current % 10 !== 0));
+      afterConnector = false;
+      if (startsCents) {
+        const cents = evaluate(run.slice(idx));
+        if (cents == null || cents < 0 || cents > 99 || !Number.isInteger(cents)) return null;
+        return total + current + cents / 100;
+      }
+      lastSmall = w in table.units || w in table.tens;
       if (w in table.units) { current += table.units[w]; saw = true; }
       else if (w in table.tens) { current += table.tens[w]; saw = true; }
       else if (table.hundreds && w in table.hundreds) { current += table.hundreds[w]; saw = true; }
@@ -98,7 +117,7 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
       const value = evaluate(run);
       if (value === null) { out.push(words[i]); i += 1; continue; }
       const trailing = words[j - 1].match(/[^\p{L}]+$/u)?.[0] ?? '';
-      out.push(String(value) + trailing);
+      out.push((Number.isInteger(value) ? String(value) : value.toFixed(2)) + trailing);
       i = j;
     }
     return out.join(' ').replace(/\s+/g, ' ').trim();
@@ -144,7 +163,10 @@ const CJK_PROTECTED = /(?:星期[一二三四五六日天]|周[一二三四五�
 /** Replaces runs of CJK numerals (optionally mixed with digits) with digits. */
 export function cjkNumeralsToDigits(text: string): string {
   const saved: string[] = [];
-  const protectedText = text.replace(CJK_PROTECTED, (m) => { saved.push(m); return `\u0000${saved.length - 1}\u0000`; });
+  const protectedText = text
+    // "1.5万" -> 15000 before the run matcher, which does not read decimals.
+    .replace(/(\d+\.\d+)([万萬亿億])/g, (_m, n: string, big: string) => String(Math.round(parseFloat(n) * CJK_BIG[big])))
+    .replace(CJK_PROTECTED, (m) => { saved.push(m); return `\u0000${saved.length - 1}\u0000`; });
   const converted = protectedText.replace(/[\d零〇一二两兩三四五六七八九十百千万萬亿億]+/g, (run) => {
     if (/^\d+$/.test(run)) return run;
     const n = cjkToNumber(run);
@@ -180,7 +202,7 @@ function koToNumber(s: string): number | null {
 
 /** "2만5천" -> "25000", "만원" -> "10000원", "3천" -> "3000". Pure-digit runs are left alone. */
 export function koreanNumeralsToDigits(text: string): string {
-  return text.replace(/\d+(?:\s?[십백천만억]\s?\d*)+|(?<![\p{L}])[일이삼사오육칠팔구십백천만억]{1,12}(?=원|\s|$|[^\p{L}])/gu, (run) => {
+  return text.replace(/(\d+\.\d+)([만억])/g, (_m, n: string, big: string) => String(Math.round(parseFloat(n) * KO_BIG[big]))).replace(/\d+(?:\s?[십백천만억]\s?\d*)+|(?<![\p{L}])[일이삼사오육칠팔구십백천만억]{1,12}(?=원|\s|$|[^\p{L}])/gu, (run) => {
     const compact = run.replace(/\s+/g, '');
     if (/^\d+$/.test(compact)) return run;
     // Avoid eating ordinary words that happen to start with 일/이/사 etc: require a scale character.

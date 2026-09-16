@@ -9,7 +9,7 @@ import { dueOccurrences } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
 import { redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
-import { cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
+import { cancelAllReminderNotifications, cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
 import { getLocale, resolveLanguage } from '@/i18n';
 
 interface AppState {
@@ -71,6 +71,12 @@ interface AppState {
   resetAll: () => Promise<void>;
 }
 
+/** Creditor names are compared without case or punctuation, in any script. */
+const NON_ALNUM_RE = /[^\p{L}\p{N}]+/gu;
+
+/** `init` runs once; later calls (a re-mounted root, a retry) share the same promise. */
+let initPromise: Promise<void> | null = null;
+
 export const useAppStore = create<AppState>((set, get) => ({
   ready: false,
   settings: null,
@@ -89,13 +95,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   stats: null,
   lifetime: { income: 0, expenses: 0 },
 
-  init: async () => {
-    await getDb();
-    await get().runRecurringCatchUp();
-    await get().refresh();
-    set({ ready: true });
-    get().rearmReminders().catch(() => {});
-    sweepImportCache().catch(() => {});
+  init: () => {
+    if (!initPromise) {
+      initPromise = (async () => {
+        await getDb();
+        await get().runRecurringCatchUp();
+        await get().refresh();
+        set({ ready: true });
+        get().rearmReminders().catch(() => {});
+        sweepImportCache().catch(() => {});
+      })().catch((e) => {
+        initPromise = null; // a failed start may be retried
+        throw e;
+      });
+    }
+    return initPromise;
   },
 
   refresh: async () => {
@@ -196,11 +210,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addReminder: async (input) => {
     const db = await getDb();
-    const settings = get().settings;
-    const title = getLocale(resolveLanguage(settings?.language)).s.reminderNotificationTitle;
+    const strings = getLocale(resolveLanguage(get().settings?.language)).s;
     const rem: Reminder = { ...input, text: redactSensitive(input.text) || input.text, id: newId(), createdAt: nowIso(), notificationId: null };
-    rem.notificationId = await scheduleReminderNotification(rem, title);
+    // Saved first: a failure in the notification layer must not lose the reminder (rearmReminders retries later).
     await repo.upsertReminder(db, rem);
+    try {
+      const notificationId = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders);
+      if (notificationId) await repo.upsertReminder(db, { ...rem, notificationId });
+    } catch {
+      // kept with notificationId null
+    }
     const state = await notificationPermissionState();
     set({ notifications: state });
     await get().refresh();
@@ -219,7 +238,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     const state = await notificationPermissionState();
     set({ notifications: state });
-    const title = getLocale(resolveLanguage(get().settings?.language)).s.reminderNotificationTitle;
+    const strings = getLocale(resolveLanguage(get().settings?.language)).s;
     let changed = false;
     for (const rem of get().reminders) {
       if (rem.repeat === 'none' && !nextOccurrence(rem)) {
@@ -230,7 +249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       if (state !== 'granted') continue;
       if (rem.notificationId && rem.repeat !== 'monthly') continue;
-      const id = await scheduleReminderNotification(rem, title);
+      const id = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders);
       if (id !== rem.notificationId) { await repo.upsertReminder(db, { ...rem, notificationId: id }); changed = true; }
     }
     if (changed) await get().refresh();
@@ -274,11 +293,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   mergeTradelines: async (lines) => {
     const db = await getDb();
     const existing = get().debts;
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const norm = (s: string) => s.toLowerCase().replace(NON_ALNUM_RE, ' ').trim();
     let n = 0;
     for (const t of lines) {
       if (t.balance == null && t.monthlyPayment == null) continue;
-      const match = existing.find((d) => norm(d.creditor) === norm(t.creditor) || (t.source === 'card_statement' && d.source === 'card_statement' && norm(d.creditor).slice(-4) === norm(t.creditor).slice(-4)));
+      const key = norm(t.creditor);
+      // A name that normalises to nothing matches nothing, so unrelated debts never merge into one.
+      const match = key ? existing.find((d) => { const k = norm(d.creditor); return !!k && (k === key || (t.source === 'card_statement' && d.source === 'card_statement' && k.slice(-4) === key.slice(-4))); }) : undefined;
       await repo.upsertDebt(db, {
         id: match?.id ?? newId(),
         creditor: (redactSensitive(t.creditor) || t.creditor).slice(0, 80),
@@ -298,7 +319,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveRule: async (r) => {
     const db = await getDb();
-    await repo.upsertRule(db, r);
+    // The date the user picked is the anchor day, so a rule set for the 31st returns to the 31st after February.
+    await repo.upsertRule(db, { ...r, anchorDay: Number(r.nextOccurrence.slice(8, 10)) || null });
     await get().runRecurringCatchUp();
     await get().refresh();
   },
@@ -364,9 +386,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreAll: async (data) => {
     const db = await getDb();
+    // Notifications scheduled for the reminders being replaced would otherwise keep firing.
+    await cancelAllReminderNotifications();
     await repo.replaceAllData(db, data);
     await get().runRecurringCatchUp();
     await get().refresh();
+    // Restored reminders carry no notification id; this schedules them on this phone.
+    await get().rearmReminders().catch(() => {});
   },
 
   resetAll: async () => {

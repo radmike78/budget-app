@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Dimensions, FlatList, ScrollView, View } from 'react-native';
+import { FlatList, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
@@ -24,7 +24,7 @@ export default function Onboarding() {
   const [showCurrency, setShowCurrency] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const listRef = useRef<FlatList<string>>(null);
-  const width = Dimensions.get('window').width;
+  const { width } = useWindowDimensions();
 
   // Follow the locale's default currency until the user picks one explicitly.
   useEffect(() => {

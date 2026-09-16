@@ -37,7 +37,7 @@ export default function SmartParsing() {
             <Text variant="body">{t.useSmart}</Text>
             <Text variant="small">{t.useSmartSub}</Text>
           </View>
-          <Switch value={settings.smartParseEnabled} onValueChange={(v) => updateSettings({ smartParseEnabled: v })} trackColor={{ true: colors.accent }} />
+          <Switch value={settings.smartParseEnabled} onValueChange={(v) => updateSettings({ smartParseEnabled: v })} trackColor={{ true: colors.accent }} accessibilityLabel={t.useSmart} />
         </Row>
       </Card>
 

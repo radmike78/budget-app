@@ -120,11 +120,12 @@ export function useVoiceInput(onFinal: (text: string) => void) {
   return { ...state, start, stop, cancel, clearError };
 }
 
-export async function triggerOfflineModelDownload(language = 'en'): Promise<string> {
+/** Starts the Android offline model download and returns a sentence for the user, built from the caller's locale strings. */
+export async function triggerOfflineModelDownload(language: string, text: { ready: string; status: (status: string) => string; failed: (message: string) => string }): Promise<string> {
   try {
     const result = await ExpoSpeechRecognitionModule.androidTriggerOfflineModelDownload({ locale: getPack(language).speechTag });
-    return result.status === 'download_success' ? 'Offline voice model is ready.' : `Model download: ${result.status}.`;
+    return result.status === 'download_success' ? text.ready : text.status(String(result.status));
   } catch (e) {
-    return `Could not start the download: ${(e as Error).message}`;
+    return text.failed((e as Error).message);
   }
 }

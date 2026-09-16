@@ -45,4 +45,5 @@ yarn-error.*
 
 # generated from node_modules/pdfjs-dist at install/build time
 public/pdf.worker.min.mjs
+public/standard_fonts/
 assets/pdf/extractor.html
