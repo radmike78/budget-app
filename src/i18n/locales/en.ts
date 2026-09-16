@@ -396,6 +396,23 @@ export const en = {
     aboutSub: 'No bank linking. No ads. No tracking. Ever.',
     // about screen
     whatWePromise: 'What we promise',
+    help: 'Help',
+    helpSub: 'How to say, type, ask and fix things.',
+    helpIntro: 'Everything here works by voice or by typing. Nothing is saved until you tap Save on the card.',
+    helpTopics: [
+      ['Adding an entry', 'Tap the mic and say what happened, or type it: "spent 12 on lunch", "got paid 2400", "gas 40 yesterday". Several in one breath work too: "9.87 at Starbucks and 58 at Korean BBQ". A card shows what was understood; tap Save to keep it.'],
+      ['Fixing an entry', 'On the card, tap the amount, category or date to change it before saving. Later, tap any entry under Recent or History to edit it. When you change a category, the words are remembered so the next one lands right.'],
+      ['Removing an entry', 'Open the entry and tap Remove entry. It goes at once, and an Undo bar stays for a few seconds in case you did not mean it.'],
+      ['Asking a question', 'Ask "how much have I spent this week on coffee?" or "how much did I spend on groceries last month?". The answer is shown on screen or read aloud, as set under Settings → Answers to questions. Weeks start on Sunday.'],
+      ['Goals', 'Say "goal: save 500 for a trip by December" or "pay off my credit card in 6 months". The card shows the plan before you save it. Add money with "add 50 to the trip goal".'],
+      ['Reminders', 'Say "remind me to pay rent on the 1st at 9am" or "remind me to log receipts every evening at 8". Reminders are phone notifications, so the first one asks for permission. They live under Settings → Reminders.'],
+      ['Repeating entries', 'Rent, salary, subscriptions: set them once under Settings → Repeating entries and each one is logged for you when it is due. You can edit or remove any logged entry like normal.'],
+      ['Limits and what happens at period end', 'A limit on a category only adds a quiet progress bar; nothing turns red. Each category with a limit chooses what happens to the unspent part when the period ends: start fresh, carry it over, or ask you each time.'],
+      ['Budget period and the overall plan', 'Budget by calendar month, or by your paydays (Settings → Budget period; paydays come from your repeating income). One overall plan for all spending can be set from the Budget tab. Categories and limits stay optional.'],
+      ['Importing a statement', 'Settings → Import a statement reads a bank or card statement PDF on your phone, shows every line for review, and keeps only what you approve. Account and card numbers are never kept, and the file is deleted afterwards.'],
+      ['Backups', 'Settings → Backup & export makes a file you own: a full backup, an encrypted backup, a CSV or a plain summary. Restore from a backup file on any phone. Nothing is stored anywhere else.'],
+      ['Languages', 'Entries are understood in English, Spanish, French, German, Italian, Japanese, Korean and Chinese. Change the language under Settings.'],
+    ] as [string, string][],
     commitments: [
       ['No bank linking. Ever.', 'OnlyBudget never asks for bank credentials and never will, not as a feature and not as an upsell. You tell it what happened.'],
       ['No ads. No tracking.', 'There is no analytics SDK, no advertising ID, no third-party data sharing. Nothing about you leaves this phone unless you export it yourself.'],

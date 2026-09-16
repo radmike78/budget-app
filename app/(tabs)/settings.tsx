@@ -128,6 +128,7 @@ export default function SettingsScreen() {
       <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? t.smartParseOn : t.smartParseOff} onPress={() => router.push('/settings/smart')} />
 
       <SectionTitle>{t.about}</SectionTitle>
+      <ListItem title={t.help} subtitle={t.helpSub} onPress={() => router.push('/settings/help')} />
       <ListItem title={t.aboutApp} subtitle={t.aboutSub} onPress={() => router.push('/settings/about')} />
       <Text variant="small" style={{ marginTop: spacing.md, textAlign: 'center' }}>{t.appName} {version}</Text>
 
