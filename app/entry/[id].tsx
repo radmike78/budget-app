@@ -9,7 +9,6 @@ import { spacing, useTheme } from '@/theme';
 import { friendlyDate, today } from '@/lib/dates';
 import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useT } from '@/i18n';
-import { confirmDialog } from '@/lib/dialogs';
 import { CategoryPicker, DatePicker } from '@/components/pickers';
 import { Button, Field, Row, Screen, Segmented, Text } from '@/components/ui';
 
@@ -59,8 +58,10 @@ export default function EditEntry() {
     router.back();
   };
 
-  const confirmDelete = async () => {
-    if (await confirmDialog(t.removeEntryQ, undefined, { confirmText: t.remove, cancelText: t.keep, destructive: true })) { await remove(tx.id); router.back(); }
+  // No "are you sure?": the entry goes at once and the Undo bar on the tabs puts it back.
+  const removeEntry = async () => {
+    await remove(tx.id);
+    router.back();
   };
 
   return (
@@ -79,7 +80,7 @@ export default function EditEntry() {
       <Field label={t.note} value={note} onChangeText={setNote} placeholder={t.optional} />
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
       <Button title={t.saveChanges} onPress={save} />
-      <View style={{ marginTop: spacing.md }}><Button tone="danger" title={t.removeEntry} onPress={confirmDelete} /></View>
+      <View style={{ marginTop: spacing.md }}><Button tone="danger" title={t.removeEntry} onPress={removeEntry} /></View>
       <CategoryPicker visible={showCat} onClose={() => setShowCat(false)} onPick={(c) => setCategoryId(c.id)} kind={type} selectedId={categoryId} categories={categories} />
       <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={date} onPick={setDate} />
     </Screen>

@@ -132,6 +132,18 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE settings ADD COLUMN answer_mode TEXT DEFAULT 'auto';`,
   // v7: the day of month a monthly rule was set on, so it returns to the 31st after a short month.
   `ALTER TABLE recurring_rules ADD COLUMN anchor_day INTEGER;`,
+  // v8: budget by pay period, one overall plan, and what an unspent category plan does at period end
+  // (with the answers given in "ask" mode, keyed by the period they apply to).
+  `ALTER TABLE settings ADD COLUMN budget_period TEXT DEFAULT 'month';
+  ALTER TABLE settings ADD COLUMN overall_limit REAL;
+  ALTER TABLE categories ADD COLUMN rollover TEXT DEFAULT 'reset';
+  ALTER TABLE categories ADD COLUMN rollover_since TEXT;
+  CREATE TABLE IF NOT EXISTS carryovers (
+    category_id TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    period TEXT NOT NULL,
+    amount REAL NOT NULL,
+    PRIMARY KEY (category_id, period)
+  );`,
 ];
 
 async function migrate(db: DB): Promise<void> {
@@ -161,8 +173,8 @@ async function seedDefaultCategories(db: DB): Promise<void> {
 /** Test/reset helper: wipes every table and re-seeds defaults. */
 export async function resetDatabase(db: DB): Promise<void> {
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts;');
-    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system' WHERE id=1");
+    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers;');
+    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', budget_period='month', overall_limit=NULL WHERE id=1");
   });
   await seedDefaultCategories(db);
 }

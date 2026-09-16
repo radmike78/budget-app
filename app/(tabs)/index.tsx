@@ -3,16 +3,18 @@ import { View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { currentMonthKey, today } from '@/lib/dates';
-import { balanceSentence, goalProgress, monthSummarySentence, topCategorySentence } from '@/lib/plain';
+import { today } from '@/lib/dates';
+import { balanceSentence, categoryLineSentence, goalProgress, isWholeMonth, periodSummarySentence, topCategorySentence } from '@/lib/plain';
+import { periodContaining, samePeriod } from '@/lib/periods';
 import { categoryName, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { speak } from '@/lib/speak';
 import { EntryBar } from '@/components/EntryBar';
 import { ConfirmationCard } from '@/components/ConfirmationCard';
 import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
+import { CarryQuestions } from '@/components/CarryQuestions';
 import { TransactionRow } from '@/components/TransactionRow';
 import { useEntryFlow } from '@/components/useEntryFlow';
-import { Button, Card, EmptyState, Row, Screen, SectionTitle, Spacer, Text, useTypeScale } from '@/components/ui';
+import { Button, Card, EmptyState, ProgressBar, Row, Screen, SectionTitle, Spacer, Text, useTypeScale } from '@/components/ui';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -22,8 +24,9 @@ export default function HomeScreen() {
   const money = useMoney();
   const settings = useAppStore((s) => s.settings);
   const stats = useAppStore((s) => s.stats);
-  const month = useAppStore((s) => s.month);
-  const setMonth = useAppStore((s) => s.setMonth);
+  const period = useAppStore((s) => s.period);
+  const rules = useAppStore((s) => s.rules);
+  const goToCurrentPeriod = useAppStore((s) => s.goToCurrentPeriod);
   const categories = useAppStore((s) => s.categories);
   const recent = useAppStore((s) => s.recent);
   const goals = useAppStore((s) => s.goals);
@@ -32,9 +35,10 @@ export default function HomeScreen() {
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
 
+  // Today always shows the period that contains today, even after browsing older ones on the Budget tab.
   useFocusEffect(useCallback(() => {
-    if (month !== currentMonthKey()) setMonth(currentMonthKey());
-  }, [month, setMonth]));
+    if (settings && !samePeriod(period, periodContaining(settings.budgetPeriod, rules, today()))) goToCurrentPeriod();
+  }, [settings, period, rules, goToCurrentPeriod]));
 
   useEffect(() => {
     if (!toast) return;
@@ -44,10 +48,13 @@ export default function HomeScreen() {
 
   if (!settings || !stats) return null;
   const currency = settings.currency;
-  const isCurrent = stats.month === currentMonthKey();
-  const summary = monthSummarySentence(stats, currency, isCurrent, locale);
+  const todayStr = today();
+  const isCurrent = stats.period.start <= todayStr && todayStr <= stats.period.end;
+  const payPeriod = settings.budgetPeriod === 'pay' && !isWholeMonth(stats.period);
+  const summary = periodSummarySentence(stats, currency, isCurrent, settings.budgetPeriod, todayStr, locale);
   const top = topCategorySentence(stats, categories, currency, locale, (c) => categoryName(c, t));
   const balance = balanceSentence(settings.startingBalance, lifetime.income, lifetime.expenses, currency, locale);
+  const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
   const activeGoals = goals.filter((g) => !g.completed).slice(0, 2);
 
   return (
@@ -67,10 +74,17 @@ export default function HomeScreen() {
           <Text variant="body">{toast}</Text>
         </Card>
       ) : null}
+      <CarryQuestions />
 
-      <SectionTitle>{t.thisMonth}</SectionTitle>
+      <SectionTitle>{payPeriod ? t.thisPeriod : t.thisMonth}</SectionTitle>
       <Card>
         <Text variant="heading" style={{ lineHeight: 26 }}>{summary}</Text>
+        {overall ? (
+          <View style={{ marginTop: spacing.sm }}>
+            <Text variant="muted">{categoryLineSentence(overall, stats.expenses, currency, locale, payPeriod)}</Text>
+            <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={stats.expenses / overall} tone={stats.expenses > overall ? 'warn' : 'accent'} /></View>
+          </View>
+        ) : null}
         {top ? <Text variant="muted" style={{ marginTop: spacing.sm }}>{top}</Text> : null}
         {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
         {stats.income > 0 || stats.expenses > 0 ? (
@@ -86,7 +100,7 @@ export default function HomeScreen() {
         <>
           <SectionTitle right={<Button tone="ghost" small title={t.allGoals} onPress={() => router.push('/goals')} />}>{t.goals}</SectionTitle>
           {activeGoals.map((g) => {
-            const p = goalProgress(g, currency, today(), locale);
+            const p = goalProgress(g, currency, todayStr, locale);
             return (
               <Card key={g.id} style={{ marginBottom: spacing.sm }}>
                 <Text variant="body" style={{ fontWeight: '600' }}>{g.name}</Text>

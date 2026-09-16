@@ -1,14 +1,17 @@
 /**
  * Builders for the export formats. Pure functions; file writing lives in files.ts.
  */
-import type { Category, Debt, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, Settings, Transaction } from '@/types';
+import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
 import { longDate, monthLabel, monthKey } from './dates';
 import { formatMoney } from './money';
 
-/** v2 adds reminders, debts, imports and the transactions' statement fingerprints. */
-export const BACKUP_VERSION = 2;
+/**
+ * v2 added reminders, debts, imports and the transactions' statement fingerprints.
+ * v3 adds the budget period, the overall plan, category roll-over and its answers.
+ */
+export const BACKUP_VERSION = 3;
 
 export interface BackupPayload {
   app: 'onlybudget';
@@ -23,6 +26,7 @@ export interface BackupPayload {
   reminders: Reminder[];
   debts: Debt[];
   imports: ImportRecord[];
+  carryovers: CarryDecision[];
 }
 
 /** A cell starting with one of these would be run as a formula by spreadsheets (CSV injection). */
@@ -102,10 +106,10 @@ export function summaryText(transactions: Transaction[], categories: Category[],
 
 type BackupData = Omit<BackupPayload, 'app' | 'version' | 'exportedAt'>;
 
-export function buildBackup(data: Omit<BackupData, 'reminders' | 'debts' | 'imports'> & Partial<Pick<BackupData, 'reminders' | 'debts' | 'imports'>>, exportedAt: string): BackupPayload {
+export function buildBackup(data: Omit<BackupData, 'reminders' | 'debts' | 'imports' | 'carryovers'> & Partial<Pick<BackupData, 'reminders' | 'debts' | 'imports' | 'carryovers'>>, exportedAt: string): BackupPayload {
   // A scheduled notification id only means something on the phone that scheduled it.
   const reminders = (data.reminders ?? []).map((r) => ({ ...r, notificationId: null }));
-  return { app: 'onlybudget', version: BACKUP_VERSION, exportedAt, ...data, reminders, debts: data.debts ?? [], imports: data.imports ?? [] };
+  return { app: 'onlybudget', version: BACKUP_VERSION, exportedAt, ...data, reminders, debts: data.debts ?? [], imports: data.imports ?? [], carryovers: data.carryovers ?? [] };
 }
 
 export function isBackupPayload(x: unknown): x is BackupPayload {

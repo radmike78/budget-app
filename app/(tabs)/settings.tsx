@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Platform, ScrollView, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import type { AnswerMode, ThemeSetting } from '@/types';
+import type { AnswerMode, BudgetPeriodMode, ThemeSetting } from '@/types';
+import { hasPayRules } from '@/lib/periods';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { CURRENCIES, currencyInfo } from '@/lib/money';
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const keywords = useAppStore((s) => s.keywords);
+  const rules = useAppStore((s) => s.rules);
   const [showCurrency, setShowCurrency] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   if (!settings) return null;
@@ -59,6 +61,11 @@ export default function SettingsScreen() {
     if (settings.reminderEnabled) await scheduleDailyReminder(hour, reminderText);
   };
 
+  const changeBudgetPeriod = async (budgetPeriod: BudgetPeriodMode) => {
+    if (budgetPeriod === 'pay' && !hasPayRules(rules)) { notify(t.budgetPeriod, t.budgetPeriodNeedsIncome); return; }
+    await updateSettings({ budgetPeriod });
+  };
+
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const languageLabel = settings.language === 'system' ? `${t.systemLanguage} (${LANGUAGE_OPTIONS.find((o) => o.code === languageCode)?.name ?? languageCode})` : LANGUAGE_OPTIONS.find((o) => o.code === settings.language)?.name ?? settings.language;
 
@@ -84,6 +91,11 @@ export default function SettingsScreen() {
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.answerMode}</Text>
         <Segmented<AnswerMode> value={settings.answerMode} onChange={(answerMode) => updateSettings({ answerMode })} options={[{ value: 'text', label: t.answerText }, { value: 'speak', label: t.answerSpeak }, { value: 'auto', label: t.answerAuto }]} />
         <Text variant="small" style={{ marginTop: spacing.sm }}>{t.answerModeSub}</Text>
+      </Card>
+      <Card style={{ marginBottom: spacing.sm }}>
+        <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.budgetPeriod}</Text>
+        <Segmented<BudgetPeriodMode> value={settings.budgetPeriod} onChange={changeBudgetPeriod} options={[{ value: 'month', label: t.periodMonth }, { value: 'pay', label: t.periodPay }]} />
+        <Text variant="small" style={{ marginTop: spacing.sm }}>{t.budgetPeriodSub}</Text>
       </Card>
       {Platform.OS !== 'web' ? <Card style={{ marginBottom: spacing.sm }}>
         <Row style={{ justifyContent: 'space-between' }}>

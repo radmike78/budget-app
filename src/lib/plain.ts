@@ -2,10 +2,10 @@
  * Plain-language sentences for the Home, Budget and Goals screens.
  * Tone: calm, factual, no guilt. Wording comes from the active locale.
  */
-import type { Category, CategoryTotal, Goal, GoalKind, MonthStats, Reminder } from '@/types';
+import type { BudgetPeriodMode, Category, CategoryTotal, Goal, GoalKind, MonthStats, Period, Reminder } from '@/types';
 import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
-import { addDays, daysBetween, friendlyDate, longDate, monthName, type DateFormat } from './dates';
+import { addDays, daysBetween, friendlyDate, longDate, monthKey, monthName, monthRange, type DateFormat } from './dates';
 import { formatMoney } from './money';
 
 function moneyFn(currency: string, locale: LocaleDef) {
@@ -20,6 +20,19 @@ export function monthSummarySentence(stats: MonthStats, currency: string, isCurr
   return locale.sentences.monthSummary(stats, moneyFn(currency, locale), monthName(stats.month, dateFmt(locale)), isCurrentMonth);
 }
 
+/** True when the period is exactly a calendar month (pay mode falls back to months until there is a payday on each side). */
+export function isWholeMonth(period: Period): boolean {
+  const r = monthRange(monthKey(period.start));
+  return period.start === r.start && period.end === r.end;
+}
+
+/** The month sentence, or the payday-to-payday one when the period is not a whole month. */
+export function periodSummarySentence(stats: MonthStats, currency: string, isCurrent: boolean, mode: BudgetPeriodMode, todayStr: string, locale: LocaleDef = en): string {
+  if (mode === 'month' || isWholeMonth(stats.period)) return monthSummarySentence(stats, currency, isCurrent, locale);
+  const fmt = dateFmt(locale);
+  return locale.sentences.periodSummary(stats, moneyFn(currency, locale), longDate(stats.period.start, todayStr, fmt), longDate(stats.period.end, todayStr, fmt), isCurrent);
+}
+
 export function topCategorySentence(stats: MonthStats, categories: Category[], currency: string, locale: LocaleDef = en, nameOf: (c: Category) => string = (c) => c.name): string | null {
   const expenseCats = new Map(categories.filter((c) => c.kind === 'expense').map((c) => [c.id, c]));
   const spend = stats.byCategory.filter((b) => b.categoryId && expenseCats.has(b.categoryId)).sort((a, b) => b.total - a.total);
@@ -29,8 +42,9 @@ export function topCategorySentence(stats: MonthStats, categories: Category[], c
   return locale.sentences.topCategory(nameOf(cat), moneyFn(currency, locale)(top.total), top.total / stats.expenses, spend.length === 1);
 }
 
-export function categoryLineSentence(cat: Category, spent: number, currency: string, locale: LocaleDef = en): string {
-  return locale.sentences.categoryLine(cat, spent, moneyFn(currency, locale));
+/** `plan` is the category's limit plus anything carried over (null = no limit); also used for the overall plan. */
+export function categoryLineSentence(plan: number | null, spent: number, currency: string, locale: LocaleDef = en, payPeriod = false): string {
+  return locale.sentences.categoryLine(plan, spent, moneyFn(currency, locale), payPeriod);
 }
 
 export interface GoalProgress {

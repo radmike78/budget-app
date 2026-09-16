@@ -134,7 +134,9 @@ No server, no account, no bank link, no analytics. Every trust boundary (typed o
 
 ## Data
 
-SQLite schema in `src/db/database.ts` (versioned with `PRAGMA user_version`; v2 adds `settings.language`, v3 adds `goals.kind` and `reminders`, v4 `settings.app_lock`, v5 `transactions.fingerprint`/`import_id`, `imports` and `debts`). Tables: `transactions`, `categories` (with a `kind` column and optional `monthly_limit`), `recurring_rules`, `goals` (`kind` is `saving` or `debt`), `reminders` (text, due time, repeat, scheduled notification id), `settings` (single row), `keyword_mappings`.
+SQLite schema in `src/db/database.ts` (versioned with `PRAGMA user_version`; v2 adds `settings.language`, v3 adds `goals.kind` and `reminders`, v4 `settings.app_lock`, v5 `transactions.fingerprint`/`import_id`, `imports` and `debts`, v6 `settings.answer_mode`, v7 `recurring_rules.anchor_day`, v8 `settings.budget_period`/`overall_limit`, `categories.rollover`/`rollover_since` and `carryovers`). Tables: `transactions`, `categories` (with a `kind` column, optional `monthly_limit` and what happens to the unspent part at period end), `recurring_rules`, `goals` (`kind` is `saving` or `debt`), `reminders` (text, due time, repeat, scheduled notification id), `settings` (single row), `keyword_mappings`, `carryovers` (answers to "carry it over?").
+
+Budget periods are calendar months unless Settings → Budget period is set to *My paydays*: then a period runs from one payday to the day before the next, with paydays taken from the active repeating income rules (a three-paycheck month simply has three periods). Category limits, the optional overall plan on the Budget tab, and roll-over all apply per period. Each category with a limit chooses what happens to the unspent part when the period ends: start fresh, carry it over to the next plan, or ask (a quiet card on Today). Only money that was not spent carries; going past a plan never takes from the next one. Removing an entry shows no dialog; an Undo bar puts it back.
 
 Recurring rules are caught up on every launch and whenever a rule is saved: every due occurrence up to today is inserted as a transaction flagged `is_recurring_instance`, and `next_occurrence` moves forward. Monthly rules keep their day-of-month anchor (the 31st becomes the 28th in February and returns to the 31st in March).
 
@@ -146,7 +148,7 @@ One-time purchase or a free app with one optional one-time "supporter" unlock fo
 
 ## Status
 
-Everything in the v1 must-have list is implemented, in eight languages: voice + text entry, Tier 1 parser with learning, confirmation card, default + custom categories with optional limits, recurring entries, monthly overview, goals with plain-language pace, CSV/summary/JSON/encrypted export and restore, full offline operation, onboarding without sign-up, light/dark theme, optional daily reminder. Tier 2 assist is implemented behind an opt-in.
+Everything in the v1 must-have list is implemented, in eight languages: voice + text entry, Tier 1 parser with learning, confirmation card, default + custom categories with optional limits and roll-over, an optional overall plan, budgeting by calendar month or by payday, undo after removing an entry, recurring entries, monthly overview, goals with plain-language pace, CSV/summary/JSON/encrypted export and restore, full offline operation, onboarding without sign-up, light/dark theme, optional daily reminder. Tier 2 assist is implemented behind an opt-in.
 
 Not built (v1.5 candidates): household sharing between two devices, home-screen widget, multi-currency entries, trend charts. The non-English copy was written in one pass and should get a native-speaker review before release.
 

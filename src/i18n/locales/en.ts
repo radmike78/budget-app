@@ -278,6 +278,7 @@ export const en = {
     spendingKind: 'Spending',
     incomeKind: 'Income',
     monthlyLimit: 'Monthly limit (optional)',
+    periodLimit: 'Limit per pay period (optional)',
     limitPlaceholder: 'Leave blank for none',
     limitHint: 'A limit only adds a quiet progress bar. Nothing turns red.',
     giveName: 'Give it a name.',
@@ -356,6 +357,31 @@ export const en = {
     answerText: 'On screen',
     answerSpeak: 'Read aloud',
     answerAuto: 'Aloud when I ask by voice',
+    budgetPeriod: 'Budget period',
+    budgetPeriodSub: 'Paydays come from your repeating income. With "My paydays" a new period starts on each one, so a three-paycheck month takes care of itself. Category limits and the overall plan then apply per pay period.',
+    budgetPeriodNeedsIncome: 'Add a repeating income first, so the app knows when your paydays are.',
+    periodMonth: 'Calendar month',
+    periodPay: 'My paydays',
+    thisPeriod: 'This pay period',
+    previousPeriod: 'Previous period',
+    nextPeriod: 'Next period',
+    overallPlan: 'Overall plan',
+    overallPlanSub: 'One number for all your spending in a period. Categories and their limits stay optional.',
+    overallPlanPlaceholder: 'Leave blank for none',
+    setOverallPlan: 'Set an overall plan',
+    changeOverallPlan: 'Change the overall plan',
+    rollover: 'When the period ends',
+    rolloverReset: 'Start fresh',
+    rolloverCarry: 'Carry over',
+    rolloverAsk: 'Ask me',
+    rolloverHint: 'Carry over adds what you did not spend to the next plan. Going past the plan never takes from the next one.',
+    carriedOver: (amount: string) => `Includes ${amount} carried over.`,
+    askCarry: (amount: string, name: string) => `Last period you had ${amount} left in ${name}.`,
+    askCarryBody: 'Add it to this period’s plan, or start fresh?',
+    carryIt: 'Carry it over',
+    startFresh: 'Start fresh',
+    undo: 'Undo',
+    entryRemovedUndo: 'Entry removed.',
     readAloud: 'Read aloud',
     periodNames: { today: 'today', yesterday: 'yesterday', week: 'this week', lastWeek: 'last week', month: 'this month', lastMonth: 'last month', year: 'this year', lastYear: 'last year', all: 'in total' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
@@ -507,13 +533,28 @@ export const en = {
       if (share >= 0.5) return `Most of it went to ${name} (${amount}).`;
       return `The biggest slice was ${name} at ${amount}.`;
     },
-    categoryLine: (cat: Category, spent: number, money: (n: number) => string): string => {
-      if (cat.monthlyLimit == null || cat.monthlyLimit <= 0) return spent === 0 ? 'Nothing yet this month.' : `${money(spent)} this month.`;
-      const remaining = cat.monthlyLimit - spent;
-      if (spent === 0) return `Nothing yet of your ${money(cat.monthlyLimit)} plan.`;
-      if (remaining > 0) return `${money(spent)} of your ${money(cat.monthlyLimit)} plan. ${money(remaining)} left.`;
-      if (remaining === 0) return `Exactly at your ${money(cat.monthlyLimit)} plan.`;
-      return `${money(spent)} so far, ${money(-remaining)} past your ${money(cat.monthlyLimit)} plan.`;
+    periodSummary: (stats: MonthStats, money: (n: number) => string, from: string, to: string, isCurrent: boolean): string => {
+      const net = stats.income - stats.expenses;
+      const when = isCurrent ? `since ${from}` : `from ${from} to ${to}`;
+      if (stats.income === 0 && stats.expenses === 0) {
+        return isCurrent ? `Nothing logged yet since ${from}. Tap the mic or type to add your first entry.` : `Nothing was logged from ${from} to ${to}.`;
+      }
+      if (stats.income === 0) return `You've spent ${money(stats.expenses)} ${when}. No income logged yet.`;
+      if (stats.expenses === 0) return `You've brought in ${money(stats.income)} ${when} and haven't logged any spending yet.`;
+      const lead = `${when.charAt(0).toUpperCase()}${when.slice(1)} you've brought in ${money(stats.income)} and spent ${money(stats.expenses)}.`;
+      if (net > 0) return `${lead} That leaves ${money(net)}.`;
+      if (net === 0) return `${lead} That comes out even.`;
+      return `${lead} That's ${money(-net)} more out than in.`;
+    },
+    /** `plan` is the limit plus anything carried over; null means no limit. */
+    categoryLine: (plan: number | null, spent: number, money: (n: number) => string, payPeriod = false): string => {
+      const period = payPeriod ? 'this period' : 'this month';
+      if (plan == null || plan <= 0) return spent === 0 ? `Nothing yet ${period}.` : `${money(spent)} ${period}.`;
+      const remaining = plan - spent;
+      if (spent === 0) return `Nothing yet of your ${money(plan)} plan.`;
+      if (remaining > 0) return `${money(spent)} of your ${money(plan)} plan. ${money(remaining)} left.`;
+      if (remaining === 0) return `Exactly at your ${money(plan)} plan.`;
+      return `${money(spent)} so far, ${money(-remaining)} past your ${money(plan)} plan.`;
     },
     goalDone: (goal: Goal, money: (n: number) => string) => `Done. You saved ${money(goal.targetAmount)} for ${goal.name}.`,
     goalDoneDebt: (goal: Goal, money: (n: number) => string) => `Done. You paid down ${money(goal.targetAmount)} on ${goal.name}.`,

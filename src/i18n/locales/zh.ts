@@ -1,4 +1,4 @@
-import type { Category, Goal, MonthStats } from '@/types';
+import type { Goal, MonthStats } from '@/types';
 import type { LocaleDef } from '../types';
 
 export const zh: LocaleDef = {
@@ -262,6 +262,7 @@ export const zh: LocaleDef = {
     spendingKind: '支出',
     incomeKind: '收入',
     monthlyLimit: '每月上限（可选）',
+    periodLimit: '每个发薪周期的上限（可选）',
     limitPlaceholder: '留空表示不设上限',
     limitHint: '上限只会显示一条安静的进度条，不会变红。',
     giveName: '起个名字。',
@@ -337,6 +338,31 @@ export const zh: LocaleDef = {
     answerText: '显示在屏幕上',
     answerSpeak: '朗读出来',
     answerAuto: '用语音提问时朗读',
+    budgetPeriod: '预算周期',
+    budgetPeriodSub: '发薪日来自你的重复收入。选"按发薪日"后，每个发薪日都会开始一个新周期，一个月发三次薪水也能自然对上。分类上限和总体计划会按发薪周期计算。',
+    budgetPeriodNeedsIncome: '请先添加一笔重复收入，这样应用才知道你的发薪日是哪天。',
+    periodMonth: '自然月',
+    periodPay: '按发薪日',
+    thisPeriod: '这个发薪周期',
+    previousPeriod: '上一周期',
+    nextPeriod: '下一周期',
+    overallPlan: '总计划',
+    overallPlanSub: '一个周期内的所有支出用一个数字来计划。分类和分类上限仍然是可选的。',
+    overallPlanPlaceholder: '留空则不设',
+    setOverallPlan: '设一个总计划',
+    changeOverallPlan: '修改总计划',
+    rollover: '周期结束时',
+    rolloverReset: '重新开始',
+    rolloverCarry: '结转',
+    rolloverAsk: '问我',
+    rolloverHint: '结转会把没花完的钱加到下一个计划里。超出计划不会从下一个周期扣除。',
+    carriedOver: (amount: string) => `含结转的 ${amount}。`,
+    askCarry: (amount: string, name: string) => `上个周期${name}还剩 ${amount}。`,
+    askCarryBody: '加到这个周期的计划里，还是重新开始？',
+    carryIt: '结转',
+    startFresh: '重新开始',
+    undo: '撤销',
+    entryRemovedUndo: '已删除这条记录。',
     readAloud: '朗读',
     periodNames: { today: '今天', yesterday: '昨天', week: '这周', lastWeek: '上周', month: '这个月', lastMonth: '上个月', year: '今年', lastYear: '去年', all: '总共' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => (income ? `${period}${what ? `来自${what}` : ''}的收入是${amount}，共${count}笔。` : `${period}${what ? `在${what}上` : ''}花了${amount}，共${count}笔。`),
@@ -473,13 +499,27 @@ export const zh: LocaleDef = {
       if (share >= 0.5) return `大部分花在了${name}（${amount}）。`;
       return `花得最多的是${name}，${amount}。`;
     },
-    categoryLine: (cat: Category, spent, money) => {
-      if (cat.monthlyLimit == null || cat.monthlyLimit <= 0) return spent === 0 ? '本月还没有。' : `本月 ${money(spent)}。`;
-      const remaining = cat.monthlyLimit - spent;
-      if (spent === 0) return `计划 ${money(cat.monthlyLimit)}，还没有花。`;
-      if (remaining > 0) return `计划 ${money(cat.monthlyLimit)}，已用 ${money(spent)}，还剩 ${money(remaining)}。`;
-      if (remaining === 0) return `刚好用完计划的 ${money(cat.monthlyLimit)}。`;
-      return `已用 ${money(spent)}，比计划的 ${money(cat.monthlyLimit)} 多了 ${money(-remaining)}。`;
+    periodSummary: (stats: MonthStats, money, from, to, isCurrent) => {
+      const net = stats.income - stats.expenses;
+      const when = isCurrent ? `从${from}到现在` : `从${from}到${to}`;
+      if (stats.income === 0 && stats.expenses === 0) {
+        return isCurrent ? `从${from}到现在还没有记录。点麦克风或打字，记下第一笔。` : `从${from}到${to}没有任何记录。`;
+      }
+      if (stats.income === 0) return `${when}你花了 ${money(stats.expenses)}。还没有记录收入。`;
+      if (stats.expenses === 0) return `${when}收入 ${money(stats.income)}，还没有记录支出。`;
+      const lead = `${when}收入 ${money(stats.income)}，支出 ${money(stats.expenses)}。`;
+      if (net > 0) return `${lead}还剩 ${money(net)}。`;
+      if (net === 0) return `${lead}刚好持平。`;
+      return `${lead}支出比收入多了 ${money(-net)}。`;
+    },
+    categoryLine: (plan: number | null, spent, money, payPeriod = false) => {
+      const period = payPeriod ? '本周期' : '本月';
+      if (plan == null || plan <= 0) return spent === 0 ? `${period}还没有。` : `${period} ${money(spent)}。`;
+      const remaining = plan - spent;
+      if (spent === 0) return `计划 ${money(plan)}，还没有花。`;
+      if (remaining > 0) return `计划 ${money(plan)}，已用 ${money(spent)}，还剩 ${money(remaining)}。`;
+      if (remaining === 0) return `刚好用完计划的 ${money(plan)}。`;
+      return `已用 ${money(spent)}，比计划的 ${money(plan)} 多了 ${money(-remaining)}。`;
     },
     goalDone: (goal: Goal, money) => `完成了。你为${goal.name}存下了 ${money(goal.targetAmount)}。`,
     goalDoneDebt: (goal: Goal, money) => `完成了。${goal.name}的 ${money(goal.targetAmount)} 已经还清。`,
