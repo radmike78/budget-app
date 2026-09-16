@@ -11,7 +11,7 @@ A minimal, honest budgeting app. No bank sync, no accounts, no ads, no bait-and-
 "how much did I spend on coffee this week?" → "This week you've spent $14.37 on coffee, across 2 entries."
 ```
 
-Questions are answered, never saved. Ask by voice and the answer is read back aloud with the phone's own voices; type it and it stays on screen. Settings → Answers to questions changes that.
+Questions are answered, never saved. "This week" runs from Sunday to today. Ask by voice and the answer is read back aloud with the phone's own voices; type it and it stays on screen. Settings → Answers to questions changes that.
 
 ## Principles (non-negotiable)
 

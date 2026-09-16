@@ -10,15 +10,15 @@ import { addDays, fromDateString, monthKey, monthRange, shiftMonthKey, toDateStr
 
 export interface DateRange { from: string; to: string }
 
-/** Calendar range for a period. Weeks start on Monday and run to today. */
+/** Calendar range for a period. Weeks start on Sunday and run to today. */
 export function periodRange(period: QuestionPeriod, todayStr: string): DateRange {
   const d = fromDateString(todayStr);
-  const dow = (d.getDay() + 6) % 7; // Monday = 0
+  const dow = d.getDay(); // Sunday = 0
   switch (period) {
     case 'today': return { from: todayStr, to: todayStr };
     case 'yesterday': { const y = addDays(todayStr, -1); return { from: y, to: y }; }
     case 'week': return { from: addDays(todayStr, -dow), to: todayStr };
-    case 'lastWeek': { const monday = addDays(todayStr, -dow - 7); return { from: monday, to: addDays(monday, 6) }; }
+    case 'lastWeek': { const sunday = addDays(todayStr, -dow - 7); return { from: sunday, to: addDays(sunday, 6) }; }
     case 'month': return { from: monthRange(monthKey(todayStr)).start, to: todayStr };
     case 'lastMonth': { const r = monthRange(shiftMonthKey(monthKey(todayStr), -1)); return { from: r.start, to: r.end }; }
     case 'year': return { from: `${d.getFullYear()}-01-01`, to: todayStr };

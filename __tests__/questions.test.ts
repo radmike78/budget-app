@@ -88,10 +88,11 @@ describe('parsing questions', () => {
 });
 
 describe('periodRange', () => {
-  it('weeks start on Monday and run to today', () => {
-    expect(periodRange('week', TODAY)).toEqual({ from: '2026-09-14', to: '2026-09-16' });
-    expect(periodRange('lastWeek', TODAY)).toEqual({ from: '2026-09-07', to: '2026-09-13' });
-    expect(periodRange('week', '2026-09-14')).toEqual({ from: '2026-09-14', to: '2026-09-14' });
+  it('weeks start on Sunday and run to today', () => {
+    expect(periodRange('week', TODAY)).toEqual({ from: '2026-09-13', to: '2026-09-16' });
+    expect(periodRange('lastWeek', TODAY)).toEqual({ from: '2026-09-06', to: '2026-09-12' });
+    expect(periodRange('week', '2026-09-13')).toEqual({ from: '2026-09-13', to: '2026-09-13' }); // a Sunday
+    expect(periodRange('week', '2026-09-19')).toEqual({ from: '2026-09-13', to: '2026-09-19' }); // a Saturday
   });
   it('months and years', () => {
     expect(periodRange('month', TODAY)).toEqual({ from: '2026-09-01', to: '2026-09-16' });
@@ -106,7 +107,7 @@ describe('answerQuestion', () => {
   const rows: Transaction[] = [
     tx({ amount: 9.87, occurredAt: '2026-09-15', note: 'Starbucks' }),
     tx({ amount: 4.5, occurredAt: '2026-09-14', note: 'Coffee', rawInput: 'coffee at starbucks 4.50' }),
-    tx({ amount: 6, occurredAt: '2026-09-10', note: 'Starbucks' }), // last week
+    tx({ amount: 6, occurredAt: '2026-09-10', note: 'Starbucks' }), // last week (Sun 6 to Sat 12)
     tx({ amount: 58, occurredAt: '2026-09-15', note: 'Korean BBQ' }),
     tx({ amount: 120, occurredAt: '2026-09-03', categoryId: 'groceries', note: 'Costco' }),
     tx({ amount: 2400, occurredAt: '2026-09-01', type: 'income', categoryId: 'salary', note: 'Salary' }),
