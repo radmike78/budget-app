@@ -1,4 +1,4 @@
-import type { Category, Goal, MonthStats } from '@/types';
+import type { Goal, MonthStats } from '@/types';
 import type { LocaleDef } from '../types';
 
 export const fr: LocaleDef = {
@@ -262,6 +262,7 @@ export const fr: LocaleDef = {
     spendingKind: 'Dépense',
     incomeKind: 'Revenu',
     monthlyLimit: 'Limite mensuelle (facultatif)',
+    periodLimit: 'Limite par période de paie (facultatif)',
     limitPlaceholder: 'Laissez vide pour aucune',
     limitHint: 'Une limite ajoute seulement une barre de progression discrète. Rien ne devient rouge.',
     giveName: 'Donnez-lui un nom.',
@@ -337,6 +338,31 @@ export const fr: LocaleDef = {
     answerText: 'À l\'écran',
     answerSpeak: 'Lire à voix haute',
     answerAuto: 'À voix haute si je demande en parlant',
+    budgetPeriod: 'Période de budget',
+    budgetPeriodSub: 'Les jours de paie viennent de vos revenus récurrents. Avec « Mes jours de paie », une nouvelle période commence à chacun d\'eux, et un mois à trois paies se gère tout seul. Les limites des catégories et le plan global s’appliquent alors par période de paie.',
+    budgetPeriodNeedsIncome: 'Ajoutez d\'abord un revenu récurrent, pour que l\'app sache quand tombent vos paies.',
+    periodMonth: 'Mois civil',
+    periodPay: 'Mes jours de paie',
+    thisPeriod: 'Cette période de paie',
+    previousPeriod: 'Période précédente',
+    nextPeriod: 'Période suivante',
+    overallPlan: 'Plan global',
+    overallPlanSub: 'Un seul montant pour toutes vos dépenses sur une période. Les catégories et leurs limites restent facultatives.',
+    overallPlanPlaceholder: 'Laissez vide pour ne pas en fixer',
+    setOverallPlan: 'Fixer un plan global',
+    changeOverallPlan: 'Modifier le plan global',
+    rollover: 'À la fin de la période',
+    rolloverReset: 'Repartir de zéro',
+    rolloverCarry: 'Reporter le reste',
+    rolloverAsk: 'Me demander',
+    rolloverHint: 'Reporter ajoute ce que vous n\'avez pas dépensé au plan suivant. Dépasser le plan ne retire jamais rien au suivant.',
+    carriedOver: (amount: string) => `Dont ${amount} reportés.`,
+    askCarry: (amount: string, name: string) => `La période dernière, il vous restait ${amount} dans ${name}.`,
+    askCarryBody: 'Les ajouter au plan de cette période, ou repartir de zéro ?',
+    carryIt: 'Les reporter',
+    startFresh: 'Repartir de zéro',
+    undo: 'Annuler',
+    entryRemovedUndo: 'Opération supprimée.',
     readAloud: 'Lire à voix haute',
     periodNames: { today: 'aujourd\'hui', yesterday: 'hier', week: 'cette semaine', lastWeek: 'la semaine dernière', month: 'ce mois-ci', lastMonth: 'le mois dernier', year: 'cette année', lastYear: 'l\'année dernière', all: 'au total' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
@@ -477,13 +503,27 @@ export const fr: LocaleDef = {
       if (share >= 0.5) return `La plus grande part est partie dans ${name} (${amount}).`;
       return `Le poste le plus important : ${name}, avec ${amount}.`;
     },
-    categoryLine: (cat: Category, spent, money) => {
-      if (cat.monthlyLimit == null || cat.monthlyLimit <= 0) return spent === 0 ? 'Rien pour l’instant ce mois-ci.' : `${money(spent)} ce mois-ci.`;
-      const remaining = cat.monthlyLimit - spent;
-      if (spent === 0) return `Rien pour l’instant sur les ${money(cat.monthlyLimit)} prévus.`;
-      if (remaining > 0) return `${money(spent)} sur les ${money(cat.monthlyLimit)} prévus. Il reste ${money(remaining)}.`;
-      if (remaining === 0) return `Pile sur les ${money(cat.monthlyLimit)} prévus.`;
-      return `${money(spent)} pour l’instant, soit ${money(-remaining)} au-delà des ${money(cat.monthlyLimit)} prévus.`;
+    periodSummary: (stats: MonthStats, money, from, to, isCurrent) => {
+      const net = stats.income - stats.expenses;
+      const when = isCurrent ? `depuis le ${from}` : `du ${from} au ${to}`;
+      if (stats.income === 0 && stats.expenses === 0) {
+        return isCurrent ? `Rien d’enregistré pour l’instant depuis le ${from}. Touchez le micro ou tapez pour ajouter votre première opération.` : `Rien n’a été enregistré du ${from} au ${to}.`;
+      }
+      if (stats.income === 0) return `Vous avez dépensé ${money(stats.expenses)} ${when}. Aucun revenu enregistré pour l’instant.`;
+      if (stats.expenses === 0) return `Vous avez reçu ${money(stats.income)} ${when} et n’avez encore enregistré aucune dépense.`;
+      const lead = `${when.charAt(0).toUpperCase()}${when.slice(1)}, vous avez reçu ${money(stats.income)} et dépensé ${money(stats.expenses)}.`;
+      if (net > 0) return `${lead} Il reste ${money(net)}.`;
+      if (net === 0) return `${lead} C’est tout juste équilibré.`;
+      return `${lead} Ça fait ${money(-net)} de plus en sorties qu’en entrées.`;
+    },
+    categoryLine: (plan: number | null, spent, money, payPeriod = false) => {
+      const period = payPeriod ? 'cette période' : 'ce mois-ci';
+      if (plan == null || plan <= 0) return spent === 0 ? `Rien pour l’instant ${period}.` : `${money(spent)} ${period}.`;
+      const remaining = plan - spent;
+      if (spent === 0) return `Rien pour l’instant sur les ${money(plan)} prévus.`;
+      if (remaining > 0) return `${money(spent)} sur les ${money(plan)} prévus. Il reste ${money(remaining)}.`;
+      if (remaining === 0) return `Pile sur les ${money(plan)} prévus.`;
+      return `${money(spent)} pour l’instant, soit ${money(-remaining)} au-delà des ${money(plan)} prévus.`;
     },
     goalDone: (goal: Goal, money) => `Atteint. Vous avez économisé ${money(goal.targetAmount)} pour ${goal.name}.`,
     goalDoneDebt: (goal: Goal, money) => `Terminé. Vous avez remboursé ${money(goal.targetAmount)} sur ${goal.name}.`,

@@ -1,6 +1,6 @@
-import type { Category, CategoryTotal, Debt, DebtType, Goal, ImportRecord, KeywordMapping, MonthStats, RecurringRule, Reminder, ReminderRepeat, Settings, Transaction, TxType } from '@/types';
+import type { CarryDecision, Category, CategoryTotal, Debt, DebtType, Goal, ImportRecord, KeywordMapping, MonthStats, Period, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Transaction, TxType } from '@/types';
 import type { DB } from './database';
-import { monthRange } from '@/lib/dates';
+import { isValidDateString, monthKey, monthRange } from '@/lib/dates';
 
 // ---------- row mappers ----------
 
@@ -15,9 +15,12 @@ const toTx = (r: TxRow): Transaction => ({
   fingerprint: r.fingerprint ?? null, importId: r.import_id ?? null,
 });
 
-type CatRow = { id: string; name: string; icon: string | null; kind: TxType; monthly_limit: number | null; is_default: number; archived: number; sort_order: number };
+type CatRow = { id: string; name: string; icon: string | null; kind: TxType; monthly_limit: number | null; is_default: number; archived: number; sort_order: number; rollover?: string | null; rollover_since?: string | null };
+const ROLLOVERS: Rollover[] = ['reset', 'carry', 'ask'];
+const toRollover = (v: unknown): Rollover => ((ROLLOVERS as unknown[]).includes(v) ? (v as Rollover) : 'reset');
 const toCat = (r: CatRow): Category => ({
   id: r.id, name: r.name, icon: r.icon, kind: r.kind, monthlyLimit: r.monthly_limit, isDefault: r.is_default === 1, archived: r.archived === 1, sortOrder: r.sort_order,
+  rollover: toRollover(r.rollover), rolloverSince: r.rollover_since && isValidDateString(r.rollover_since) ? r.rollover_since : null,
 });
 
 type RuleRow = { id: string; amount: number; type: TxType; category_id: string | null; frequency: RecurringRule['frequency']; next_occurrence: string; note: string | null; active: number; anchor_day: number | null };
@@ -30,10 +33,11 @@ const toGoal = (r: GoalRow): Goal => ({
   id: r.id, name: r.name, kind: r.kind === 'debt' ? 'debt' : 'saving', targetAmount: r.target_amount, currentAmount: r.current_amount, targetDate: r.target_date, createdAt: r.created_at, completed: r.completed === 1,
 });
 
-type SettingsRow = { currency: string; theme: Settings['theme']; last_backup_at: string | null; starting_balance: number | null; onboarding_done: number; reminder_enabled: number; reminder_hour: number; smart_parse_enabled: number; language: string | null; app_lock: number | null; answer_mode: string | null };
+type SettingsRow = { currency: string; theme: Settings['theme']; last_backup_at: string | null; starting_balance: number | null; onboarding_done: number; reminder_enabled: number; reminder_hour: number; smart_parse_enabled: number; language: string | null; app_lock: number | null; answer_mode: string | null; budget_period?: string | null; overall_limit?: number | null };
 const toSettings = (r: SettingsRow): Settings => ({
   currency: r.currency, theme: r.theme, lastBackupAt: r.last_backup_at, startingBalance: r.starting_balance, onboardingDone: r.onboarding_done === 1,
   reminderEnabled: r.reminder_enabled === 1, reminderHour: r.reminder_hour, smartParseEnabled: r.smart_parse_enabled === 1, language: r.language ?? 'system', appLockEnabled: r.app_lock === 1, answerMode: r.answer_mode === 'text' || r.answer_mode === 'speak' ? r.answer_mode : 'auto',
+  budgetPeriod: r.budget_period === 'pay' ? 'pay' : 'month', overallLimit: typeof r.overall_limit === 'number' && r.overall_limit > 0 ? r.overall_limit : null,
 });
 
 // ---------- transactions ----------
@@ -146,6 +150,12 @@ export async function queryTransactions(db: DB, q: TransactionQuery): Promise<Tr
 
 export async function monthStats(db: DB, month: string): Promise<MonthStats> {
   const { start, end } = monthRange(month);
+  return periodStats(db, { start, end });
+}
+
+/** Income, spending and spending per category inside one budget period. */
+export async function periodStats(db: DB, period: Period): Promise<MonthStats> {
+  const { start, end } = period;
   const totals = await db.getAllAsync<{ type: TxType; total: number }>(
     'SELECT type, SUM(amount) AS total FROM transactions WHERE occurred_at BETWEEN ? AND ? GROUP BY type',
     [start, end],
@@ -156,11 +166,31 @@ export async function monthStats(db: DB, month: string): Promise<MonthStats> {
   );
   const byCategory: CategoryTotal[] = byCategoryRows.map((r) => ({ categoryId: r.category_id, total: r.total, count: r.count }));
   return {
-    month,
+    month: monthKey(start),
+    period: { start, end },
     income: totals.find((t) => t.type === 'income')?.total ?? 0,
     expenses: totals.find((t) => t.type === 'expense')?.total ?? 0,
     byCategory,
   };
+}
+
+/** Spending per category and day in a range, for working out carry-overs across past periods. */
+export async function expenseTotalsByDay(db: DB, from: string, to: string): Promise<{ categoryId: string | null; occurredAt: string; total: number }[]> {
+  const rows = await db.getAllAsync<{ category_id: string | null; occurred_at: string; total: number }>(
+    "SELECT category_id, occurred_at, SUM(amount) AS total FROM transactions WHERE type = 'expense' AND occurred_at BETWEEN ? AND ? GROUP BY category_id, occurred_at",
+    [from, to],
+  );
+  return rows.map((r) => ({ categoryId: r.category_id, occurredAt: r.occurred_at, total: r.total }));
+}
+
+// ---------- carry-over answers ----------
+
+export async function allCarryovers(db: DB): Promise<CarryDecision[]> {
+  return db.getAllAsync<CarryDecision>('SELECT category_id AS categoryId, period, amount FROM carryovers');
+}
+
+export async function upsertCarryover(db: DB, d: CarryDecision): Promise<void> {
+  await db.runAsync('INSERT INTO carryovers (category_id, period, amount) VALUES (?, ?, ?) ON CONFLICT(category_id, period) DO UPDATE SET amount = excluded.amount', [d.categoryId, d.period, d.amount]);
 }
 
 export async function lifetimeTotals(db: DB): Promise<{ income: number; expenses: number }> {
@@ -180,9 +210,9 @@ export async function allCategories(db: DB): Promise<Category[]> {
 
 export async function upsertCategory(db: DB, c: Category): Promise<void> {
   await db.runAsync(
-    `INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, icon = excluded.icon, kind = excluded.kind, monthly_limit = excluded.monthly_limit, archived = excluded.archived, sort_order = excluded.sort_order`,
-    [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder],
+    `INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, icon = excluded.icon, kind = excluded.kind, monthly_limit = excluded.monthly_limit, archived = excluded.archived, sort_order = excluded.sort_order, rollover = excluded.rollover, rollover_since = excluded.rollover_since`,
+    [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null],
   );
 }
 
@@ -269,8 +299,8 @@ export async function getSettings(db: DB): Promise<Settings> {
 
 export async function saveSettings(db: DB, s: Settings): Promise<void> {
   await db.runAsync(
-    `UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = ?, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ? WHERE id = 1`,
-    [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.onboardingDone ? 1 : 0, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto'],
+    `UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = ?, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ?, budget_period = ?, overall_limit = ? WHERE id = 1`,
+    [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.onboardingDone ? 1 : 0, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto', s.budgetPeriod === 'pay' ? 'pay' : 'month', s.overallLimit ?? null],
   );
 }
 
@@ -292,13 +322,16 @@ export async function deleteKeyword(db: DB, word: string): Promise<void> {
 
 export async function replaceAllData(
   db: DB,
-  data: { settings: Settings; categories: Category[]; transactions: Transaction[]; recurringRules: RecurringRule[]; goals: Goal[]; keywords: KeywordMapping[]; reminders?: Reminder[]; debts?: Debt[]; imports?: ImportRecord[] },
+  data: { settings: Settings; categories: Category[]; transactions: Transaction[]; recurringRules: RecurringRule[]; goals: Goal[]; keywords: KeywordMapping[]; reminders?: Reminder[]; debts?: Debt[]; imports?: ImportRecord[]; carryovers?: CarryDecision[] },
 ): Promise<void> {
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts;');
+    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers;');
     for (const c of data.categories) {
-      await db.runAsync('INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder]);
+      await db.runAsync('INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null]);
+    }
+    for (const d of data.carryovers ?? []) {
+      await db.runAsync('INSERT OR REPLACE INTO carryovers (category_id, period, amount) VALUES (?, ?, ?)', [d.categoryId, d.period, d.amount]);
     }
     for (const r of data.recurringRules) {
       await db.runAsync('INSERT INTO recurring_rules (id, amount, type, category_id, frequency, next_occurrence, note, active, anchor_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -330,8 +363,8 @@ export async function replaceAllData(
     }
     const s = data.settings;
     await db.runAsync(
-      'UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = 1, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ? WHERE id = 1',
-      [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto'],
+      'UPDATE settings SET currency = ?, theme = ?, last_backup_at = ?, starting_balance = ?, onboarding_done = 1, reminder_enabled = ?, reminder_hour = ?, smart_parse_enabled = ?, language = ?, app_lock = ?, answer_mode = ?, budget_period = ?, overall_limit = ? WHERE id = 1',
+      [s.currency, s.theme, s.lastBackupAt, s.startingBalance, s.reminderEnabled ? 1 : 0, s.reminderHour, s.smartParseEnabled ? 1 : 0, s.language ?? 'system', s.appLockEnabled ? 1 : 0, s.answerMode ?? 'auto', s.budgetPeriod === 'pay' ? 'pay' : 'month', s.overallLimit ?? null],
     );
   });
 }

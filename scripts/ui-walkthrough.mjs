@@ -50,6 +50,8 @@ const entry = async (t) => { const input = page.getByRole('textbox').first(); aw
 const bodyText = async () => (await page.locator('body').innerText()).replace(/\s+/g, ' ');
 const expectText = async (t) => { const b = await bodyText(); if (!b.includes(t)) throw new Error(`expected "${t}" on screen`); };
 const expectNoText = async (t) => { const b = await bodyText(); if (b.includes(t)) throw new Error(`did not expect "${t}" on screen`); };
+// Section titles and field labels render in capitals, so innerText carries them upper-cased.
+const expectLabel = async (t) => { const b = (await bodyText()).toLowerCase(); if (!b.includes(t.toLowerCase())) throw new Error(`expected label "${t}" on screen`); };
 
 await step('onboarding', async () => {
   await goto('/');
@@ -75,7 +77,13 @@ await step('cancel on the confirmation card leaves nothing behind', async () => 
   await button(/^Cancel$/).click(); await page.waitForTimeout(400);
   await expectNoText('Coffee');
 });
-await step('delete the entry', async () => {
+await step('delete the entry, undo it, then delete for good', async () => {
+  await text('Lunch').click(); await page.waitForTimeout(800);
+  await button(/Remove entry/).click(); await page.waitForTimeout(800);
+  await expectNoText('Lunch'); await expectText('Entry removed');
+  await shot('undo-bar');
+  await button(/^Undo$/).click(); await page.waitForTimeout(800);
+  await expectText('Lunch'); await expectNoText('Entry removed');
   await text('Lunch').click(); await page.waitForTimeout(800);
   await button(/Remove entry/).click(); await page.waitForTimeout(800);
   await expectNoText('Lunch');
@@ -153,9 +161,12 @@ await step('new category with a limit, then archive and delete', async () => {
   await page.getByRole('button', { name: /^Add$/ }).first().click(); await page.waitForTimeout(800);
   const boxes = page.getByRole('textbox');
   await boxes.nth(0).fill('Pets'); await boxes.nth(1).fill('80');
+  await expectLabel('When the period ends');
+  await text('Carry over').click(); await page.waitForTimeout(200);
+  await shot('category-rollover');
   await button(/Add category/).click(); await page.waitForTimeout(800);
   await goto('/budget');
-  await expectText('Pets');
+  await expectText('Pets'); await expectText('of your $80 plan');
   await shot('budget-with-pets');
   await text('Pets').click(); await page.waitForTimeout(800);
   await button(/^Delete$/).click(); await page.waitForTimeout(800);
@@ -262,6 +273,40 @@ await step('budget month navigation', async () => {
   await page.getByRole('button', { name: /Previous month/ }).first().click(); await page.waitForTimeout(500);
   await shot('budget-prev-month');
   await expectText('August');
+});
+await step('overall plan on the budget and today screens', async () => {
+  await goto('/budget');
+  await button(/Set an overall plan/).click(); await page.waitForTimeout(600);
+  await page.getByRole('textbox').last().fill('1500');
+  await button(/^Save$/).click(); await page.waitForTimeout(800);
+  await expectText('of your $1,500 plan');
+  await shot('budget-overall-plan');
+  await goto('/');
+  await expectText('of your $1,500 plan');
+});
+await step('pay-period budgeting needs a repeating income, then follows paydays', async () => {
+  await goto('/settings');
+  const before = log.length;
+  await text('My paydays').click(); await page.waitForTimeout(500);
+  if (!log.slice(before).some((l) => l.includes('repeating income'))) throw new Error('expected the "add a repeating income first" notice');
+  await goto('/recurring/new');
+  const boxes = page.getByRole('textbox');
+  await boxes.nth(0).fill('2000');
+  await text('Money in').click(); await page.waitForTimeout(200);
+  await text('Every 2 weeks').click(); await page.waitForTimeout(200);
+  await button(/Start repeating/).click(); await page.waitForTimeout(800);
+  await goto('/settings');
+  await text('My paydays').click(); await page.waitForTimeout(800);
+  await goto('/');
+  await expectLabel('This pay period');
+  await shot('today-pay-period');
+  await goto('/budget');
+  const b = await bodyText();
+  if (!/Previous period|since|from/i.test(b)) throw new Error('budget screen not in pay periods');
+  await page.getByRole('button', { name: /Previous period/ }).first().click(); await page.waitForTimeout(600);
+  await shot('budget-prev-period');
+  await goto('/settings');
+  await text('Calendar month').click(); await page.waitForTimeout(500);
 });
 
 await context.close(); await browser.close(); server.close();

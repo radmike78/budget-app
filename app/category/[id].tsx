@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import type { TxType } from '@/types';
+import type { Rollover, TxType } from '@/types';
 import { getDb } from '@/db/database';
 import { countTransactionsInCategory } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
@@ -22,6 +22,8 @@ export default function CategoryEditor() {
   const categories = useAppStore((s) => s.categories);
   const save = useAppStore((s) => s.saveCategory);
   const remove = useAppStore((s) => s.removeCategory);
+  const period = useAppStore((s) => s.period);
+  const payMode = useAppStore((s) => s.settings?.budgetPeriod === 'pay');
   const isNew = id === 'new';
   const existing = categories.find((c) => c.id === id);
 
@@ -29,6 +31,7 @@ export default function CategoryEditor() {
   const [icon, setIcon] = useState(existing?.icon ?? '🧾');
   const [kind, setKind] = useState<TxType>(existing?.kind ?? (kindParam === 'income' ? 'income' : 'expense'));
   const [limit, setLimit] = useState(existing?.monthlyLimit != null ? String(existing.monthlyLimit) : '');
+  const [rollover, setRollover] = useState<Rollover>(existing?.rollover ?? 'reset');
   const [showEmoji, setShowEmoji] = useState(false);
   const [usage, setUsage] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +46,18 @@ export default function CategoryEditor() {
     const limitValue = limit.trim() ? parseMoneyInput(limit, locale.format.decimal === ',') : null;
     // A default category keeps its translated name unless the user actually changed it.
     const renamed = existing?.isDefault && name.trim() === categoryName(existing, t) ? existing.name : name.trim();
+    const monthlyLimit = kind === 'expense' && limitValue && limitValue > 0 ? limitValue : null;
+    const nextRollover: Rollover = monthlyLimit ? rollover : 'reset';
+    // Carrying over starts with the period it was switched on in; earlier periods never add anything.
+    const rolloverSince = nextRollover === 'reset' ? null : (existing?.rollover ?? 'reset') !== 'reset' && existing?.rolloverSince ? existing.rolloverSince : period.start;
     await save({
       id: existing?.id ?? newId(),
       name: renamed,
       icon,
       kind,
-      monthlyLimit: kind === 'expense' && limitValue && limitValue > 0 ? limitValue : null,
+      monthlyLimit,
+      rollover: nextRollover,
+      rolloverSince,
       isDefault: existing?.isDefault && renamed === existing.name ? true : false,
       archived: existing?.archived ?? false,
       sortOrder: existing?.sortOrder ?? 50,
@@ -79,7 +88,14 @@ export default function CategoryEditor() {
         </View>
       ) : null}
       {kind === 'expense' ? (
-        <Field label={t.monthlyLimit} value={limit} onChangeText={setLimit} keyboardType="decimal-pad" placeholder={t.limitPlaceholder} hint={t.limitHint} />
+        <Field label={payMode ? t.periodLimit : t.monthlyLimit} value={limit} onChangeText={setLimit} keyboardType="decimal-pad" placeholder={t.limitPlaceholder} hint={t.limitHint} />
+      ) : null}
+      {kind === 'expense' && limit.trim() ? (
+        <View style={{ marginBottom: spacing.lg }}>
+          <Text variant="label" style={{ marginBottom: 6 }}>{t.rollover}</Text>
+          <Segmented<Rollover> value={rollover} onChange={setRollover} options={[{ value: 'reset', label: t.rolloverReset }, { value: 'carry', label: t.rolloverCarry }, { value: 'ask', label: t.rolloverAsk }]} />
+          <Text variant="small" style={{ marginTop: 6 }}>{t.rolloverHint}</Text>
+        </View>
       ) : null}
       {usage != null ? <Text variant="small" style={{ marginBottom: spacing.md }}>{t.entryUses(usage)}</Text> : null}
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}

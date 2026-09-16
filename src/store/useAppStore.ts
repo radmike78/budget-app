@@ -1,9 +1,11 @@
 import { create } from 'zustand';
-import type { Category, Debt, Goal, ImportRecord, KeywordMapping, MonthStats, RecurringRule, Reminder, Settings, Transaction } from '@/types';
+import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping, MonthStats, Period, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 import type { StatementLine, Tradeline } from '@/statements';
-import { getDb } from '@/db/database';
+import { getDb, type DB } from '@/db/database';
 import * as repo from '@/db/repositories';
-import { currentMonthKey, nowIso, today } from '@/lib/dates';
+import { addDays, nowIso, today } from '@/lib/dates';
+import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
+import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
 import { newId } from '@/lib/ids';
 import { dueOccurrences } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
@@ -28,17 +30,30 @@ interface AppState {
   keywords: KeywordMapping[];
   keywordMap: Record<string, string>;
   recent: Transaction[];
-  month: string;
+  /** The budget period the Today and Budget screens show. */
+  period: Period;
   stats: MonthStats | null;
   lifetime: { income: number; expenses: number };
+  /** Per category: what is carried into the shown period, and any "carry it over?" question waiting. */
+  carry: Record<string, CarryState>;
+  /** Answers given in "ask" mode. */
+  carryovers: CarryDecision[];
+  /** The entry removed most recently, kept so it can be put back. */
+  lastDeleted: { tx: Transaction; at: number } | null;
 
   init: () => Promise<void>;
   refresh: () => Promise<void>;
-  setMonth: (month: string) => Promise<void>;
+  /** Moves the shown period by `delta` (negative = earlier), or back to the one containing today. */
+  shiftPeriod: (delta: number) => Promise<void>;
+  goToCurrentPeriod: () => Promise<void>;
 
   addTransaction: (input: Omit<Transaction, 'id' | 'createdAt' | 'isRecurringInstance' | 'recurringRuleId'>) => Promise<Transaction>;
   updateTransaction: (t: Transaction) => Promise<void>;
+  /** Removes the entry at once; `undoDelete` puts it back until the next removal. */
   deleteTransaction: (id: string) => Promise<void>;
+  undoDelete: () => Promise<void>;
+  /** Answers "carry over what was left?" for a category in the shown period. */
+  decideCarry: (categoryId: string, amount: number) => Promise<void>;
 
   saveCategory: (c: Category) => Promise<void>;
   removeCategory: (id: string) => Promise<void>;
@@ -77,6 +92,40 @@ const NON_ALNUM_RE = /[^\p{L}\p{N}]+/gu;
 /** `init` runs once; later calls (a re-mounted root, a retry) share the same promise. */
 let initPromise: Promise<void> | null = null;
 
+/** How many earlier periods a carry-over can accumulate across. */
+const CARRY_LOOKBACK = 24;
+
+async function computeCarry(db: DB, settings: Settings, rules: RecurringRule[], categories: Category[], carryovers: CarryDecision[], period: Period): Promise<Record<string, CarryState>> {
+  const rolling = categories.filter((c) => c.kind === 'expense' && !c.archived && (c.rollover ?? 'reset') !== 'reset' && (c.monthlyLimit ?? 0) > 0);
+  if (rolling.length === 0) return {};
+  // Earlier periods back to the oldest "since" date, oldest first.
+  const oldest = rolling.reduce<string | null>((min, c) => (c.rolloverSince && (!min || c.rolloverSince < min) ? c.rolloverSince : min), null);
+  const past: Period[] = [];
+  let p = period;
+  for (let i = 0; i < CARRY_LOOKBACK; i += 1) {
+    p = shiftPeriod(settings.budgetPeriod, rules, p, -1);
+    if (p.start >= period.start) break;
+    past.unshift(p);
+    if (oldest && p.start <= oldest) break;
+  }
+  if (past.length === 0) return {};
+  const rows = await repo.expenseTotalsByDay(db, past[0].start, addDays(period.start, -1));
+  const spent = bucketByPeriod(rows, past);
+  const decisions = new Map<string, number>();
+  const out: Record<string, CarryState> = {};
+  for (const c of rolling) {
+    decisions.clear();
+    for (const d of carryovers) if (d.categoryId === c.id) decisions.set(d.period, d.amount);
+    out[c.id] = carryInto(c, period, spent.get(c.id) ?? past.map((pp) => ({ period: pp, spent: 0 })), decisions);
+  }
+  return out;
+}
+
+async function showPeriod(period: Period): Promise<void> {
+  useAppStore.setState({ period });
+  await useAppStore.getState().refresh();
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   ready: false,
   settings: null,
@@ -91,15 +140,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   keywords: [],
   keywordMap: {},
   recent: [],
-  month: currentMonthKey(),
+  period: periodContaining('month', [], today()),
   stats: null,
   lifetime: { income: 0, expenses: 0 },
+  carry: {},
+  carryovers: [],
+  lastDeleted: null,
 
   init: () => {
     if (!initPromise) {
       initPromise = (async () => {
-        await getDb();
+        const db = await getDb();
         await get().runRecurringCatchUp();
+        const [settings, rules] = await Promise.all([repo.getSettings(db), repo.allRules(db)]);
+        set({ period: periodContaining(settings.budgetPeriod, rules, today()) });
         await get().refresh();
         set({ ready: true });
         get().rearmReminders().catch(() => {});
@@ -114,30 +168,38 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   refresh: async () => {
     const db = await getDb();
-    const month = get().month;
-    const [settings, categories, goals, rules, keywords, recent, stats, lifetime, reminders, debts, imports, fingerprints] = await Promise.all([
+    const [settings, categories, goals, rules, keywords, recent, lifetime, reminders, debts, imports, fingerprints, carryovers] = await Promise.all([
       repo.getSettings(db),
       repo.allCategories(db),
       repo.allGoals(db),
       repo.allRules(db),
       repo.allKeywords(db),
       repo.recentTransactions(db, 10),
-      repo.monthStats(db, month),
       repo.lifetimeTotals(db),
       repo.allReminders(db),
       repo.allDebts(db),
       repo.allImports(db),
       repo.allFingerprints(db),
+      repo.allCarryovers(db),
     ]);
     const keywordMap: Record<string, string> = {};
     for (const k of keywords) keywordMap[k.word] = k.categoryId;
-    set({ settings, categories, goals, rules, keywords, keywordMap, recent, stats, lifetime, reminders, debts, imports, fingerprints });
+    // Periods can change shape when the setting or the income rules change; the shown period is re-derived from its first day.
+    const period = periodContaining(settings.budgetPeriod, rules, get().period.start);
+    const stats = await repo.periodStats(db, period);
+    const carry = await computeCarry(db, settings, rules, categories, carryovers, period);
+    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry });
   },
 
-  setMonth: async (month) => {
-    set({ month });
-    const db = await getDb();
-    set({ stats: await repo.monthStats(db, month) });
+  shiftPeriod: async (delta) => {
+    const { settings, rules, period } = get();
+    await showPeriod(shiftPeriod(settings?.budgetPeriod ?? 'month', rules, period, delta));
+  },
+
+  goToCurrentPeriod: async () => {
+    const { settings, rules, period } = get();
+    const current = periodContaining(settings?.budgetPeriod ?? 'month', rules, today());
+    if (!samePeriod(current, period)) await showPeriod(current);
   },
 
   addTransaction: async (input) => {
@@ -156,7 +218,25 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   deleteTransaction: async (id) => {
     const db = await getDb();
+    const tx = await repo.getTransaction(db, id);
     await repo.deleteTransaction(db, id);
+    set({ lastDeleted: tx ? { tx, at: Date.now() } : null });
+    await get().refresh();
+  },
+
+  undoDelete: async () => {
+    const last = get().lastDeleted;
+    if (!last) return;
+    set({ lastDeleted: null });
+    const db = await getDb();
+    // Same id and dates as before, so history and any statement fingerprint are exactly as they were.
+    if (!(await repo.getTransaction(db, last.tx.id))) await repo.insertTransaction(db, last.tx);
+    await get().refresh();
+  },
+
+  decideCarry: async (categoryId, amount) => {
+    const db = await getDb();
+    await repo.upsertCarryover(db, { categoryId, period: get().period.start, amount: Math.max(0, Math.round(amount * 100) / 100) });
     await get().refresh();
   },
 
@@ -369,6 +449,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = { ...current, ...patch };
     await repo.saveSettings(db, next);
     set({ settings: next });
+    // The period shape or the overall plan changed: the shown period and its totals follow.
+    if (patch.budgetPeriod !== undefined || patch.overallLimit !== undefined) {
+      set({ period: periodContaining(next.budgetPeriod, get().rules, today()) });
+      await get().refresh();
+    }
   },
 
   learnCategory: async (rawInput, categoryId) => {

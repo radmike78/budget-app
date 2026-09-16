@@ -1,4 +1,4 @@
-import type { Category, Goal, MonthStats } from '@/types';
+import type { Goal, MonthStats } from '@/types';
 import type { LocaleDef } from '../types';
 
 export const ja: LocaleDef = {
@@ -262,6 +262,7 @@ export const ja: LocaleDef = {
     spendingKind: '支出',
     incomeKind: '収入',
     monthlyLimit: '月の上限（任意）',
+    periodLimit: '給料期間ごとの上限（任意）',
     limitPlaceholder: '空欄なら上限なし',
     limitHint: '上限を設定しても控えめな進捗バーが出るだけ。赤くはなりません。',
     giveName: '名前をつけてください。',
@@ -337,6 +338,31 @@ export const ja: LocaleDef = {
     answerText: '画面に表示',
     answerSpeak: '読み上げる',
     answerAuto: '声で聞いたときだけ読み上げる',
+    budgetPeriod: '予算の期間',
+    budgetPeriodSub: '給料日は繰り返しの収入から決まります。「給料日ごと」にすると給料日のたびに新しい期間が始まるので、給料が3回ある月もそのまま扱えます。カテゴリの上限と全体の計画は給料期間ごとに適用されます。',
+    budgetPeriodNeedsIncome: 'まず繰り返しの収入を追加してください。給料日がいつか、アプリが分かるようになります。',
+    periodMonth: '暦の月',
+    periodPay: '給料日ごと',
+    thisPeriod: '今回の給料期間',
+    previousPeriod: '前の期間',
+    nextPeriod: '次の期間',
+    overallPlan: '全体の予定',
+    overallPlanSub: '期間中の支出全体をひとつの金額で。カテゴリとその上限は引き続き任意です。',
+    overallPlanPlaceholder: '空欄なら設定なし',
+    setOverallPlan: '全体の予定を決める',
+    changeOverallPlan: '全体の予定を変える',
+    rollover: '期間が終わったら',
+    rolloverReset: 'リセットする',
+    rolloverCarry: '繰り越す',
+    rolloverAsk: '毎回たずねる',
+    rolloverHint: '繰り越すと、使わなかった分が次の予定に足されます。予定を超えても、次の期間から差し引かれることはありません。',
+    carriedOver: (amount: string) => `繰り越し${amount}を含みます。`,
+    askCarry: (amount: string, name: string) => `前の期間は${name}に${amount}残っていました。`,
+    askCarryBody: '今回の予定に足しますか？それともリセットしますか？',
+    carryIt: '繰り越す',
+    startFresh: 'リセットする',
+    undo: '元に戻す',
+    entryRemovedUndo: '記録を削除しました。',
     readAloud: '読み上げる',
     periodNames: { today: '今日', yesterday: '昨日', week: '今週', lastWeek: '先週', month: '今月', lastMonth: '先月', year: '今年', lastYear: '去年', all: '合計' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => (income ? `${period}${what ? `の${what}` : ''}の収入は${amount}です（${count}件）。` : `${period}${what ? `の${what}` : ''}の支出は${amount}です（${count}件）。`),
@@ -473,13 +499,27 @@ export const ja: LocaleDef = {
       if (share >= 0.5) return `大半は${name}（${amount}）でした。`;
       return `いちばん大きかったのは${name}で、${amount}でした。`;
     },
-    categoryLine: (cat: Category, spent, money) => {
-      if (cat.monthlyLimit == null || cat.monthlyLimit <= 0) return spent === 0 ? '今月はまだありません。' : `今月は${money(spent)}。`;
-      const remaining = cat.monthlyLimit - spent;
-      if (spent === 0) return `予定${money(cat.monthlyLimit)}のうち、まだ0です。`;
-      if (remaining > 0) return `予定${money(cat.monthlyLimit)}のうち${money(spent)}。残り${money(remaining)}。`;
-      if (remaining === 0) return `予定の${money(cat.monthlyLimit)}ちょうどです。`;
-      return `ここまで${money(spent)}。予定の${money(cat.monthlyLimit)}を${money(-remaining)}超えています。`;
+    periodSummary: (stats: MonthStats, money, from, to, isCurrent) => {
+      const net = stats.income - stats.expenses;
+      const when = isCurrent ? `${from}からここまでで` : `${from}から${to}までは`;
+      if (stats.income === 0 && stats.expenses === 0) {
+        return isCurrent ? `${from}からまだ記録がありません。マイクをタップするか入力して、最初の1件を追加しましょう。` : `${from}から${to}までは記録がありませんでした。`;
+      }
+      if (stats.income === 0) return `${when}${money(stats.expenses)}使いました。収入の記録はまだありません。`;
+      if (stats.expenses === 0) return `${when}${money(stats.income)}の収入があり、支出はまだ記録していません。`;
+      const lead = `${when}収入が${money(stats.income)}、支出が${money(stats.expenses)}。`;
+      if (net > 0) return `${lead}残りは${money(net)}です。`;
+      if (net === 0) return `${lead}ちょうど収支ゼロです。`;
+      return `${lead}支出が収入より${money(-net)}多くなっています。`;
+    },
+    categoryLine: (plan: number | null, spent, money, payPeriod = false) => {
+      const period = payPeriod ? '今回の期間' : '今月';
+      if (plan == null || plan <= 0) return spent === 0 ? `${period}はまだありません。` : `${period}は${money(spent)}。`;
+      const remaining = plan - spent;
+      if (spent === 0) return `予定${money(plan)}のうち、まだ0です。`;
+      if (remaining > 0) return `予定${money(plan)}のうち${money(spent)}。残り${money(remaining)}。`;
+      if (remaining === 0) return `予定の${money(plan)}ちょうどです。`;
+      return `ここまで${money(spent)}。予定の${money(plan)}を${money(-remaining)}超えています。`;
     },
     goalDone: (goal: Goal, money) => `達成。${goal.name}のために${money(goal.targetAmount)}貯めました。`,
     goalDoneDebt: (goal: Goal, money) => `完済。${goal.name}の${money(goal.targetAmount)}を返済しました。`,

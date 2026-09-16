@@ -1,4 +1,4 @@
-import type { Category, Goal, MonthStats } from '@/types';
+import type { Goal, MonthStats } from '@/types';
 import type { LocaleDef } from '../types';
 
 export const de: LocaleDef = {
@@ -262,6 +262,7 @@ export const de: LocaleDef = {
     spendingKind: 'Ausgabe',
     incomeKind: 'Einnahme',
     monthlyLimit: 'Monatslimit (optional)',
+    periodLimit: 'Limit pro Zahlzeitraum (optional)',
     limitPlaceholder: 'Leer lassen für kein Limit',
     limitHint: 'Ein Limit zeigt nur einen dezenten Fortschrittsbalken. Nichts wird rot.',
     giveName: 'Gib ihr einen Namen.',
@@ -337,6 +338,31 @@ export const de: LocaleDef = {
     answerText: 'Auf dem Bildschirm',
     answerSpeak: 'Vorlesen',
     answerAuto: 'Vorlesen, wenn ich per Sprache frage',
+    budgetPeriod: 'Budgetzeitraum',
+    budgetPeriodSub: 'Zahltage ergeben sich aus deinen wiederkehrenden Einnahmen. Mit „Meine Zahltage“ beginnt an jedem ein neuer Zeitraum, sodass ein Monat mit drei Gehältern von selbst aufgeht. Kategorielimits und der Gesamtplan gelten dann pro Zahlzeitraum.',
+    budgetPeriodNeedsIncome: 'Leg zuerst eine wiederkehrende Einnahme an, damit die App weiß, wann deine Zahltage sind.',
+    periodMonth: 'Kalendermonat',
+    periodPay: 'Meine Zahltage',
+    thisPeriod: 'Dieser Zahlzeitraum',
+    previousPeriod: 'Vorheriger Zeitraum',
+    nextPeriod: 'Nächster Zeitraum',
+    overallPlan: 'Gesamtplan',
+    overallPlanSub: 'Eine Zahl für alle deine Ausgaben in einem Zeitraum. Kategorien und ihre Limits bleiben optional.',
+    overallPlanPlaceholder: 'Leer lassen für keinen',
+    setOverallPlan: 'Gesamtplan festlegen',
+    changeOverallPlan: 'Gesamtplan ändern',
+    rollover: 'Wenn der Zeitraum endet',
+    rolloverReset: 'Neu anfangen',
+    rolloverCarry: 'Übertragen',
+    rolloverAsk: 'Mich fragen',
+    rolloverHint: 'Übertragen rechnet, was du nicht ausgegeben hast, zum nächsten Plan dazu. Über den Plan hinauszugehen zieht dem nächsten nie etwas ab.',
+    carriedOver: (amount: string) => `Davon ${amount} übertragen.`,
+    askCarry: (amount: string, name: string) => `Im letzten Zeitraum hattest du bei ${name} noch ${amount} übrig.`,
+    askCarryBody: 'Zum Plan für diesen Zeitraum dazurechnen oder neu anfangen?',
+    carryIt: 'Übertragen',
+    startFresh: 'Neu anfangen',
+    undo: 'Rückgängig',
+    entryRemovedUndo: 'Eintrag entfernt.',
     readAloud: 'Vorlesen',
     periodNames: { today: 'heute', yesterday: 'gestern', week: 'diese Woche', lastWeek: 'letzte Woche', month: 'diesen Monat', lastMonth: 'letzten Monat', year: 'dieses Jahr', lastYear: 'letztes Jahr', all: 'insgesamt' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
@@ -477,13 +503,28 @@ export const de: LocaleDef = {
       if (share >= 0.5) return `Das meiste ging für ${name} drauf (${amount}).`;
       return `Der größte Posten war ${name} mit ${amount}.`;
     },
-    categoryLine: (cat: Category, spent, money) => {
-      if (cat.monthlyLimit == null || cat.monthlyLimit <= 0) return spent === 0 ? 'Diesen Monat noch nichts.' : `${money(spent)} diesen Monat.`;
-      const remaining = cat.monthlyLimit - spent;
-      if (spent === 0) return `Noch nichts von den geplanten ${money(cat.monthlyLimit)}.`;
-      if (remaining > 0) return `${money(spent)} von geplanten ${money(cat.monthlyLimit)}. Noch ${money(remaining)} übrig.`;
-      if (remaining === 0) return `Genau bei den geplanten ${money(cat.monthlyLimit)}.`;
-      return `Bisher ${money(spent)}, also ${money(-remaining)} über den geplanten ${money(cat.monthlyLimit)}.`;
+    periodSummary: (stats: MonthStats, money, from, to, isCurrent) => {
+      const net = stats.income - stats.expenses;
+      const when = isCurrent ? `seit dem ${from}` : `vom ${from} bis ${to}`;
+      if (stats.income === 0 && stats.expenses === 0) {
+        return isCurrent ? `Seit dem ${from} ist noch nichts eingetragen. Tipp aufs Mikro oder schreib, um den ersten Eintrag anzulegen.` : `Vom ${from} bis ${to} wurde nichts eingetragen.`;
+      }
+      if (stats.income === 0) return `Du hast ${when} ${money(stats.expenses)} ausgegeben. Noch keine Einnahmen eingetragen.`;
+      if (stats.expenses === 0) return `Du hast ${when} ${money(stats.income)} eingenommen und noch keine Ausgaben eingetragen.`;
+      const lead = `${when.charAt(0).toUpperCase()}${when.slice(1)} hast du ${money(stats.income)} eingenommen und ${money(stats.expenses)} ausgegeben.`;
+      if (net > 0) return `${lead} Es bleiben ${money(net)}.`;
+      if (net === 0) return `${lead} Das geht genau auf.`;
+      return `${lead} Das sind ${money(-net)} mehr raus als rein.`;
+    },
+    categoryLine: (plan: number | null, spent, money, payPeriod = false) => {
+      const period = payPeriod ? 'in diesem Zeitraum' : 'diesen Monat';
+      const periodCap = `${period.charAt(0).toUpperCase()}${period.slice(1)}`;
+      if (plan == null || plan <= 0) return spent === 0 ? `${periodCap} noch nichts.` : `${money(spent)} ${period}.`;
+      const remaining = plan - spent;
+      if (spent === 0) return `Noch nichts von den geplanten ${money(plan)}.`;
+      if (remaining > 0) return `${money(spent)} von geplanten ${money(plan)}. Noch ${money(remaining)} übrig.`;
+      if (remaining === 0) return `Genau bei den geplanten ${money(plan)}.`;
+      return `Bisher ${money(spent)}, also ${money(-remaining)} über den geplanten ${money(plan)}.`;
     },
     goalDone: (goal: Goal, money) => `Geschafft. Du hast ${money(goal.targetAmount)} für ${goal.name} gespart.`,
     goalDoneDebt: (goal: Goal, money) => `Geschafft. Du hast ${money(goal.targetAmount)} von ${goal.name} abbezahlt.`,

@@ -1,4 +1,4 @@
-import type { Category, Goal, MonthStats } from '@/types';
+import type { Goal, MonthStats } from '@/types';
 import type { LocaleDef } from '../types';
 
 export const ko: LocaleDef = {
@@ -262,6 +262,7 @@ export const ko: LocaleDef = {
     spendingKind: '지출',
     incomeKind: '수입',
     monthlyLimit: '월 한도 (선택)',
+    periodLimit: '급여 기간별 한도 (선택)',
     limitPlaceholder: '비워 두면 한도 없음',
     limitHint: '한도를 정해도 조용한 진행 바만 생겨요. 아무것도 빨갛게 변하지 않아요.',
     giveName: '이름을 붙여 주세요.',
@@ -337,6 +338,31 @@ export const ko: LocaleDef = {
     answerText: '화면에 표시',
     answerSpeak: '소리로 읽어 주기',
     answerAuto: '음성으로 물을 때만 읽어 주기',
+    budgetPeriod: '예산 기간',
+    budgetPeriodSub: '월급날은 반복 수입에서 가져와요. "내 월급날"을 고르면 월급날마다 새 기간이 시작되니, 월급이 세 번 들어오는 달도 알아서 맞춰져요. 카테고리 한도와 전체 계획은 급여 기간마다 적용돼요.',
+    budgetPeriodNeedsIncome: '먼저 반복 수입을 추가해 주세요. 그래야 앱이 월급날을 알 수 있어요.',
+    periodMonth: '달력 기준 한 달',
+    periodPay: '내 월급날',
+    thisPeriod: '이번 급여 기간',
+    previousPeriod: '이전 기간',
+    nextPeriod: '다음 기간',
+    overallPlan: '전체 계획',
+    overallPlanSub: '한 기간의 모든 지출을 숫자 하나로. 카테고리와 한도는 그대로 선택 사항이에요.',
+    overallPlanPlaceholder: '비워 두면 없음',
+    setOverallPlan: '전체 계획 정하기',
+    changeOverallPlan: '전체 계획 바꾸기',
+    rollover: '기간이 끝나면',
+    rolloverReset: '새로 시작',
+    rolloverCarry: '이월하기',
+    rolloverAsk: '물어보기',
+    rolloverHint: '이월하면 쓰지 않은 금액이 다음 계획에 더해져요. 계획을 넘겨도 다음 기간에서 빠지지는 않아요.',
+    carriedOver: (amount: string) => `이월된 ${amount} 포함.`,
+    askCarry: (amount: string, name: string) => `지난 기간에 ${name}에서 ${amount} 남았어요.`,
+    askCarryBody: '이번 기간 계획에 더할까요, 아니면 새로 시작할까요?',
+    carryIt: '이월하기',
+    startFresh: '새로 시작',
+    undo: '되돌리기',
+    entryRemovedUndo: '내역을 지웠어요.',
     readAloud: '읽어 주기',
     periodNames: { today: '오늘', yesterday: '어제', week: '이번 주', lastWeek: '지난주', month: '이번 달', lastMonth: '지난달', year: '올해', lastYear: '작년', all: '전체' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => (income ? `${period}${what ? ` ${what}` : ''} 수입은 ${amount}입니다 (${count}건).` : `${period}${what ? ` ${what}` : ''} 지출은 ${amount}입니다 (${count}건).`),
@@ -473,13 +499,27 @@ export const ko: LocaleDef = {
       if (share >= 0.5) return `대부분 ${name}에 갔어요 (${amount}).`;
       return `가장 큰 항목은 ${name}으로 ${amount}였어요.`;
     },
-    categoryLine: (cat: Category, spent, money) => {
-      if (cat.monthlyLimit == null || cat.monthlyLimit <= 0) return spent === 0 ? '이번 달엔 아직 없어요.' : `이번 달 ${money(spent)}.`;
-      const remaining = cat.monthlyLimit - spent;
-      if (spent === 0) return `계획 ${money(cat.monthlyLimit)} 중 아직 0.`;
-      if (remaining > 0) return `계획 ${money(cat.monthlyLimit)} 중 ${money(spent)}. ${money(remaining)} 남았어요.`;
-      if (remaining === 0) return `계획한 ${money(cat.monthlyLimit)}에 딱 맞췄어요.`;
-      return `지금까지 ${money(spent)}, 계획한 ${money(cat.monthlyLimit)}보다 ${money(-remaining)} 넘었어요.`;
+    periodSummary: (stats: MonthStats, money, from, to, isCurrent) => {
+      const net = stats.income - stats.expenses;
+      const when = isCurrent ? `${from}부터 지금까지` : `${from}부터 ${to}까지`;
+      if (stats.income === 0 && stats.expenses === 0) {
+        return isCurrent ? `${from}부터는 아직 기록이 없어요. 마이크를 누르거나 입력해서 첫 내역을 추가하세요.` : `${from}부터 ${to}까지는 기록된 게 없어요.`;
+      }
+      if (stats.income === 0) return `${when} ${money(stats.expenses)} 썼어요. 수입 기록은 아직 없어요.`;
+      if (stats.expenses === 0) return `${when} ${money(stats.income)}가 들어왔고, 지출은 아직 기록하지 않았어요.`;
+      const lead = `${when} 수입 ${money(stats.income)}, 지출 ${money(stats.expenses)}.`;
+      if (net > 0) return `${lead} ${money(net)} 남았어요.`;
+      if (net === 0) return `${lead} 딱 맞아떨어졌어요.`;
+      return `${lead} 들어온 것보다 ${money(-net)} 더 나갔어요.`;
+    },
+    categoryLine: (plan: number | null, spent, money, payPeriod = false) => {
+      const period = payPeriod ? '이번 기간' : '이번 달';
+      if (plan == null || plan <= 0) return spent === 0 ? `${period}엔 아직 없어요.` : `${period} ${money(spent)}.`;
+      const remaining = plan - spent;
+      if (spent === 0) return `계획 ${money(plan)} 중 아직 0.`;
+      if (remaining > 0) return `계획 ${money(plan)} 중 ${money(spent)}. ${money(remaining)} 남았어요.`;
+      if (remaining === 0) return `계획한 ${money(plan)}에 딱 맞췄어요.`;
+      return `지금까지 ${money(spent)}, 계획한 ${money(plan)}보다 ${money(-remaining)} 넘었어요.`;
     },
     goalDone: (goal: Goal, money) => `달성! ${goal.name}을(를) 위해 ${money(goal.targetAmount)} 모았어요.`,
     goalDoneDebt: (goal: Goal, money) => `달성! ${goal.name} ${money(goal.targetAmount)}을(를) 다 갚았어요.`,

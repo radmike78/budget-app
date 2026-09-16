@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { useT } from '@/i18n';
 import { useIsWide, useTypeScale } from '@/components/ui';
+import { UndoBar } from '@/components/UndoBar';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
@@ -15,6 +16,7 @@ export default function TabsLayout() {
   // title sits over the centred content column instead of hugging the left edge.
   const icon = (name: React.ComponentProps<typeof Ionicons>['name']) => ({ color, size }: { color: ColorValue; size: number }) => <Ionicons name={name} color={color} size={Math.round(size * scale)} />;
   return (
+    <>
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
@@ -35,5 +37,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="history" options={{ title: t.tabHistory, tabBarIcon: icon('time-outline') }} />
       <Tabs.Screen name="settings" options={{ title: t.tabSettings, tabBarIcon: icon('settings-outline') }} />
     </Tabs>
+    <UndoBar bottomOffset={wide ? 72 : 58} />
+    </>
   );
 }

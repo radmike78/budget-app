@@ -1,6 +1,16 @@
 export type TxType = 'income' | 'expense';
 export type Frequency = 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 export type ThemeSetting = 'system' | 'light' | 'dark';
+/** Budget by calendar month, or from one payday to the next (paydays come from repeating income). */
+export type BudgetPeriodMode = 'month' | 'pay';
+/** What happens to a category's unspent plan when a period ends. */
+export type Rollover = 'reset' | 'carry' | 'ask';
+
+/** One budget period, inclusive local dates. */
+export interface Period {
+  start: string;
+  end: string;
+}
 
 export interface Transaction {
   id: string;
@@ -53,6 +63,10 @@ export interface Category {
   icon: string | null;
   kind: TxType;
   monthlyLimit: number | null;
+  /** Unspent plan at the end of a period: start fresh (default), carry it over, or ask. */
+  rollover?: Rollover | null;
+  /** Start of the period in which carrying over was switched on; earlier periods never carry. */
+  rolloverSince?: string | null;
   isDefault: boolean;
   archived: boolean;
   sortOrder: number;
@@ -120,6 +134,17 @@ export interface Settings {
   appLockEnabled: boolean;
   /** How answers to spoken questions are given: on screen, read aloud, or aloud only when asked by voice. */
   answerMode: AnswerMode;
+  /** Calendar months, or payday to payday. */
+  budgetPeriod: BudgetPeriodMode;
+  /** One optional plan for all spending in a period, on top of any per-category limits. */
+  overallLimit: number | null;
+}
+
+/** The user's answer to "carry over what was left?" for one category and one period (its start date). */
+export interface CarryDecision {
+  categoryId: string;
+  period: string;
+  amount: number;
 }
 
 export type AnswerMode = 'auto' | 'text' | 'speak';
@@ -137,8 +162,10 @@ export interface CategoryTotal {
 }
 
 export interface MonthStats {
-  /** YYYY-MM */
+  /** YYYY-MM of the period's first day. */
   month: string;
+  /** The exact range the totals cover: a calendar month, or a pay period. */
+  period: Period;
   income: number;
   expenses: number;
   byCategory: CategoryTotal[];

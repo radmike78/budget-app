@@ -5,7 +5,7 @@
  * input at it. Covers OWASP MASVS-CODE-4 (input validation) and the storage
  * side of MASVS-STORAGE (nothing untrusted reaches SQLite unchecked).
  */
-import type { Category, Debt, DebtType, Frequency, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, ReminderRepeat, Settings, Transaction, TxType } from '@/types';
+import type { CarryDecision, Category, Debt, DebtType, Frequency, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Transaction, TxType } from '@/types';
 import { isValidDateString } from './dates';
 
 /** A spoken entry is a sentence or two; anything longer is not an entry. */
@@ -27,6 +27,7 @@ const FREQUENCIES: Frequency[] = ['weekly', 'biweekly', 'monthly', 'yearly'];
 const REPEATS: ReminderRepeat[] = ['none', 'daily', 'weekly', 'monthly'];
 const DEBT_TYPES: DebtType[] = ['credit_card', 'personal_loan', 'student_loan', 'auto_loan', 'mortgage', 'line_of_credit', 'other'];
 const DEBT_SOURCES: Debt['source'][] = ['credit_report', 'card_statement', 'manual'];
+const ROLLOVERS: Rollover[] = ['reset', 'carry', 'ask'];
 const IMPORT_KINDS: ImportRecord['kind'][] = ['bank', 'card', 'credit_report'];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** Statement fingerprints are two short hashes; anything else is not one. */
@@ -88,6 +89,7 @@ export interface ValidBackupData {
   reminders: Reminder[];
   debts: Debt[];
   imports: ImportRecord[];
+  carryovers: CarryDecision[];
 }
 
 const fail = (reason: string): never => { throw new BackupValidationError(reason); };
@@ -143,7 +145,10 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     if (seenCat.has(cid)) fail('duplicate category id');
     seenCat.add(cid);
     const limit = raw.monthlyLimit == null ? null : money(raw.monthlyLimit, 'category limit');
+    const rollover = raw.rollover == null ? 'reset' : oneOf(raw.rollover, ROLLOVERS, 'category rollover');
     categories.push({
+      rollover,
+      rolloverSince: rollover !== 'reset' && typeof raw.rolloverSince === 'string' && isValidDateString(raw.rolloverSince) ? raw.rolloverSince : null,
       id: cid,
       name: text(raw.name, 60, 'category name', true),
       icon: raw.icon == null ? null : text(raw.icon, 8, 'category icon') || null,
@@ -316,9 +321,23 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     appLockEnabled: false,
     language: typeof s.language === 'string' && /^(?:[a-z]{2}(?:-[A-Za-z]{2,4})?|system)$/.test(s.language) ? s.language : 'system',
     answerMode: s.answerMode === 'text' || s.answerMode === 'speak' ? s.answerMode : 'auto',
+    budgetPeriod: s.budgetPeriod === 'pay' ? 'pay' : 'month',
+    overallLimit: s.overallLimit == null ? null : optMoney(s.overallLimit, 'overall plan'),
   };
 
-  return { settings, categories, transactions, recurringRules, goals, keywords, reminders, debts, imports };
+  const carryovers: CarryDecision[] = [];
+  const seenCarry = new Set<string>();
+  for (const raw of list(o.carryovers ?? [], 'carryovers')) {
+    assertObj(raw, 'carryover');
+    const cid = catRef(raw.categoryId, 'carryover category');
+    if (!cid || typeof raw.period !== 'string' || !isValidDateString(raw.period)) continue;
+    const key = `${cid}|${raw.period}`;
+    if (seenCarry.has(key)) continue;
+    seenCarry.add(key);
+    carryovers.push({ categoryId: cid, period: raw.period, amount: money(raw.amount, 'carryover amount') });
+  }
+
+  return { settings, categories, transactions, recurringRules, goals, keywords, reminders, debts, imports, carryovers };
 }
 
 /** Shape the Smart Assist model is asked for; everything is re-checked here. */

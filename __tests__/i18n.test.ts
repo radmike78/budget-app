@@ -8,7 +8,7 @@ import { it as itLocale } from '@/i18n/locales/it';
 import { ja } from '@/i18n/locales/ja';
 import { ko } from '@/i18n/locales/ko';
 import { zh } from '@/i18n/locales/zh';
-import { monthSummarySentence, goalProgress } from '@/lib/plain';
+import { categoryLineSentence, goalProgress, monthSummarySentence, periodSummarySentence } from '@/lib/plain';
 import type { MonthStats } from '@/types';
 
 const ALL = [en, es, fr, itLocale, de, zh, ja, ko];
@@ -47,10 +47,28 @@ describe('date formatting per locale', () => {
 });
 
 describe('plain-language sentences exist in every locale', () => {
-  const stats: MonthStats = { month: '2026-09', income: 2400, expenses: 1180, byCategory: [] };
+  const stats: MonthStats = { month: '2026-09', period: { start: '2026-09-01', end: '2026-09-30' }, income: 2400, expenses: 1180, byCategory: [] };
   it.each(ALL.map((l) => [l.code, l] as const))('%s month summary and goal pace are non-empty', (_code, locale) => {
     const sentence = monthSummarySentence(stats, locale.defaultCurrency, true, locale);
     expect(sentence.length).toBeGreaterThan(10);
+    // Pay-period wording: every branch of the sentence and the category line, in both period styles.
+    const pay: MonthStats = { ...stats, period: { start: '2026-09-04', end: '2026-09-17' } };
+    for (const s of [pay, { ...pay, income: 0 }, { ...pay, expenses: 0 }, { ...pay, income: 0, expenses: 0 }, { ...pay, income: 100, expenses: 100 }, { ...pay, income: 100, expenses: 150 }]) {
+      for (const current of [true, false]) {
+        const line = periodSummarySentence(s, locale.defaultCurrency, current, 'pay', '2026-09-10', locale);
+        expect(line.length).toBeGreaterThan(10);
+        expect(line).not.toMatch(/undefined|NaN/);
+      }
+    }
+    expect(periodSummarySentence(stats, locale.defaultCurrency, true, 'pay', '2026-09-10', locale)).toBe(sentence);
+    for (const payPeriod of [true, false]) {
+      for (const [plan, spent] of [[null, 0], [null, 20], [300, 0], [300, 120], [300, 300], [300, 320]] as const) {
+        const line = categoryLineSentence(plan, spent, locale.defaultCurrency, locale, payPeriod);
+        expect(line.length).toBeGreaterThan(5);
+        expect(line).not.toMatch(/undefined|NaN/);
+      }
+    }
+    expect(categoryLineSentence(null, 20, locale.defaultCurrency, locale, true)).not.toBe(categoryLineSentence(null, 20, locale.defaultCurrency, locale, false));
     const p = goalProgress({ id: 'g', name: 'X', kind: 'saving', targetAmount: 500, currentAmount: 320, targetDate: '2026-12-01', createdAt: '2026-08-01T00:00:00.000Z', completed: false }, locale.defaultCurrency, '2026-09-10', locale);
     expect(p.status).toBe('ahead');
     expect(p.sentence.length).toBeGreaterThan(5);
