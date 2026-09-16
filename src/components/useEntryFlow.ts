@@ -31,6 +31,8 @@ export function useEntryFlow() {
   const [pendingMany, setPendingMany] = useState<ParseResult[] | null>(null);
   const [answer, setAnswer] = useState<SpokenAnswer | null>(null);
   const [busy, setBusy] = useState(false);
+  /** How the entry on the card came in, so a spoken entry can get a spoken reply. */
+  const [lastSource, setLastSource] = useState<EntrySource>('typed');
 
   /** Builds the plain sentence for a question and reads it aloud when the setting says so. */
   const answerFor = useCallback(async (result: ParseResult, source: EntrySource, language: string) => {
@@ -55,6 +57,7 @@ export function useEntryFlow() {
   const submit = useCallback(async (raw: string, source: EntrySource = 'typed') => {
     const text = cleanEntry(raw);
     if (!text) return;
+    setLastSource(source);
     const { categories, goals, keywordMap, settings } = useAppStore.getState();
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -108,5 +111,5 @@ export function useEntryFlow() {
   const dismiss = useCallback(() => { setPending(null); setPendingMany(null); }, []);
   const dismissAnswer = useCallback(() => setAnswer(null), []);
 
-  return { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer };
+  return { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource };
 }

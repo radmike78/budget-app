@@ -31,9 +31,19 @@ export default function HomeScreen() {
   const recent = useAppStore((s) => s.recent);
   const goals = useAppStore((s) => s.goals);
   const lifetime = useAppStore((s) => s.lifetime);
-  const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer } = useEntryFlow();
+  const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource } = useEntryFlow();
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
+  const [toastLine, setToastLine] = useState<string | null>(null);
+
+  const onSaved = (msg: string, line?: string | null) => {
+    dismiss();
+    setToast(msg);
+    setToastLine(line ?? null);
+    // The voices speak English only, and only under the same rule as answers to questions.
+    const mode = settings?.answerMode ?? 'auto';
+    if (line && (mode === 'speak' || (mode === 'auto' && lastSource === 'voice'))) speak(line, 'en');
+  };
 
   // Today always shows the period that contains today, even after browsing older ones on the Budget tab.
   useFocusEffect(useCallback(() => {
@@ -42,9 +52,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 3500);
+    const timer = setTimeout(() => { setToast(null); setToastLine(null); }, toastLine ? 6000 : 3500);
     return () => clearTimeout(timer);
-  }, [toast]);
+  }, [toast, toastLine]);
 
   if (!settings || !stats) return null;
   const currency = settings.currency;
@@ -72,6 +82,7 @@ export default function HomeScreen() {
       {toast ? (
         <Card tone="accent" style={{ marginTop: spacing.md, paddingVertical: spacing.md }}>
           <Text variant="body">{toast}</Text>
+          {toastLine ? <Text variant="heading" testID="persona-line" style={{ marginTop: spacing.xs, lineHeight: 24 }}>{toastLine}</Text> : null}
         </Card>
       ) : null}
       <CarryQuestions />
@@ -119,8 +130,8 @@ export default function HomeScreen() {
       )}
       <Spacer size={spacing.xl} />
 
-      <ConfirmationCard result={pending} onCancel={dismiss} onDone={(msg) => { dismiss(); setToast(msg); }} />
-      <MultiConfirmationCard results={pendingMany} onCancel={dismiss} onDone={(msg) => { dismiss(); setToast(msg); }} />
+      <ConfirmationCard result={pending} onCancel={dismiss} onDone={onSaved} />
+      <MultiConfirmationCard results={pendingMany} onCancel={dismiss} onDone={onSaved} />
     </Screen>
   );
 }

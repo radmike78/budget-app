@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useAppStore } from '@/store/useAppStore';
+import { personaLineForTransaction } from '@/components/persona';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, nowIso, today } from '@/lib/dates';
 import { parseMoneyInput } from '@/lib/money';
@@ -60,7 +61,7 @@ function toDraft(r: ParseResult, i: number): Draft {
  * one as its own editable row so the user can fix a category or amount, drop
  * a row, and save the rest together. Nothing is saved until "Save all".
  */
-export function MultiConfirmationCard({ results, onDone, onCancel }: { results: ParseResult[] | null; onDone: (message: string) => void; onCancel: () => void }) {
+export function MultiConfirmationCard({ results, onDone, onCancel }: { results: ParseResult[] | null; onDone: (message: string, line?: string | null) => void; onCancel: () => void }) {
   const { colors } = useTheme();
   const t = useT();
   const locale = useLocale();
@@ -123,6 +124,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
     let out = 0;
     let inc = 0;
     let blocked: 'denied' | 'unsupported' | null = null;
+    let biggest: { amount: number; type: 'income' | 'expense'; categoryId: string | null; note: string | null; occurredAt: string } | null = null;
     const saveOne = async (d: Draft, amount: number) => {
       if (d.kind === 'reminder') {
         const state = await addReminder({ text: d.reminderText.trim(), date: d.date, time: d.reminderTime, repeat: d.reminderRepeat });
@@ -141,6 +143,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
       await addTransaction({ amount, type: d.type, categoryId: d.categoryId, note: d.note.trim() || null, rawInput: d.raw, occurredAt: d.date });
       if (d.categoryId && d.categoryId !== d.originalCategoryId && d.raw) await learnCategory(d.raw, d.categoryId);
       if (d.type === 'income') inc += amount; else out += amount;
+      if (d.type === 'expense' && (!biggest || amount > biggest.amount)) biggest = { amount, type: d.type, categoryId: d.categoryId, note: d.note.trim() || null, occurredAt: d.date };
     };
     const savedKeys = new Set<string>();
     try {
@@ -149,7 +152,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
         savedKeys.add(drafts[i].key);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      onDone(t.toastLoggedMany(drafts.length, out > 0 ? money(out, { compact: true }) : null, inc > 0 ? money(inc, { compact: true }) : null));
+      onDone(t.toastLoggedMany(drafts.length, out > 0 ? money(out, { compact: true }) : null, inc > 0 ? money(inc, { compact: true }) : null), biggest ? personaLineForTransaction(biggest, t) : null);
       if (blocked) notify(t.notificationsNeeded, blocked === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
     } catch (e) {
       // What was saved stays saved and leaves the list, so trying again cannot log it twice.

@@ -138,6 +138,8 @@ export interface Settings {
   budgetPeriod: BudgetPeriodMode;
   /** One optional plan for all spending in a period, on top of any per-category limits. */
   overallLimit: number | null;
+  voice: Voice;
+  attitude: Attitude;
 }
 
 /** The user's answer to "carry over what was left?" for one category and one period (its start date). */
@@ -148,6 +150,10 @@ export interface CarryDecision {
 }
 
 export type AnswerMode = 'auto' | 'text' | 'speak';
+/** How the app talks back after an entry. Plain is the app as it is; the others add one line. */
+export type Voice = 'plain' | 'friend' | 'coach' | 'roaster';
+/** How far a voice is allowed to go. There is deliberately nothing past spicy. */
+export type Attitude = 'nice' | 'playful' | 'spicy';
 
 /** A learned word -> category mapping, created when the user corrects a parsed category. */
 export interface KeywordMapping {
