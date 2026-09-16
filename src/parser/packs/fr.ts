@@ -1,6 +1,7 @@
 import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
+import { periodWords } from '../questionRules';
 import { clockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOnRule, repeatWords, weeklyOnRule, wordTimeRules } from '../reminderRules';
 
 const MONTHS = { names: { janvier: 0, janv: 0, février: 1, fevrier: 1, févr: 1, fevr: 1, mars: 2, avril: 3, avr: 3, mai: 4, juin: 5, juillet: 6, juil: 6, août: 7, aout: 7, septembre: 8, sept: 8, octobre: 9, oct: 9, novembre: 10, nov: 10, décembre: 11, decembre: 11, déc: 11, dec: 11 } };
@@ -131,6 +132,26 @@ export const fr: LanguagePack = {
     ],
     dayLate: [futureDayOfMonthRule(/(?<![\p{L}])(?:le|pour le) (\d{1,2}(?:er)?|premier)(?![\p{L}\p{N}:h])/iu, { premier: 1 })],
     strip: [/^(?:(?:de|que|à|a|pour|d'|et|s'il te plaît|s'il vous plaît|stp|il faut|je dois|que je dois|que je)\s+)+/iu, /(?:\s+(?:s'il te plaît|s'il vous plaît|stp|merci))+$/iu],
+  },
+  question: {
+    lead: /(?<![\p{L}])(?:combien|qu'est-ce que|qu est-ce que|ce que) (?:d'argent )?(?:j'ai|j ai|ai[- ]je|on a|a[- ]t[- ]on|nous avons|avons[- ]nous) (?:dépensé|depense|dépensés|payé|paye|mis|claqué)|(?<![\p{L}])combien (?:d'argent )?(?:je dépense|est-ce que j'ai dépensé|est-ce que j'ai payé)|(?<![\p{L}])combien (?:d'argent )?(?:en|pour|chez|au|aux|à|a|dans|sur|de)(?![\p{L}])|(?<![\p{L}])(?:mes |le |mon |total des )?dépenses? (?:totales?|en tout|au total)|(?<![\p{L}])combien (?:ça|ca) m'a (?:coûté|coute)/u,
+    incomeLead: /(?<![\p{L}])combien (?:d'argent )?(?:j'ai|j ai|ai[- ]je|on a|nous avons) (?:gagné|gagne|reçu|recu|touché|touche|encaissé|encaisse)|(?<![\p{L}])combien (?:d'argent )?(?:est rentré|est entré|est rentre|est entre|je gagne)|(?<![\p{L}])(?:mes |le |mon )?(?:revenus?|gains?|entrées?) (?:totaux|total|en tout|au total)/u,
+    periods: [
+      periodWords(["aujourd'hui", 'aujourd hui', 'ce matin', 'cet après-midi', 'cet après midi', 'cet apres-midi', 'cet apres midi', 'ce soir'], 'today'),
+      periodWords(['hier'], 'yesterday'),
+      periodWords(['la semaine dernière', 'la semaine derniere', 'semaine dernière', 'semaine derniere', 'la semaine passée', 'la semaine passee'], 'lastWeek'),
+      periodWords(['cette semaine', 'dans la semaine', 'la semaine'], 'week'),
+      periodWords(['le mois dernier', 'mois dernier', 'le mois passé', 'le mois passe'], 'lastMonth'),
+      periodWords(['ce mois-ci', 'ce mois ci', 'ce mois', 'dans le mois', 'le mois', 'depuis le début du mois', 'depuis le debut du mois'], 'month'),
+      periodWords(["l'année dernière", "l'annee derniere", 'année dernière', 'annee derniere', "l'an dernier", 'an dernier'], 'lastYear'),
+      periodWords(['cette année', 'cette annee', "dans l'année", "l'année", "l'annee", 'depuis le début de l\'année'], 'year'),
+      periodWords(['en tout', 'au total', 'en tout et pour tout', "jusqu'à présent", "jusqu'a present", 'depuis le début', 'depuis le debut', 'total'], 'all'),
+    ],
+    strip: [
+      /^(?:(?:en|pour|chez|au|aux|à|a|dans|sur|de|du|des|le|la|les|l'|mon|ma|mes|et|argent|j'ai|ai|on|je|d'|d)\s+)+/u,
+      /(?:\s+(?:en tout|au total|s'il te plaît|s'il vous plaît|merci|argent|le|la|mon|ma|déjà|deja))+$/u,
+      /(?<![\p{L}])(?:argent|euros|dollars)(?![\p{L}])/gu,
+    ],
   },
   contextualStrings: ['euros', 'courses', 'loyer', 'salaire', 'objectif', 'Netflix', 'Uber', 'resto'],
 };

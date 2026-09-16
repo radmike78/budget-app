@@ -332,6 +332,20 @@ export const es: LocaleDef = {
     smartParse: 'Ayuda inteligente',
     smartParseOn: 'Activada. Solo se usa cuando el analizador integrado no está seguro.',
     smartParseOff: 'Desactivada. Todo se procesa en tu teléfono.',
+    answerMode: 'Respuestas a preguntas',
+    answerModeSub: 'Pregunta "¿cuánto he gastado esta semana en café?" en la pestaña Hoy.',
+    answerText: 'En pantalla',
+    answerSpeak: 'Leer en voz alta',
+    answerAuto: 'En voz alta si pregunto hablando',
+    readAloud: 'Leer en voz alta',
+    periodNames: { today: 'hoy', yesterday: 'ayer', week: 'esta semana', lastWeek: 'la semana pasada', month: 'este mes', lastMonth: 'el mes pasado', year: 'este año', lastYear: 'el año pasado', all: 'en total' } as Record<string, string>,
+    answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
+      const p = period.charAt(0).toUpperCase() + period.slice(1);
+      const n = `${count} ${count === 1 ? 'entrada' : 'entradas'}`;
+      return income ? `${p} has ingresado ${amount}${what ? ` de ${what}` : ''}, en ${n}.` : `${p} has gastado ${amount}${what ? ` en ${what}` : ''}, en ${n}.`;
+    },
+    answerNone: (period: string, what: string | null, income: boolean) => (income ? `No ha entrado nada${what ? ` de ${what}` : ''} ${period}.` : `No hay nada registrado${what ? ` de ${what}` : ''} ${period}.`),
+    answerFallback: (target: string, category: string) => `Ninguna entrada menciona ${target}, así que este es el total de ${category}.`,
     about: 'Acerca de',
     aboutApp: 'Acerca de OnlyBudget',
     aboutSub: 'Sin vincular bancos. Sin anuncios. Sin rastreo. Nunca.',

@@ -1,6 +1,7 @@
 import { ISO_RULE, byMonthRule, byYearRule, endOfYearRule, dayMonthRule, relativeFutureRules, relativePastRules, slashRule, weekdayRule } from '../dateRules';
 import { makeNumberWords } from '../numbers';
 import type { LanguagePack } from '../types';
+import { periodWords } from '../questionRules';
 import { clockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOnRule, repeatWords, weeklyOnRule, wordTimeRules } from '../reminderRules';
 
 const MONTHS = { names: { gennaio: 0, gen: 0, febbraio: 1, feb: 1, marzo: 2, mar: 2, aprile: 3, apr: 3, maggio: 4, mag: 4, giugno: 5, giu: 5, luglio: 6, lug: 6, agosto: 7, ago: 7, settembre: 8, set: 8, sett: 8, ottobre: 9, ott: 9, novembre: 10, nov: 10, dicembre: 11, dic: 11 } };
@@ -137,6 +138,26 @@ export const it: LanguagePack = {
     ],
     dayLate: [futureDayOfMonthRule(/(?<![\p{L}])(?:il|per il|entro il) (\d{1,2}|primo)(?![\p{L}\p{N}:])/iu, { primo: 1 })],
     strip: [/^(?:(?:di|che|per|a|su|e|per favore|devo|dovrei|bisogna|che devo)\s+)+/iu, /(?:\s+(?:per favore|grazie))+$/iu],
+  },
+  question: {
+    lead: /(?<![\p{L}])(?:quanto|quanti soldi|cosa|che cosa) (?:ho|abbiamo|avevo) (?:speso|pagato|spesi|sborsato)|(?<![\p{L}])quanto (?:ho|abbiamo) (?:messo|dato)|(?<![\p{L}])quanto (?:spendo|spendiamo|mi è costato|mi e costato|mi costa)|(?<![\p{L}])quanto (?:soldi )?(?:per|in|da|a|al|alla|alle|ai|con|su|di|nel|nella)(?![\p{L}])|(?<![\p{L}])(?:le mie |le |il totale delle )?spese (?:totali|in totale|complessive)|(?<![\p{L}])quanto se ne è andato/u,
+    incomeLead: /(?<![\p{L}])(?:quanto|quanti soldi) (?:ho|abbiamo) (?:guadagnato|incassato|ricevuto|preso|guadagnati)|(?<![\p{L}])quanto (?:è entrato|e entrato|mi è entrato|mi e entrato|guadagno)|(?<![\p{L}])(?:le mie |le )?entrate (?:totali|in totale)|(?<![\p{L}])(?:il mio )?reddito (?:totale|in totale)/u,
+    periods: [
+      periodWords(['oggi', 'stamattina', 'questo pomeriggio', 'stasera'], 'today'),
+      periodWords(['ieri'], 'yesterday'),
+      periodWords(['la settimana scorsa', 'settimana scorsa', 'la scorsa settimana', 'la settimana passata'], 'lastWeek'),
+      periodWords(['questa settimana', 'nella settimana', 'la settimana', 'in settimana'], 'week'),
+      periodWords(['il mese scorso', 'mese scorso', 'lo scorso mese', 'il mese passato'], 'lastMonth'),
+      periodWords(['questo mese', 'nel mese', 'il mese', 'in questo mese', 'finora questo mese'], 'month'),
+      periodWords(["l'anno scorso", "l anno scorso", 'anno scorso', "lo scorso anno", "l'anno passato"], 'lastYear'),
+      periodWords(["quest'anno", "quest anno", "questo anno", "nell'anno", "l'anno", "in questo anno"], 'year'),
+      periodWords(['in totale', 'in tutto', 'complessivamente', 'finora', 'fino ad ora', "dall'inizio", 'da sempre', 'totale'], 'all'),
+    ],
+    strip: [
+      /^(?:(?:per|in|da|a|al|alla|alle|ai|agli|con|su|di|del|della|dei|delle|nel|nella|il|lo|la|i|gli|le|mio|mia|miei|mie|e|soldi|ho|abbiamo|già|gia|speso|pagato)\s+)+/u,
+      /(?:\s+(?:in totale|finora|per favore|grazie|soldi|già|gia|speso|pagato|il|la|mio|mia))+$/u,
+      /(?<![\p{L}])(?:soldi|euro|euri|dollari)(?![\p{L}])/gu,
+    ],
   },
   contextualStrings: ['euro', 'spesa', 'affitto', 'stipendio', 'obiettivo', 'Netflix', 'Uber', 'pranzo'],
 };

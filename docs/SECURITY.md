@@ -36,7 +36,7 @@ The short version: there is no server, no account, no bank link and no analytics
 
 **M5 Insecure communication / MASVS-NETWORK.** The only outbound host is `api.anthropic.com`, and only when the user has turned Smart Assist on. Android has `usesCleartextTraffic: false`; iOS App Transport Security is at its default (HTTPS only). A test scans the source for any other URL or `fetch` call.
 
-**M6 Privacy.** No identifiers, no analytics, no crash reporting that leaves the device. Voice is processed on-device where the platform supports it. Android auto-backup to Google is switched off (`allowBackup: false`) because the app has its own encrypted backup. The Android build declares no permissions beyond microphone (voice), notifications (reminders) and biometrics (app lock).
+**M6 Privacy.** No identifiers, no analytics, no crash reporting that leaves the device. Voice is processed on-device where the platform supports it, and spoken answers to questions ("how much have I spent this week on coffee?") use the phone's own text-to-speech voices through `expo-speech`, which makes no network calls; the question itself is answered from the local database and never saved. Android auto-backup to Google is switched off (`allowBackup: false`) because the app has its own encrypted backup. The Android build declares no permissions beyond microphone (voice), notifications (reminders) and biometrics (app lock).
 
 **M7 Binary protections.** No secrets in the source tree (tested), no debug logging of user data (tested), Hermes bytecode on device.
 

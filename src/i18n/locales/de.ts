@@ -332,6 +332,20 @@ export const de: LocaleDef = {
     smartParse: 'Smarte Hilfe',
     smartParseOn: 'An. Wird nur genutzt, wenn die eingebaute Erkennung unsicher ist.',
     smartParseOff: 'Aus. Alles wird auf deinem Telefon verarbeitet.',
+    answerMode: 'Antworten auf Fragen',
+    answerModeSub: 'Frag im Tab Heute: „Wie viel habe ich diese Woche für Kaffee ausgegeben?“',
+    answerText: 'Auf dem Bildschirm',
+    answerSpeak: 'Vorlesen',
+    answerAuto: 'Vorlesen, wenn ich per Sprache frage',
+    readAloud: 'Vorlesen',
+    periodNames: { today: 'heute', yesterday: 'gestern', week: 'diese Woche', lastWeek: 'letzte Woche', month: 'diesen Monat', lastMonth: 'letzten Monat', year: 'dieses Jahr', lastYear: 'letztes Jahr', all: 'insgesamt' } as Record<string, string>,
+    answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
+      const p = period.charAt(0).toUpperCase() + period.slice(1);
+      const n = `${count} ${count === 1 ? 'Eintrag' : 'Einträge'}`;
+      return income ? `${p} hast du ${amount}${what ? ` von ${what}` : ''} eingenommen, in ${n}.` : `${p} hast du ${amount}${what ? ` für ${what}` : ''} ausgegeben, in ${n}.`;
+    },
+    answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` von ${what}` : ''} eingegangen.` : `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` für ${what}` : ''} eingetragen.`),
+    answerFallback: (target: string, category: string) => `Kein Eintrag erwähnt ${target}, darum ist das die Summe für ${category}.`,
     about: 'Über',
     aboutApp: 'Über OnlyBudget',
     aboutSub: 'Keine Bankverbindung. Keine Werbung. Kein Tracking. Nie.',

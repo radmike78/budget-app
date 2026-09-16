@@ -1,6 +1,7 @@
 import { ISO_RULE, cjkByMonthRule, cjkMonthDayRule, dayOfMonthRule, relativeFutureRules, relativePastRules, weekdayRule, wordRule } from '../dateRules';
 import { cjkNumeralsToDigits, expandK } from '../numbers';
 import type { LanguagePack } from '../types';
+import { periodWords } from '../questionRules';
 import { cjkClockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOnRule, repeatWords, weeklyOnRule, wordTimeRules } from '../reminderRules';
 import { fromDateString } from '@/lib/dates';
 
@@ -116,6 +117,26 @@ export const ja: LanguagePack = {
     ],
     dayLate: [futureDayOfMonthRule(/(\d{1,2})日(?:に)?/u)],
     strip: [/^(?:に|の|を|で|は|と|って|そして|それから|、|,|\s)+/u, /(?:ように|よう|って|と|ことを|のを|を|に|ね|よ|の|ください|下さい|お願いします|お願い|してほしい|して欲しい|、|,)+$/u],
+  },
+  question: {
+    lead: /(?:(?:いくら|幾ら|どのくらい|どれくらい|どれだけ|どんだけ|何円|いくらくらい|いくらぐらい)(?:お金)?(?:を)?(?:使った|使いました|使ってる|使っている|使いましたか|かかった|かかりました|払った|払いました|支払った|支払いました|使ったか|使ったの|使ったんだろう|使ったっけ)|(?:使った|支払った|払った)(?:金額|合計|お金)(?:は|を)?(?:いくら|教えて)?|(?:支出|出費)(?:は|の合計は|合計は|額は)?(?:いくら|どのくらい|どれくらい)|(?:いくら|どのくらい|どれくらい)(?:使った|かかった)|(?:合計|トータル)(?:で)?(?:いくら|どのくらい)(?:使った|かかった|払った)?|(?:は|が|って)\s*(?:いくら|幾ら|どのくらい|どれくらい|どれだけ)(?:か|ですか|でしょうか|かな|だった|でした|になる|になった|かかった|だろう|っけ)?\s*$)(?:か|の|？|\?|ですか|でしょうか|かな|だろう|っけ|ね)?/u,
+    incomeLead: /(?:(?:いくら|幾ら|どのくらい|どれくらい|どれだけ)(?:お金)?(?:を|が)?(?:稼いだ|稼ぎました|もらった|貰った|もらいました|入った|入りました|入ってきた|受け取った|受け取りました|得た)|(?:収入|入金|稼ぎ)(?:は|の合計は|合計は|額は)?(?:いくら|どのくらい|どれくらい))(?:か|の|？|\?|ですか|でしょうか|かな|だろう|っけ|ね)?/u,
+    periods: [
+      periodWords(['今日', '本日', '今朝', '今夜', '今晩'], 'today', { boundary: false }),
+      periodWords(['昨日', 'きのう'], 'yesterday', { boundary: false }),
+      periodWords(['先週', '前の週', '先週は'], 'lastWeek', { boundary: false }),
+      periodWords(['今週', '今週は', '今週中', '今週に入って'], 'week', { boundary: false }),
+      periodWords(['先月', '前の月', '先月は'], 'lastMonth', { boundary: false }),
+      periodWords(['今月', '今月は', '今月中', '今月に入って'], 'month', { boundary: false }),
+      periodWords(['去年', '昨年', '去年は'], 'lastYear', { boundary: false }),
+      periodWords(['今年', '今年は', '今年に入って'], 'year', { boundary: false }),
+      periodWords(['合計で', '全部で', '今まで', '今までに', 'これまで', 'これまでに', '全部', '合計', 'トータル', '総額', 'ずっと'], 'all', { boundary: false }),
+    ],
+    strip: [
+      /^(?:(?:に|で|へ|の|は|を|が|も|と|お金|私は|私が|僕は|俺は|わたしは)\s*)+/u,
+      /(?:\s*(?:に|で|へ|の|は|を|が|も|と|お金|には|では|への|について|に関して|関して|の分|分|代|ぶん))+$/u,
+      /(?:お金|円)/gu,
+    ],
   },
   contextualStrings: ['円', 'ランチ', '家賃', '給料', '目標', 'コンビニ', 'タクシー'],
 };

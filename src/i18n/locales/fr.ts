@@ -332,6 +332,20 @@ export const fr: LocaleDef = {
     smartParse: 'Assistance intelligente',
     smartParseOn: 'Activée. Utilisée seulement quand l’analyseur intégré hésite.',
     smartParseOff: 'Désactivée. Tout est analysé sur votre téléphone.',
+    answerMode: 'Réponses aux questions',
+    answerModeSub: 'Demande « combien j\'ai dépensé cette semaine en café ? » dans l\'onglet Aujourd\'hui.',
+    answerText: 'À l\'écran',
+    answerSpeak: 'Lire à voix haute',
+    answerAuto: 'À voix haute si je demande en parlant',
+    readAloud: 'Lire à voix haute',
+    periodNames: { today: 'aujourd\'hui', yesterday: 'hier', week: 'cette semaine', lastWeek: 'la semaine dernière', month: 'ce mois-ci', lastMonth: 'le mois dernier', year: 'cette année', lastYear: 'l\'année dernière', all: 'au total' } as Record<string, string>,
+    answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
+      const p = period.charAt(0).toUpperCase() + period.slice(1);
+      const n = `${count} ${count === 1 ? 'entrée' : 'entrées'}`;
+      return income ? `${p}, tu as reçu ${amount}${what ? ` de ${what}` : ''}, sur ${n}.` : `${p}, tu as dépensé ${amount}${what ? ` pour ${what}` : ''}, sur ${n}.`;
+    },
+    answerNone: (period: string, what: string | null, income: boolean) => (income ? `Rien n\'est rentré${what ? ` de ${what}` : ''} ${period}.` : `Rien n\'a été noté${what ? ` pour ${what}` : ''} ${period}.`),
+    answerFallback: (target: string, category: string) => `Aucune entrée ne mentionne ${target}, donc voici le total de ${category}.`,
     about: 'À propos',
     aboutApp: 'À propos d’OnlyBudget',
     aboutSub: 'Pas de banque liée. Pas de pub. Pas de pistage. Jamais.',

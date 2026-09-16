@@ -234,6 +234,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     smartParseEnabled: false,
     appLockEnabled: false,
     language: typeof s.language === 'string' && /^(?:[a-z]{2}(?:-[A-Za-z]{2,4})?|system)$/.test(s.language) ? s.language : 'system',
+    answerMode: s.answerMode === 'text' || s.answerMode === 'speak' ? s.answerMode : 'auto',
   };
 
   return { settings, categories, transactions, recurringRules, goals, keywords };

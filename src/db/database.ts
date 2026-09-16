@@ -128,6 +128,8 @@ const MIGRATIONS: string[] = [
     source TEXT NOT NULL DEFAULT 'manual',
     updated_at TEXT NOT NULL
   );`,
+  // v6: how answers to spoken questions are given (text, spoken, or spoken only when asked by voice).
+  `ALTER TABLE settings ADD COLUMN answer_mode TEXT DEFAULT 'auto';`,
 ];
 
 async function migrate(db: DB): Promise<void> {
