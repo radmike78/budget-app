@@ -48,7 +48,6 @@ export default function BudgetScreen() {
   const expenseCats = categories.filter((c) => c.kind === 'expense' && !c.archived).sort((a, b) => (totals.get(b.id) ?? 0) - (totals.get(a.id) ?? 0) || a.sortOrder - b.sortOrder);
   const incomeCats = categories.filter((c) => c.kind === 'income' && !c.archived);
   const archived = categories.filter((c) => c.archived);
-  const planned = expenseCats.reduce((s, c) => s + (effectivePlan(c, carry[c.id]) ?? 0), 0);
   const activeRules = rules.filter((r) => r.active);
   const recurringOut = activeRules.filter((r) => r.type === 'expense').reduce((s, r) => s + monthlyEquivalent(r), 0);
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
@@ -79,7 +78,6 @@ export default function BudgetScreen() {
             <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={stats.expenses / overall} tone={stats.expenses > overall ? 'warn' : 'accent'} /></View>
           </View>
         ) : null}
-        {planned > 0 ? <Text variant="small" style={{ marginTop: spacing.sm }}>{t.plannedAcross(money(planned, { compact: true }))}</Text> : null}
         <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
           <Button tone="ghost" small title={overall ? t.changeOverallPlan : t.setOverallPlan} onPress={openOverall} />
         </Row>

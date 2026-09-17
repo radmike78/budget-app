@@ -399,6 +399,7 @@ export const zh: LocaleDef = {
     accentPlum: '梅紫',
     accentClay: '陶土色',
     safeToSpend: (amount: string, until: string, upcoming: string | null, perDay: string | null) => `到${until}为止：${upcoming ? `扣除即将到期的账单${upcoming}后，` : ''}还可以花${amount}${perDay ? `，每天大约${perDay}` : ''}。`,
+    planLeft: (left: string, plan: string, until: string, perDay: string | null) => `到${until}为止，${plan}的计划还剩${left}${perDay ? `，每天大约${perDay}` : ''}。`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `花了${total}，大部分用在${top}。` : `花了${total}。`; if (compare === 'less') return `${lead}比前一周少${diff}。`; if (compare === 'more') return `${lead}比前一周多${diff}。`; if (compare === 'same') return `${lead}和前一周差不多。`; return lead; },
     readAloud: '朗读',
     periodNames: { today: '今天', yesterday: '昨天', week: '这周', lastWeek: '上周', month: '这个月', lastMonth: '上个月', year: '今年', lastYear: '去年', all: '总共' } as Record<string, string>,

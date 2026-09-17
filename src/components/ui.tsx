@@ -36,8 +36,8 @@ const variantStyles: Record<Variant, TextStyle> = {
   title: { fontSize: 26, fontFamily: HEADLINE_FONT.title, letterSpacing: -0.2, lineHeight: 33 },
   heading: { fontSize: 19, fontFamily: HEADLINE_FONT.heading, lineHeight: 26 },
   body: { fontSize: 16, lineHeight: 23 },
-  muted: { fontSize: 15, lineHeight: 21 },
-  small: { fontSize: 13, lineHeight: 18 },
+  muted: { fontSize: 16, lineHeight: 23 },
+  small: { fontSize: 14, lineHeight: 19 },
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase' },
   money: { fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
 };

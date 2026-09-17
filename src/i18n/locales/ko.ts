@@ -399,6 +399,7 @@ export const ko: LocaleDef = {
     accentPlum: '플럼',
     accentClay: '클레이',
     safeToSpend: (amount: string, until: string, upcoming: string | null, perDay: string | null) => `${until}까지: ${upcoming ? `다가오는 고정 지출 ${upcoming}을 빼고 ` : ''}${amount} 쓸 수 있어요${perDay ? `, 하루 약 ${perDay}` : ''}.`,
+    planLeft: (left: string, plan: string, until: string, perDay: string | null) => `${until}까지 ${plan} 계획 중 ${left} 남았어요${perDay ? `, 하루 약 ${perDay}` : ''}.`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} 나갔고, 가장 많이 쓴 곳은 ${top}이에요.` : `${total} 나갔어요.`; if (compare === 'less') return `${lead} 그 전 주보다 ${diff} 적어요.`; if (compare === 'more') return `${lead} 그 전 주보다 ${diff} 많아요.`; if (compare === 'same') return `${lead} 그 전 주와 비슷해요.`; return lead; },
     readAloud: '읽어 주기',
     periodNames: { today: '오늘', yesterday: '어제', week: '이번 주', lastWeek: '지난주', month: '이번 달', lastMonth: '지난달', year: '올해', lastYear: '작년', all: '전체' } as Record<string, string>,

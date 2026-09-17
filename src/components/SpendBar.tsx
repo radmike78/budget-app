@@ -7,7 +7,7 @@ import { expenseBreakdown } from '@/lib/plain';
 import { Row, Text } from '@/components/ui';
 
 /** How many categories get their own segment; the rest fold into "Other". */
-const SEGMENTS = 4;
+const SEGMENTS = 3;
 
 /**
  * One bar for the period's spending: the biggest categories as segments of one
@@ -39,14 +39,10 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, onPress }: {
           <View key={s.key} style={{ flex: Math.max(s.share, 0.02), height: 10, backgroundColor: shades[i] }} />
         ))}
       </Row>
-      <Row gap={spacing.md} style={{ marginTop: spacing.sm, flexWrap: 'wrap' }}>
-        {segments.map((s, i) => (
-          <Row key={s.key} gap={6}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: shades[i] }} />
-            <Text variant="small">{s.icon ? `${s.icon} ` : ''}{s.label} {pct(s.share)}</Text>
-          </Row>
-        ))}
-      </Row>
+      <Text variant="muted" style={{ marginTop: spacing.sm }}>
+        {/* Non-breaking spaces inside a label, so a wrap only ever happens between labels. */}
+        {segments.map((s) => `${s.icon ? `${s.icon}\u00A0` : ''}${s.label.replace(/ /g, '\u00A0')}\u00A0${pct(s.share)}`).join('   ')}
+      </Text>
     </View>
   );
   return onPress ? <Pressable accessibilityRole="button" onPress={onPress}>{body}</Pressable> : body;

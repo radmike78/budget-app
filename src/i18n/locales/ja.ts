@@ -399,6 +399,7 @@ export const ja: LocaleDef = {
     accentPlum: 'プラム',
     accentClay: 'クレイ',
     safeToSpend: (amount: string, until: string, upcoming: string | null, perDay: string | null) => `${until}まで：${upcoming ? `今後の支払い${upcoming}を除いて` : ''}使えるのは${amount}${perDay ? `、1日あたり約${perDay}` : ''}。`,
+    planLeft: (left: string, plan: string, until: string, perDay: string | null) => `${until}まで、${plan}の計画のうち残り${left}${perDay ? `（1日あたり約${perDay}）` : ''}。`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total}使いました。いちばん多かったのは${top}です。` : `${total}使いました。`; if (compare === 'less') return `${lead}前の週より${diff}少なめです。`; if (compare === 'more') return `${lead}前の週より${diff}多めです。`; if (compare === 'same') return `${lead}前の週とほぼ同じです。`; return lead; },
     readAloud: '読み上げる',
     periodNames: { today: '今日', yesterday: '昨日', week: '今週', lastWeek: '先週', month: '今月', lastMonth: '先月', year: '今年', lastYear: '去年', all: '合計' } as Record<string, string>,

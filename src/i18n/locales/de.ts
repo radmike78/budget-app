@@ -399,6 +399,7 @@ export const de: LocaleDef = {
     accentPlum: 'Pflaume',
     accentClay: 'Ton',
     safeToSpend: (amount: string, until: string, upcoming: string | null, perDay: string | null) => `Bis ${until}: ${amount} zum Ausgeben${upcoming ? ` nach ${upcoming} an anstehenden Rechnungen` : ''}${perDay ? `, etwa ${perDay} pro Tag` : ''}.`,
+    planLeft: (left: string, plan: string, until: string, perDay: string | null) => `Noch ${left} von deinem Plan über ${plan}${perDay ? `, etwa ${perDay} pro Tag` : ''} bis ${until}.`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} sind rausgegangen, das meiste für ${top}.` : `${total} sind rausgegangen.`; if (compare === 'less') return `${lead} Das sind ${diff} weniger als in der Woche davor.`; if (compare === 'more') return `${lead} Das sind ${diff} mehr als in der Woche davor.`; if (compare === 'same') return `${lead} Ungefähr wie in der Woche davor.`; return lead; },
     readAloud: 'Vorlesen',
     periodNames: { today: 'heute', yesterday: 'gestern', week: 'diese Woche', lastWeek: 'letzte Woche', month: 'diesen Monat', lastMonth: 'letzten Monat', year: 'dieses Jahr', lastYear: 'letztes Jahr', all: 'insgesamt' } as Record<string, string>,
