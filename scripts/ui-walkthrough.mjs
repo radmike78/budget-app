@@ -160,7 +160,7 @@ await step('goal editor: add money and remove goal', async () => {
   const boxes = page.getByRole('textbox');
   await boxes.nth(0).fill('50');
   await button(/^Add$/).click(); await page.waitForTimeout(600);
-  await expectText('$2,850 away');
+  await expectText('$2,850 to go');
   await button(/^Remove$/).click(); await page.waitForTimeout(800);
   await expectNoText('Trip to Japan');
 });
@@ -183,7 +183,7 @@ await step('new category with a limit, then archive and delete', async () => {
   await shot('category-rollover');
   await button(/Add category/).click(); await page.waitForTimeout(800);
   await goto('/budget');
-  await expectText('Pets'); await expectText('of your $80 plan');
+  await expectText('Pets'); await expectText('of $80');
   await shot('budget-with-pets');
   await text('Pets').click(); await page.waitForTimeout(800);
   await button(/^Delete$/).click(); await page.waitForTimeout(800);
@@ -337,10 +337,10 @@ await step('overall plan on the budget and today screens', async () => {
   await button(/Set an overall plan/).click(); await page.waitForTimeout(600);
   await page.getByRole('textbox').last().fill('1500');
   await button(/^Save$/).click(); await page.waitForTimeout(800);
-  await expectText('of your $1,500 plan');
+  await expectText('of $1,500 plan');
   await shot('budget-overall-plan');
   await goto('/');
-  await expectText('of your $1,500 plan');
+  await expectText('of $1,500 plan');
 });
 await step('pay-period budgeting needs a repeating income, then follows paydays', async () => {
   await goto('/settings');
@@ -359,8 +359,7 @@ await step('pay-period budgeting needs a repeating income, then follows paydays'
   await expectLabel('This pay period');
   await shot('today-pay-period');
   await goto('/budget');
-  const b = await bodyText();
-  if (!/Previous period|since|from/i.test(b)) throw new Error('budget screen not in pay periods');
+  if (!(await page.getByRole('button', { name: /Previous period/ }).count())) throw new Error('budget screen not in pay periods');
   await page.getByRole('button', { name: /Previous period/ }).first().click(); await page.waitForTimeout(600);
   await shot('budget-prev-period');
   await goto('/settings');

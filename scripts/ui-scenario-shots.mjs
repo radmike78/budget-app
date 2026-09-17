@@ -117,10 +117,10 @@ for (const profile of PROFILES) {
     await chooser.setFiles(file);
     await page.waitForTimeout(2500);
     await goto('/'); await goto('/');
-    await expectText('$55 left in Dining out');
+    await expectText('$55 less than your Dining out budget');
     await shot('1-today-pay-period');
     await goto('/budget');
-    await expectText('of your $1,200 plan');
+    await expectText('of $1,200 plan');
     await shot('2-budget-period');
     await button(/Change the overall plan/).click(); await page.waitForTimeout(700);
     await shot('3-overall-plan-sheet');
@@ -131,9 +131,9 @@ for (const profile of PROFILES) {
     await page.getByText('Budget period', { exact: false }).first().scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
     await shot('5-settings-budget-period');
     await goto('/');
-    await button(/Carry it over/).click(); await page.waitForTimeout(900);
+    await button(/Add it to this period/).click(); await page.waitForTimeout(900);
     await goto('/budget');
-    await expectText('Includes $170 carried over'); await expectText('Includes $55 carried over');
+    await expectText('$170 carried over'); await expectText('$55 carried over');
     await shot('6-budget-after-carry');
     await goto('/');
     await text("Trader Joe's").click(); await page.waitForTimeout(900);

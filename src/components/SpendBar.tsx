@@ -39,10 +39,15 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, onPress }: {
           <View key={s.key} style={{ flex: Math.max(s.share, 0.02), height: 10, backgroundColor: shades[i] }} />
         ))}
       </Row>
-      <Text variant="muted" style={{ marginTop: spacing.sm }}>
-        {/* Non-breaking spaces inside a label, so a wrap only ever happens between labels. */}
-        {segments.map((s) => `${s.icon ? `${s.icon}\u00A0` : ''}${s.label.replace(/ /g, '\u00A0')}\u00A0${pct(s.share)}`).join('   ')}
-      </Text>
+      <Row gap={spacing.md} align="flex-start" style={{ marginTop: spacing.sm }}>
+        {segments.map((s) => (
+          <View key={s.key} style={{ flex: 1 }}>
+            <Text variant="body">{s.icon ?? '🧾'}</Text>
+            <Text variant="small" numberOfLines={1}>{s.label}</Text>
+            <Text variant="body" style={{ fontWeight: '600' }}>{pct(s.share)}</Text>
+          </View>
+        ))}
+      </Row>
     </View>
   );
   return onPress ? <Pressable accessibilityRole="button" onPress={onPress}>{body}</Pressable> : body;
