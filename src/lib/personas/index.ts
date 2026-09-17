@@ -96,12 +96,29 @@ export function situationFor(e: PersonaEvent): Situation | null {
   return remaining <= e.plan * 0.25 ? 'spend_close' : 'spend_under';
 }
 
+const PLACE_FLAVORS = new Set<Flavor>(['coffee', 'restaurant', 'delivery']);
+const WHERE_RE = /\s(at|on|for|from)\s+(\S.*)$/i;
+
+/**
+ * "at {place}" in a template becomes a phrase that fits the note: "dinner at the thai
+ * place" keeps its own preposition, a café is "at Starbucks", a thing is "on Laptop".
+ */
+export function wherePhrase(e: Pick<PersonaEvent, 'type' | 'note' | 'categoryId' | 'categoryName'>): string {
+  const note = (e.note ?? '').trim();
+  const m = note.match(WHERE_RE);
+  if (m) return `${m[1].toLowerCase()} ${m[2]}`;
+  const subject = note || e.categoryName || 'that';
+  const flavor = flavorFor(e);
+  return `${flavor && PLACE_FLAVORS.has(flavor) ? 'at' : 'on'} ${subject}`;
+}
+
 function fill(template: string, e: PersonaEvent, money: (n: number) => string): string {
   const place = (e.note ?? '').trim() || e.categoryName || 'that';
   const remaining = e.plan != null ? Math.max(0, e.plan - e.spent) : 0;
   const pct = e.goal && e.goal.target > 0 ? Math.min(100, Math.round((e.goal.current / e.goal.target) * 100)) : 0;
   return template
     .replace(/\{amount\}/g, money(e.amount))
+    .replace(/at \{place\}/g, wherePhrase(e))
     .replace(/\{place\}/g, place)
     .replace(/\{category\}/g, e.categoryName ?? 'that')
     .replace(/\{left\}/g, money(remaining))
