@@ -41,10 +41,13 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, onPress }: {
       </Row>
       <Row gap={spacing.md} align="flex-start" style={{ marginTop: spacing.sm }}>
         {segments.map((s) => (
-          <View key={s.key} style={{ flex: 1 }}>
-            <Text variant="small" numberOfLines={1}>{s.icon ? `${s.icon} ` : ''}{s.label}</Text>
-            <Text variant="body" style={{ fontWeight: '600', marginTop: 2 }}>{pct(s.share)}</Text>
-          </View>
+          <Row key={s.key} gap={6} align="center" style={{ flex: 1 }}>
+            {s.icon ? <Text variant="body">{s.icon}</Text> : null}
+            <View style={{ flex: 1 }}>
+              <Text variant="small" numberOfLines={1}>{s.label}</Text>
+              <Text variant="body" style={{ fontWeight: '600' }}>{pct(s.share)}</Text>
+            </View>
+          </Row>
         ))}
       </Row>
     </View>
