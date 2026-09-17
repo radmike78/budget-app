@@ -128,7 +128,7 @@ for (const profile of PROFILES) {
     await goto('/category/groceries');
     await shot('4-category-rollover');
     await goto('/history');
-    await text('Last 90 days').click(); await page.waitForTimeout(600);
+    await text('90 days').click(); await page.waitForTimeout(600);
     await expectText("Trader Joe's");
     await shot('13-history');
     await goto('/settings');

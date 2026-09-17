@@ -111,6 +111,15 @@ export function Row({ children, style, gap = spacing.sm, align = 'center' }: { c
   return <View style={[{ flexDirection: 'row', alignItems: align, gap }, style]}>{children}</View>;
 }
 
+/** One line of chips that scrolls sideways instead of wrapping, so a filter row stays one row in every language. */
+export function ChipRow({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ marginHorizontal: -spacing.lg }, style]} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg }} keyboardShouldPersistTaps="handled">
+      {children}
+    </ScrollView>
+  );
+}
+
 export function Spacer({ size = spacing.md }: { size?: number }) {
   return <View style={{ height: size }} />;
 }
@@ -264,7 +273,7 @@ const styles = StyleSheet.create({
   button: { paddingVertical: 14, paddingHorizontal: spacing.xl, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', minHeight: 48 },
   buttonSmall: { paddingVertical: 8, paddingHorizontal: spacing.lg, minHeight: 36 },
   buttonText: { fontSize: 16, fontWeight: '600' },
-  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, minHeight: 36, justifyContent: 'center' },
+  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, minHeight: 36, justifyContent: 'center' },
   segmented: { flexDirection: 'row', borderRadius: radius.md, padding: 3 },
   segment: { flex: 1, paddingVertical: 9, borderRadius: radius.sm, alignItems: 'center' },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: 17, minHeight: 48 },
