@@ -1,5 +1,5 @@
-import { BIG_AMOUNT, personaLine, remember, sampleLine, situationFor, toneFor, type PersonaEvent, type PersonaPrefs } from '@/lib/personas';
-import { LINES_EN } from '@/lib/personas/lines.en';
+import { BIG_AMOUNT, RECENT_WINDOW, flavorFor, personaLine, remember, sampleLine, situationFor, toneFor, type PersonaEvent, type PersonaPrefs } from '@/lib/personas';
+import { FLAVORS_EN, LINES_EN } from '@/lib/personas/lines.en';
 import { contributionEvent, transactionEvent } from '@/lib/personas/context';
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import type { Goal, MonthStats, Settings } from '@/types';
@@ -61,16 +61,60 @@ describe('situations', () => {
 
 describe('the lines themselves', () => {
   const situations = ['income', 'contribution', 'spend_free', 'spend_under', 'spend_close'] as const;
-  it('every voice has lines for every situation and attitude, short enough for a phone', () => {
+  it('every voice has at least eight lines per situation and attitude, short enough for a phone', () => {
     for (const set of Object.values(LINES_EN)) {
       for (const s of situations) {
         for (const a of ['nice', 'playful', 'spicy'] as const) {
           const pool = set[s][a];
-          expect(pool && pool.length >= 3).toBe(true);
-          for (const line of pool ?? []) expect(line.length).toBeLessThanOrEqual(95);
+          expect(pool.length).toBeGreaterThanOrEqual(8);
+          expect(new Set(pool).size).toBe(pool.length);
+          for (const line of pool) expect(line.length).toBeLessThanOrEqual(100);
         }
       }
     }
+    for (const set of Object.values(FLAVORS_EN)) {
+      for (const pools of Object.values(set)) {
+        for (const a of ['nice', 'playful', 'spicy'] as const) {
+          expect(pools[a].length).toBeGreaterThanOrEqual(3);
+          for (const line of pools[a]) {
+            expect(line.length).toBeLessThanOrEqual(100);
+            expect(line).not.toMatch(/\{(left|plan|goal|current|target|pct)\}/);
+          }
+        }
+      }
+    }
+  });
+  it('knows what was bought', () => {
+    expect(flavorFor({ type: 'expense', note: 'Starbucks', categoryId: 'dining' })).toBe('coffee');
+    expect(flavorFor({ type: 'expense', note: 'latte at Peets', categoryId: null })).toBe('coffee');
+    expect(flavorFor({ type: 'expense', note: 'DoorDash', categoryId: 'dining' })).toBe('delivery');
+    expect(flavorFor({ type: 'expense', note: 'Korean BBQ', categoryId: 'dining' })).toBe('restaurant');
+    expect(flavorFor({ type: 'expense', note: 'Netflix', categoryId: 'subscriptions' })).toBe('subscriptions');
+    expect(flavorFor({ type: 'expense', note: 'Target', categoryId: 'shopping' })).toBe('shopping');
+    expect(flavorFor({ type: 'expense', note: 'Gas', categoryId: 'transport' })).toBeNull();
+    expect(flavorFor({ type: 'income', note: 'coffee shop wages', categoryId: 'salary' })).toBeNull();
+  });
+  it('never mentions a barista or a latte unless it was coffee', () => {
+    const bbq = spend({ note: 'Korean BBQ', amount: 58 });
+    for (const voice of ['friend', 'coach', 'roaster'] as const) {
+      for (const attitude of ['nice', 'playful', 'spicy'] as const) {
+        for (let i = 0; i < 40; i += 1) {
+          const line = personaLine(bbq, prefs({ voice, attitude }), money, [], () => i / 40)!;
+          expect(line.text).not.toMatch(/barista|latte|cup\b/i);
+        }
+      }
+    }
+    const coffeeKeys = new Set<string>();
+    for (let i = 0; i < 40; i += 1) coffeeKeys.add(personaLine(spend({ note: 'Starbucks' }), prefs({ voice: 'roaster', attitude: 'playful' }), money, [], () => i / 40)!.key);
+    expect([...coffeeKeys].some((k) => k.includes(':coffee:'))).toBe(true);
+  });
+  it('a flavoured line still says what is left when there is a plan', () => {
+    const recent = Object.keys(LINES_EN.roaster.spend_under.playful).map((i) => `roaster:spend_under:playful:${i}`);
+    const line = personaLine(spend({ note: 'Starbucks', plan: 150, spent: 107 }), prefs({ voice: 'roaster', attitude: 'playful' }), money, recent, first)!;
+    expect(line.key).toBe('roaster:coffee:playful:0');
+    expect(line.text).toBe('$20 at Starbucks? Did you buy the barista a drink too? $43 left in Dining out.');
+    const free = personaLine(spend({ note: 'Starbucks', plan: null }), prefs({ voice: 'roaster', attitude: 'playful' }), money, recent.map((k) => k.replace('spend_under', 'spend_free')), first)!;
+    expect(free.text).toBe('$20 at Starbucks? Did you buy the barista a drink too?');
   });
   it('fills every placeholder', () => {
     const events: PersonaEvent[] = [
@@ -99,14 +143,18 @@ describe('the lines themselves', () => {
   it('does not repeat a recent line while others are available', () => {
     let recent: string[] = [];
     const seen = new Set<string>();
-    for (let i = 0; i < 3; i += 1) {
-      const line = personaLine(spend(), prefs({ voice: 'friend', attitude: 'playful' }), money, recent, first)!;
+    const e = spend({ note: 'Lunch' });
+    const total = LINES_EN.friend.spend_under.playful.length + FLAVORS_EN.friend.restaurant.playful.length;
+    for (let i = 0; i < total; i += 1) {
+      const line = personaLine(e, prefs({ voice: 'friend', attitude: 'playful' }), money, recent, first)!;
       expect(seen.has(line.key)).toBe(false);
       seen.add(line.key);
       recent = remember(recent, line.key);
     }
-    // All three used: the pool is reused rather than going silent.
-    expect(personaLine(spend(), prefs({ voice: 'friend', attitude: 'playful' }), money, recent, first)).not.toBeNull();
+    expect(seen.size).toBe(total);
+    // Every line used: the pool is reused rather than going silent, and the memory stays bounded.
+    expect(personaLine(e, prefs({ voice: 'friend', attitude: 'playful' }), money, recent, first)).not.toBeNull();
+    expect(recent.length).toBeLessThanOrEqual(RECENT_WINDOW);
   });
   it('the settings sample is a real line', () => {
     expect(sampleLine(prefs({ voice: 'roaster', attitude: 'playful' }), money, first)).toBe('$20 at Starbucks. Look at you being almost reasonable. $43 left.');
