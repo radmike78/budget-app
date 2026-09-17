@@ -46,7 +46,7 @@ export default function GoalsScreen() {
                 </Row>
                 {deadline ? <Text variant="small" style={{ marginTop: 2 }}>{deadline}</Text> : null}
                 <View style={{ marginVertical: spacing.md }}><ProgressBar fraction={p.fraction} /></View>
-                <Text variant="muted">{p.sentence}</Text>
+                <Text variant="muted">{t.goalShort(money(g.currentAmount, { compact: true }), money(g.targetAmount, { compact: true }), money(p.remaining, { compact: true }))}{p.status !== 'no_date' ? ` · ${{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone }[p.status]}` : ''}</Text>
               </Card>
             </Pressable>
           );

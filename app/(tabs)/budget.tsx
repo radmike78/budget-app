@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { monthLabel, today } from '@/lib/dates';
-import { categoryLineSentence, isWholeMonth, periodSummarySentence } from '@/lib/plain';
+import { isWholeMonth } from '@/lib/plain';
 import { periodLabel } from '@/lib/periods';
 import { effectivePlan } from '@/lib/rollover';
 import { monthlyEquivalent } from '@/lib/recurring';
@@ -13,7 +13,7 @@ import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
 import { Sheet } from '@/components/pickers';
 import { CarryQuestions } from '@/components/CarryQuestions';
-import { SpendBar } from '@/components/SpendBar';
+import { PeriodCard } from '@/components/PeriodCard';
 import { Button, Card, Field, Icon, ListItem, ProgressBar, Row, Screen, SectionTitle, Text } from '@/components/ui';
 
 export default function BudgetScreen() {
@@ -67,21 +67,12 @@ export default function BudgetScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel={payPeriod ? t.nextPeriod : t.nextMonth} onPress={() => shiftPeriod(1)} hitSlop={12} disabled={isCurrent} style={{ opacity: isCurrent ? 0.3 : 1 }}><Ionicons name="chevron-forward" size={24} color={colors.text} /></Pressable>
       </Row>
 
-      <Card style={{ marginTop: spacing.md }}>
-        <Text variant="body">{periodSummarySentence(stats, currency, isCurrent, settings.budgetPeriod, todayStr, locale)}</Text>
-        <View style={{ marginTop: spacing.md }}>
-          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} />
-        </View>
-        {overall ? (
-          <View style={{ marginTop: spacing.sm }}>
-            <Text variant="small">{categoryLineSentence(overall, stats.expenses, currency, locale, payPeriod)}</Text>
-            <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={stats.expenses / overall} tone={stats.expenses > overall ? 'warn' : 'accent'} /></View>
-          </View>
-        ) : null}
-        <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
+      <View style={{ marginTop: spacing.md }}>
+        <PeriodCard stats={stats} settings={settings} categories={categories} rules={rules} today={todayStr} />
+        <Row style={{ marginTop: spacing.xs, justifyContent: 'flex-end' }}>
           <Button tone="ghost" small title={overall ? t.changeOverallPlan : t.setOverallPlan} onPress={openOverall} />
         </Row>
-      </Card>
+      </View>
       <CarryQuestions />
 
       <SectionTitle right={<Button tone="ghost" small title={t.add} onPress={() => router.push('/category/new?kind=expense')} />}>{t.spending}</SectionTitle>
@@ -100,8 +91,7 @@ export default function BudgetScreen() {
                     <Text variant="body" style={{ fontWeight: '600' }}>{categoryName(c, t)}</Text>
                     <Text variant="money">{money(spent, { compact: true })}</Text>
                   </Row>
-                  <Text variant="small">{categoryLineSentence(plan, spent, currency, locale, payPeriod)}</Text>
-                  {carried > 0 ? <Text variant="small">{t.carriedOver(money(carried, { compact: true }))}</Text> : null}
+                  {plan ? <Text variant="small">{spent <= plan ? t.planShort(money(spent, { compact: true }), money(plan, { compact: true }), money(plan - spent, { compact: true })) : t.pastPlanShort(money(spent - plan, { compact: true }), money(plan, { compact: true }))}{carried > 0 ? ` · ${t.carriedShort(money(carried, { compact: true }))}` : ''}</Text> : null}
                 </View>
               </Row>
               {plan ? <View style={{ marginTop: spacing.sm }}><ProgressBar fraction={fraction} tone={fraction > 1 ? 'warn' : 'accent'} /></View> : null}

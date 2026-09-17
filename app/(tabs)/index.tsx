@@ -2,16 +2,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
-import { spacing, useTheme } from '@/theme';
+import { spacing } from '@/theme';
 import { today } from '@/lib/dates';
-import { balanceSentence, categoryLineSentence, goalProgress, isWholeMonth, periodSummarySentence } from '@/lib/plain';
+import { balanceSentence, goalProgress, isWholeMonth } from '@/lib/plain';
 import { periodContaining, samePeriod } from '@/lib/periods';
-import { safeToSpend } from '@/lib/safeToSpend';
 import { compareWeeks } from '@/lib/recap';
-import { daysBetween, longDate } from '@/lib/dates';
-import { SpendBar } from '@/components/SpendBar';
-import { useCountUp } from '@/components/motion';
-import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
+import { PeriodCard } from '@/components/PeriodCard';
+import { categoryName, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { speak } from '@/lib/speak';
 import { EntryBar } from '@/components/EntryBar';
 import { ConfirmationCard } from '@/components/ConfirmationCard';
@@ -19,11 +16,10 @@ import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
 import { CarryQuestions } from '@/components/CarryQuestions';
 import { TransactionRow } from '@/components/TransactionRow';
 import { useEntryFlow } from '@/components/useEntryFlow';
-import { Button, Card, EmptyState, Row, Screen, SectionTitle, Spacer, Text, useTypeScale } from '@/components/ui';
+import { Button, Card, EmptyState, ProgressBar, Row, Screen, SectionTitle, Spacer, Text } from '@/components/ui';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
   const t = useT();
   const locale = useLocale();
   const money = useMoney();
@@ -37,7 +33,6 @@ export default function HomeScreen() {
   const goals = useAppStore((s) => s.goals);
   const lifetime = useAppStore((s) => s.lifetime);
   const recap = useAppStore((s) => s.recap);
-  const fmt = useDateFormat();
   const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource } = useEntryFlow();
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
@@ -68,23 +63,8 @@ export default function HomeScreen() {
   const todayStr = today();
   const isCurrent = stats.period.start <= todayStr && todayStr <= stats.period.end;
   const payPeriod = settings.budgetPeriod === 'pay' && !isWholeMonth(stats.period);
-  const summary = periodSummarySentence(stats, currency, isCurrent, settings.budgetPeriod, todayStr, locale);
   const balance = balanceSentence(settings.startingBalance, lifetime.income, lifetime.expenses, currency, locale);
-  const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
   const activeGoals = goals.filter((g) => !g.completed).slice(0, 2);
-  const safe = isCurrent ? safeToSpend(stats, rules, todayStr) : null;
-  // One sentence about what is left: the overall plan when there is one, else what income leaves until payday.
-  const daysLeft = isCurrent ? daysBetween(todayStr, stats.period.end) + 1 : 0;
-  const until = longDate(stats.period.end, todayStr, fmt);
-  let leftLine: string | null = null;
-  if (overall) {
-    const remaining = overall - stats.expenses;
-    leftLine = remaining >= 0 && isCurrent
-      ? t.planLeft(money(remaining, { compact: true }), money(overall, { compact: true }), until, daysLeft > 0 ? money(remaining / daysLeft, { compact: true }) : null)
-      : categoryLineSentence(overall, stats.expenses, currency, locale, payPeriod);
-  } else if (safe) {
-    leftLine = t.safeToSpend(money(safe.amount, { compact: true }), until, safe.upcoming > 0 ? money(safe.upcoming, { compact: true }) : null, safe.perDay != null ? money(safe.perDay, { compact: true }) : null);
-  }
   const recapCat = recap?.topCategoryId ? categories.find((c) => c.id === recap.topCategoryId) : null;
 
   return (
@@ -111,21 +91,8 @@ export default function HomeScreen() {
         </Card>
       ) : null}
       <SectionTitle>{payPeriod ? t.thisPeriod : t.thisMonth}</SectionTitle>
-      <Card>
-        <Text variant="heading" style={{ lineHeight: 26 }}>{summary}</Text>
-        <View style={{ marginTop: spacing.md }}>
-          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} onPress={() => router.push('/budget')} />
-        </View>
-        {leftLine ? <Text variant="muted" style={{ marginTop: spacing.md }}>{leftLine}</Text> : null}
-        {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
-        {stats.income > 0 || stats.expenses > 0 ? (
-          <Row style={{ marginTop: spacing.lg, justifyContent: 'space-between' }}>
-            <Stat label={t.inShort} value={stats.income} color={colors.income} />
-            <Stat label={t.outShort} value={stats.expenses} color={colors.text} />
-            <Stat label={t.netShort} value={stats.income - stats.expenses} color={stats.income - stats.expenses >= 0 ? colors.income : colors.warn} />
-          </Row>
-        ) : null}
-      </Card>
+      <PeriodCard stats={stats} settings={settings} categories={categories} rules={rules} today={todayStr} onBarPress={() => router.push('/budget')} />
+      {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
 
       <CarryQuestions />
 
@@ -133,7 +100,7 @@ export default function HomeScreen() {
         <>
           <SectionTitle>{t.lastWeek}</SectionTitle>
           <Card style={{ marginBottom: spacing.sm }}>
-            <Text variant="heading" style={{ lineHeight: 26 }}>{t.recapLine(money(recap.total, { compact: true }), recapCat ? categoryName(recapCat, t) : null, compareWeeks(recap.total, recap.previousTotal), money(Math.abs(recap.total - recap.previousTotal), { compact: true }))}</Text>
+            <Text variant="body">{t.recapShort(money(recap.total, { compact: true }), recapCat ? categoryName(recapCat, t) : null, compareWeeks(recap.total, recap.previousTotal), money(Math.abs(recap.total - recap.previousTotal), { compact: true }))}</Text>
           </Card>
         </>
       ) : null}
@@ -145,8 +112,12 @@ export default function HomeScreen() {
             const p = goalProgress(g, currency, todayStr, locale);
             return (
               <Card key={g.id} style={{ marginBottom: spacing.sm }}>
-                <Text variant="body" style={{ fontWeight: '600' }}>{g.name}</Text>
-                <Text variant="muted" style={{ marginTop: 2 }}>{p.sentence}</Text>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="body" style={{ fontWeight: '600' }}>{g.name}</Text>
+                  <Text variant="small">{{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone, no_date: '' }[p.status]}</Text>
+                </Row>
+                <Text variant="muted" style={{ marginTop: 2 }}>{t.goalShort(money(g.currentAmount, { compact: true }), money(g.targetAmount, { compact: true }), money(p.remaining, { compact: true }))}</Text>
+                <View style={{ marginTop: spacing.sm }}><ProgressBar fraction={p.fraction} /></View>
               </Card>
             );
           })}
@@ -164,17 +135,5 @@ export default function HomeScreen() {
       <ConfirmationCard result={pending} onCancel={dismiss} onDone={onSaved} />
       <MultiConfirmationCard results={pendingMany} onCancel={dismiss} onDone={onSaved} />
     </Screen>
-  );
-}
-
-function Stat({ label, value, color }: { label: string; value: number; color: string }) {
-  const scale = useTypeScale();
-  const money = useMoney();
-  const shown = useCountUp(value);
-  return (
-    <View>
-      <Text variant="label">{label}</Text>
-      <Text variant="money" color={color} style={{ fontSize: 20 * scale, marginTop: 2 }}>{money(shown, { compact: true })}</Text>
-    </View>
   );
 }

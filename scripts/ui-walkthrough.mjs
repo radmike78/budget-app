@@ -183,7 +183,7 @@ await step('new category with a limit, then archive and delete', async () => {
   await shot('category-rollover');
   await button(/Add category/).click(); await page.waitForTimeout(800);
   await goto('/budget');
-  await expectText('Pets'); await expectText('of your $80 plan');
+  await expectText('Pets'); await expectText('of $80');
   await shot('budget-with-pets');
   await text('Pets').click(); await page.waitForTimeout(800);
   await button(/^Delete$/).click(); await page.waitForTimeout(800);
@@ -337,10 +337,10 @@ await step('overall plan on the budget and today screens', async () => {
   await button(/Set an overall plan/).click(); await page.waitForTimeout(600);
   await page.getByRole('textbox').last().fill('1500');
   await button(/^Save$/).click(); await page.waitForTimeout(800);
-  await expectText('of your $1,500 plan');
+  await expectText('of $1,500 plan');
   await shot('budget-overall-plan');
   await goto('/');
-  await expectText('of your $1,500 plan');
+  await expectText('of $1,500 plan');
 });
 await step('pay-period budgeting needs a repeating income, then follows paydays', async () => {
   await goto('/settings');

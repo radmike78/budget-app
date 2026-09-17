@@ -22,7 +22,7 @@ export function CarryQuestions() {
         const leftover = carry[c.id].pendingLeftover as number;
         return (
           <Card key={c.id} tone="accent" style={{ marginTop: spacing.sm, paddingVertical: spacing.md }}>
-            <Text variant="body">{t.askCarryShort(money(leftover, { compact: true }), categoryName(c, t))}</Text>
+            <Text variant="body">{t.askCarryTiny(money(leftover, { compact: true }), categoryName(c, t))}</Text>
             <Row style={{ marginTop: spacing.sm }}>
               <Button tone="secondary" small title={t.carryIt} onPress={() => decide(c.id, leftover)} />
               <Button tone="ghost" small title={t.startFresh} onPress={() => decide(c.id, 0)} />

@@ -70,7 +70,7 @@ export default function GoalEditor() {
     <Screen keyboard>
       {existing && progress ? (
         <Card style={{ marginTop: spacing.sm, marginBottom: spacing.lg }}>
-          <Text variant="body">{progress.sentence}</Text>
+          <Text variant="body">{t.goalShort(money(existing.currentAmount, { compact: true }), money(existing.targetAmount, { compact: true }), money(progress.remaining, { compact: true }))}{progress.status !== 'no_date' ? ` · ${{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone }[progress.status]}` : ''}</Text>
           <View style={{ marginTop: spacing.md }}><ProgressBar fraction={progress.fraction} /></View>
           {!existing.completed ? (
             <>
