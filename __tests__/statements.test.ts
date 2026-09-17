@@ -8,7 +8,7 @@ import path from 'path';
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import type { ParseContext } from '@/parser';
 import {
-  cleanDescription, debtsFromTradelines, detectKind, findDates, findMoney, findPeriod, fingerprintOf, guessKind, parseCreditReport, parseStatement,
+  cleanDescription, debtsFromTradelines, detectKind, findDates, findMoney, findPeriod, fingerprintOf, guessKind, lookupMerchant, parseCreditReport, parseStatement,
   planPayoff, recommendStrategy, resolveDate, rowsFromItems, rowsFromText, toNumber,
 } from '@/statements';
 
@@ -279,5 +279,103 @@ describe('credit report and pay-off plan', () => {
   it('never loops forever on hopeless input', () => {
     const p = planPayoff([{ id: 'x', name: 'X', balance: 100000, apr: 99, minPayment: 10 }], 0, 'avalanche');
     expect(p.truncated).toBe(true);
+  });
+});
+
+describe('review fixes', () => {
+  it('a payment due date on the period row is never the end of the period', () => {
+    expect(findPeriod(rowsFromText('Closing Date 01/31/2026    Payment Due Date 02/25/2026'), 'en', TODAY)).toEqual({ start: '2025-12-31', end: '2026-01-31' });
+    expect(findPeriod(rowsFromText('Payment Due Date: 02/25/2026   Statement Closing Date: 01/31/2026'), 'en', TODAY)).toEqual({ start: '2025-12-31', end: '2026-01-31' });
+    expect(findPeriod(rowsFromText('Statement Period 01/01/2026 to 01/31/2026  Payment Due 02/25/2026'), 'en', TODAY)).toEqual({ start: '2026-01-01', end: '2026-01-31' });
+    expect(findPeriod(rowsFromText('Total interest charged in 2026: $0.00\nOpening date 01/01/2026\nClosing date 01/31/2026'), 'en', TODAY)).toEqual({ start: '2026-01-01', end: '2026-01-31' });
+  });
+
+  it('joins a description wrapped onto the next line when the amount sits there', () => {
+    const p = parse(`Statement Period: 01/01/2026 - 01/31/2026
+Withdrawals
+01/05   POS PURCHASE BLUE BOTTLE
+        SEATTLE WA                                     4.50
+01/06   AMAZON MKTP                                   25.00
+        ORDER 112-3456789
+01/07   SHELL OIL                                     48.10
+01/08   SOMETHING WITHOUT AN AMOUNT
+Ending Balance                                     3,890.31`);
+    expect(p.lines.map((l) => [l.date, l.description, l.amount])).toEqual([
+      ['2026-01-05', 'Blue Bottle Seattle', 4.5],
+      ['2026-01-06', 'Amazon Mktp', 25],
+      ['2026-01-07', 'Shell Oil', 48.1],
+    ]);
+  });
+
+  it('on a card statement the last number of a line is the billed amount, not a balance', () => {
+    const p = parse(`CHASE FREEDOM
+Opening/Closing Date 12/15/25 - 01/14/26
+New Balance $1,352.43
+Minimum Payment Due $40.00
+Credit Limit $12,000.00  Available Credit $10,647.57
+Purchase APR 24.99%
+PURCHASES
+01/06  FOREIGN TX 12.50 EUR             13.80
+01/07  UBER EATS                        28.40`);
+    expect(p.kind).toBe('card');
+    expect(p.lines.map((l) => [l.amount, l.balance])).toEqual([[13.8, null], [28.4, null]]);
+    expect(p.tradelines[0]).toMatchObject({ balance: 1352.43, monthlyPayment: 40, creditLimit: 12000, apr: 24.99 });
+  });
+
+  it('"paid or paying as agreed" is an open account', () => {
+    const tl = parseCreditReport(rowsFromText(`CAPITAL ONE
+Account Type: Credit Card
+Status: Paid or Paying as Agreed
+Balance: $3,450
+Monthly Payment: $85
+CHASE CARD
+Status: Paid, Closed/Never late
+Balance: $0`));
+    expect(tl.map((t) => [t.creditor, t.status])).toEqual([['CAPITAL ONE', 'open'], ['CHASE CARD', 'closed']]);
+    expect(debtsFromTradelines(tl).map((d) => d.name)).toEqual(['CAPITAL ONE']);
+  });
+
+  it('reads label: value pairs separated by a single space', () => {
+    const tl = parseCreditReport(rowsFromText('CAPITAL ONE\nBalance: $3,450 Monthly Payment: $85 Credit Limit: $5,000\nAccount Type: Credit Card Status: Open'));
+    expect(tl).toHaveLength(1);
+    expect(tl[0]).toMatchObject({ balance: 3450, monthlyPayment: 85, creditLimit: 5000, type: 'credit_card', status: 'open' });
+    const two = parseCreditReport(rowsFromText('NAVIENT\nPay Status: Current Account Balance: $14,200  Monthly Payment: $190'));
+    expect(two[0]).toMatchObject({ balance: 14200, monthlyPayment: 190, status: 'open' });
+  });
+
+  it('merchant phrases match at word edges only', () => {
+    const cat = (s: string) => lookupMerchant(s.toLowerCase())?.categoryId ?? null;
+    expect(cat('ESPRESSO VIVACE SEATTLE')).toBe('dining');
+    expect(cat('HYATT REGENCY BELLEVUE')).toBeNull();
+    expect(cat('SPRING GARDEN CHINESE')).toBeNull();
+    expect(cat('BREWERS CAFE')).toBe('dining');
+    expect(cat('TWO BROTHERS AUTO REPAIR')).toBeNull();
+    expect(guessKind('TWO BROTHERS AUTO REPAIR', 'out', 'bank').kind).toBe('expense');
+    expect(cat('RELEASE THE HOUNDS PET STORE')).toBeNull();
+    expect(cat('RISOTTO HOUSE')).toBeNull();
+    expect(cat('CABELAS OUTDOOR')).toBeNull();
+    expect(cat('BARTELL DRUGS')).toBeNull();
+    expect(cat('COOPERS HAWK WINERY')).toBeNull();
+    expect(cat('MOBILE PHONE REPAIR')).toBeNull();
+    expect(cat('HONEST CO')).toBeNull();
+    // Real matches still work, including apostrophes, punctuation, CJK and run-together names.
+    expect(cat("MACY'S #123")).toBe('shopping');
+    expect(cat('ROTH IRA CONTRIBUTION')).toBe('savings');
+    expect(cat('EXXONMOBIL 12345')).toBe('transport');
+    expect(cat('T-MOBILE *BILL')).toBe('utilities');
+    expect(cat('ESSO STATION')).toBe('transport');
+    expect(cat('SQ *BLUE BOTTLE')).toBe('dining');
+    expect(cat('沃尔玛超市')).toBe('groceries');
+    expect(cat('PG&E WEB ONLINE PAYMENT')).toBe('utilities');
+  });
+
+  it('the web server maps every file type the app serves, including the pdf.js module worker', () => {
+    const conf = fs.readFileSync(path.join(__dirname, '../deploy/nginx/default.conf'), 'utf8');
+    const server = conf.slice(conf.indexOf('server {'), conf.indexOf('location '));
+    // A `types` block inside `server` replaces the inherited table, so the standard mapping must be re-included first.
+    expect(server.indexOf('include /etc/nginx/mime.types;')).toBeGreaterThan(0);
+    expect(server.indexOf('include /etc/nginx/mime.types;')).toBeLessThan(server.indexOf('types {'));
+    expect(server).toMatch(/application\/javascript\s+mjs;/);
+    expect(conf).toMatch(/location ~\* \\\.\((?:[a-z0-9|?]*\|)?mjs\|/);
   });
 });

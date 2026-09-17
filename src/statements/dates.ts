@@ -108,7 +108,25 @@ export function resolveDate(hit: DateHit, period: StatementPeriod | null, today:
   return make(ty - 1);
 }
 
-const PERIOD_WORDS = /(statement period|billing period|billing cycle|statement date|closing date|period covered|activity period|for the period|opening date|from|through|thru|to|periodo|período|du|au|dal|al|vom|bis|abrechnungszeitraum|statement closing)/i;
+// Word boundaries matter: without them "to" is in "Total" and "du" is in "Due".
+const PERIOD_WORDS = /\b(statement period|billing period|billing cycle|statement date|closing date|period covered|activity period|for the period|opening date|from|through|thru|to|periodo|período|du|au|dal|al|vom|bis|abrechnungszeitraum|statement closing)\b/i;
+const OPEN_WORDS = /\b(opening date|opening\/closing date|from|start(?:ing)? date|previous statement|desde|du|dal|vom)\b/i;
+const CLOSE_WORDS = /\b(closing date|statement date|through|to date|ending|end(?:ing)? date|hasta|au|al|bis|statement closing)\b/i;
+/** "Payment Due Date 02/25/2026" is a deadline, never an end of the period. */
+const DUE_BEFORE = /\bdue\b[^\d]{0,25}$/i;
+
+function notDue(text: string, hit: DateHit): boolean {
+  return !DUE_BEFORE.test(text.slice(0, hit.start));
+}
+
+/** The date nearest after the word that names it ("Closing Date 01/31/2026"), else the nearest before. */
+function dateAfterWord(text: string, re: RegExp, hits: DateHit[]): DateHit | null {
+  const m = re.exec(text);
+  if (!m) return null;
+  const at = m.index + m[0].length;
+  const usable = hits.filter((h) => notDue(text, h));
+  return usable.find((h) => h.start >= at) ?? [...usable].reverse().find((h) => h.end <= m.index) ?? null;
+}
 
 /**
  * The statement period from a row like "Statement Period: 01/01/2026 - 01/31/2026",
@@ -121,11 +139,12 @@ export function findPeriod(rows: Row[], language: string, today: string): Statem
     const hits = findDates(row.text, language).filter((h) => h.year != null);
     if (hits.length) dated.push({ row, hits });
   }
-  // Two explicit-year dates on a row that mentions a period.
+  // Two explicit-year dates on a row that mentions a period (a payment due date on the same row is ignored).
   for (const { row, hits } of dated) {
-    if (hits.length >= 2 && PERIOD_WORDS.test(row.text)) {
-      const a = resolveDate(hits[0], null, today);
-      const b = resolveDate(hits[1], null, today);
+    const usable = hits.filter((h) => notDue(row.text, h));
+    if (usable.length >= 2 && PERIOD_WORDS.test(row.text)) {
+      const a = resolveDate(usable[0], null, today);
+      const b = resolveDate(usable[1], null, today);
       if (a && b && a <= b && daysBetween(a, b) <= 400) return { start: a, end: b };
     }
   }
@@ -133,10 +152,10 @@ export function findPeriod(rows: Row[], language: string, today: string): Statem
   let open: string | null = null;
   let close: string | null = null;
   for (const { row, hits } of dated) {
-    const d = resolveDate(hits[0], null, today);
-    if (!d) continue;
-    if (/opening date|from|start(?:ing)? date|previous statement|desde|du|dal|vom/i.test(row.text) && !open) open = d;
-    if (/closing date|statement date|through|to date|ending|end(?:ing)? date|hasta|au|al|bis|statement closing/i.test(row.text) && !close) close = d;
+    const o = open ? null : dateAfterWord(row.text, OPEN_WORDS, hits);
+    if (o) open = resolveDate(o, null, today);
+    const c = close ? null : dateAfterWord(row.text, CLOSE_WORDS, hits);
+    if (c) close = resolveDate(c, null, today);
   }
   if (open && close && open <= close) return { start: open, end: close };
   if (close) return { start: addDays(close, -31), end: close };

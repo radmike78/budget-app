@@ -97,17 +97,40 @@ interface Candidate {
   amountCols: (Column | null)[];
 }
 
-function lineCandidates(rows: Row[], cols: Column[] | null, language: string): Candidate[] {
+/** A description wrapped onto the next line may carry the amount; at most this many continuation rows are joined. */
+const MAX_CONTINUATION_ROWS = 2;
+
+/** True for a row that starts with a date, i.e. a new entry rather than the tail of the previous one. */
+function startsWithDate(text: string, language: string): boolean {
+  const dates = findDates(text, language);
+  return dates.length > 0 && dates[0].start <= 3;
+}
+
+function lineCandidates(rows: Row[], cols: Column[] | null, language: string): { candidates: Candidate[]; consumed: Set<Row> } {
   const out: Candidate[] = [];
-  for (const row of rows) {
-    const text = row.text;
+  const consumed = new Set<Row>();
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    let text = row.text;
+    let cells = row.cells;
     // Summary rows carry no leading date ("Total deposits 1,200.00"); "01/05 TOTAL WINE 45.00" is a purchase.
     const leadingDate = /^\s*\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?\b|^\s*\d{4}-\d{2}-\d{2}\b|^\s*[A-Za-zéû]{3,9}\.? \d{1,2}\b/.exec(text);
     const summaryAtStart = leadingDate ? SUMMARY_ROW_AFTER_DATE.test(text.slice(leadingDate[0].length)) : SUMMARY_ROW.test(text);
     if (summaryAtStart && !/\b(fee|interest charge)\b/i.test(text)) continue;
     const dates = findDates(text, language);
     if (!dates.length || dates[0].start > 3) continue;
-    const money = findMoney(text);
+    let money = findMoney(text);
+    // "01/05  POS PURCHASE BLUE BOTTLE" / "SEATTLE WA   4.50": the amount sits on the wrapped line.
+    let joined = 0;
+    while (!money.length && joined < MAX_CONTINUATION_ROWS && i + joined + 1 < rows.length) {
+      const next = rows[i + joined + 1];
+      const head = next.text.trim();
+      if (next.page !== row.page || !head || startsWithDate(head, language) || SUMMARY_ROW.test(head) || SECTION_IN.test(head) || SECTION_OUT.test(head)) break;
+      joined += 1;
+      text = `${text}  ${head}`;
+      cells = cells.concat(next.cells);
+      money = findMoney(text);
+    }
     if (!money.length) continue;
     // Amounts sit at the end of the line; anything before the last date-free amount run is description.
     const firstDateEnd = dates.length > 1 && dates[1].start - dates[0].end <= 3 ? dates[1].end : dates[0].end;
@@ -117,12 +140,14 @@ function lineCandidates(rows: Row[], cols: Column[] | null, language: string): C
     if (!/\p{L}/u.test(descText)) continue;
     const amountCols = amounts.map((a) => {
       if (!cols) return null;
-      const cell = row.cells.find((c) => c.str.replace(/\s/g, '') === a.raw.replace(/\s/g, '') || (c.str.includes(a.raw.trim()) && findMoney(c.str).length === 1));
+      const cell = cells.find((c) => c.str.replace(/\s/g, '') === a.raw.replace(/\s/g, '') || (c.str.includes(a.raw.trim()) && findMoney(c.str).length === 1));
       return cell ? nearestColumn(cell.x, cols) : null;
     });
+    for (let k = 1; k <= joined; k += 1) consumed.add(rows[i + k]);
+    i += joined;
     out.push({ row, hit: dates[0], amounts, descText, amountCols });
   }
-  return out;
+  return { candidates: out, consumed };
 }
 
 const INCOME_HINT = new Set(['salary', 'freelance', 'other_income']);
@@ -144,8 +169,11 @@ function decideAmount(c: Candidate, kind: StatementKind, section: 'in' | 'out' |
     else if (col.role === 'amount' && !amountTok) amountTok = amounts[i];
   }
   // 2. No columns: last number is the balance when there are two or more, unless it is tiny and the first is huge.
+  //    A card statement has no running balance: "FOREIGN TX 12.50 EUR 13.80" is billed as the last number.
   if (!amountTok) {
-    if (amounts.length >= 2) {
+    if (kind === 'card') {
+      amountTok = amounts[amounts.length - 1];
+    } else if (amounts.length >= 2) {
       balance = amounts[amounts.length - 1].value * (amounts[amounts.length - 1].negative ? -1 : 1);
       amountTok = amounts[amounts.length - 2];
       if (amounts.length >= 3 && amounts[0].value === 0) amountTok = amounts[1];
@@ -197,12 +225,19 @@ function cardTradeline(rows: Row[]): Tradeline | null {
   let limit: number | null = null;
   let apr: number | null = null;
   let issuer: string | null = null;
+  // The amount that belongs to a label is the first one after it: "Credit Limit $12,000.00  Available Credit $10,647.57".
+  const after = (t: string, re: RegExp): number | null => {
+    const m = re.exec(t);
+    if (!m) return null;
+    const money = findMoney(t);
+    const tok = money.find((x) => x.start >= m.index + m[0].length) ?? money[money.length - 1];
+    return tok ? tok.value : null;
+  };
   for (const row of rows.slice(0, 200)) {
     const t = row.text;
-    const money = findMoney(t);
-    if (balance == null && /\b(new balance|statement balance|current balance|balance due|total balance|nuevo saldo|nouveau solde|nuovo saldo|neuer saldo)\b/i.test(t) && money.length) balance = money[money.length - 1].value;
-    if (minimum == null && /\b(minimum payment|min(?:imum)? (?:amount )?due|pago mínimo|pago minimo|paiement minimum|pagamento minimo|mindestzahlung)\b/i.test(t) && money.length) minimum = money[money.length - 1].value;
-    if (limit == null && /\b(credit limit|credit line|total credit line|límite de crédito|limite de credito|plafond|limite di credito|kreditlimit)\b/i.test(t) && money.length) limit = money[money.length - 1].value;
+    if (balance == null) balance = after(t, /\b(new balance|statement balance|current balance|balance due|total balance|nuevo saldo|nouveau solde|nuovo saldo|neuer saldo)\b/i);
+    if (minimum == null) minimum = after(t, /\b(minimum payment|min(?:imum)? (?:amount )?due|pago mínimo|pago minimo|paiement minimum|pagamento minimo|mindestzahlung)\b/i);
+    if (limit == null) limit = after(t, /\b(credit limit|credit line|total credit line|límite de crédito|limite de credito|plafond|limite di credito|kreditlimit)\b/i);
     if (apr == null && /\b(purchase apr|apr for purchases|annual percentage rate|apr|tae|taeg|effektiver jahreszins|interest rate)\b/i.test(t) && !/cash advance|penalty|balance transfer|promotional/i.test(t)) apr = findPercent(t);
     if (!issuer && t.length <= 44 && ISSUER_RE.test(t) && !findMoney(t).length && !/\d{4}/.test(t)) issuer = cleanDescription(t);
   }
@@ -242,7 +277,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
   const period = findPeriod(rows, opts.language, opts.today);
   if (!period) warnings.push('noPeriod');
   const cols = findColumns(rows);
-  const candidates = lineCandidates(rows, cols, opts.language);
+  const { candidates, consumed } = lineCandidates(rows, cols, opts.language);
 
   const lines: StatementLine[] = [];
   let section: 'in' | 'out' | null = null;
@@ -252,6 +287,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
   const candidateRows = new Set(candidates.map((c) => c.row));
   let ci = 0;
   for (const row of rows) {
+    if (consumed.has(row)) continue; // the tail of a wrapped line, already part of its entry
     if (!candidateRows.has(row)) {
       const head = row.text.trim();
       if (head.length <= 60) {

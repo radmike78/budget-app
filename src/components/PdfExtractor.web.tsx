@@ -5,6 +5,8 @@ import type { TextItem } from '@/statements';
 
 export interface PdfExtractorHandle {
   extract: (bytes: Uint8Array) => Promise<{ items: TextItem[]; numPages: number }>;
+  /** Nothing to abandon on the web: each extract() owns its own document, so a cancelled read is simply ignored. */
+  cancel: () => void;
 }
 
 type PdfJs = typeof import('pdfjs-dist');
@@ -52,6 +54,7 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
       await doc.destroy();
       return { items, numPages: doc.numPages };
     },
+    cancel: () => {},
   }), []);
   return null;
 });

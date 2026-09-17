@@ -374,7 +374,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveDebt: async (d) => {
     const db = await getDb();
-    await repo.upsertDebt(db, { ...d, creditor: redactSensitive(d.creditor) || d.creditor, updatedAt: nowIso() });
+    // Money on a debt is never negative; a typed "-50" would otherwise make the plan run for ever
+    // and the exported backup fail validation on restore.
+    const nonNegative = (v: number | null | undefined): number | null => (v == null || !Number.isFinite(v) ? null : Math.max(0, v));
+    await repo.upsertDebt(db, {
+      ...d,
+      creditor: redactSensitive(d.creditor) || d.creditor,
+      balance: nonNegative(d.balance) ?? 0,
+      monthlyPayment: nonNegative(d.monthlyPayment),
+      creditLimit: nonNegative(d.creditLimit),
+      updatedAt: nowIso(),
+    });
     await get().refresh();
   },
 
@@ -389,11 +399,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const existing = get().debts;
     const norm = (s: string) => s.toLowerCase().replace(NON_ALNUM_RE, ' ').trim();
     let n = 0;
+    // Each existing debt takes at most one tradeline per import, so two accounts with the same
+    // creditor (two cards from one bank) stay two debts instead of both landing on the first.
+    const taken = new Set<string>();
     for (const t of lines) {
       if (t.balance == null && t.monthlyPayment == null) continue;
       const key = norm(t.creditor);
       // A name that normalises to nothing matches nothing, so unrelated debts never merge into one.
-      const match = key ? existing.find((d) => { const k = norm(d.creditor); return !!k && (k === key || (t.source === 'card_statement' && d.source === 'card_statement' && k.slice(-4) === key.slice(-4))); }) : undefined;
+      const match = key ? existing.find((d) => { if (taken.has(d.id)) return false; const k = norm(d.creditor); return !!k && (k === key || (t.source === 'card_statement' && d.source === 'card_statement' && k.slice(-4) === key.slice(-4))); }) : undefined;
+      if (match) taken.add(match.id);
       await repo.upsertDebt(db, {
         id: match?.id ?? newId(),
         creditor: (redactSensitive(t.creditor) || t.creditor).slice(0, 80),
