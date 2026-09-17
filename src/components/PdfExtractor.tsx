@@ -9,6 +9,8 @@ import type { TextItem } from '@/statements';
 
 export interface PdfExtractorHandle {
   extract: (bytes: Uint8Array) => Promise<{ items: TextItem[]; numPages: number }>;
+  /** Abandons the extraction in flight (the page is reloaded), so the next pick can start at once. */
+  cancel: () => void;
 }
 
 /** How long to wait for the WebView page to report ready before giving up on an import. */
@@ -80,6 +82,17 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
         };
         web.current?.injectJavaScript(`window.__ob.run(${MAX_PDF_PAGES}); true;`);
       });
+    },
+    cancel: () => {
+      const p = pending.current;
+      pending.current = null;
+      if (p) p.reject(new Error('cancelled'));
+      // Reloading throws away the running pdf.js job and the base64 chunks with it; the page
+      // posts "ready" again when it is back, and extract() waits for that.
+      if (ready.current) {
+        ready.current = false;
+        web.current?.reload();
+      }
     },
   }), [html]);
 

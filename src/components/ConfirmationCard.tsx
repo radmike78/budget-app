@@ -98,6 +98,8 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
           onDone(t.toastReminderSaved);
           notify(t.notificationsNeeded, state === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
         }
+      } catch (e) {
+        setError(t.didntWork((e as Error).message));
       } finally {
         setSaving(false);
       }
@@ -119,6 +121,8 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
         onDone(t.toastLogged(money(amount, { compact: true }), type === 'income', categoryName(category, t)), await personaLineForTransaction({ amount, type, categoryId, note: note.trim() || null, occurredAt: date }, t));
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (e) {
+      setError(t.didntWork((e as Error).message));
     } finally {
       setSaving(false);
     }
@@ -132,7 +136,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
     <Sheet visible={!!result} onClose={onCancel} tall>
       <Row style={{ justifyContent: 'space-between', marginBottom: spacing.sm }}>
         <Text variant="heading">{title}</Text>
-        <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel}><Text variant="muted">{t.cancel}</Text></Pressable>
+        <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel} hitSlop={12}><Text variant="muted">{t.cancel}</Text></Pressable>
       </Row>
       <Text variant="small" style={{ marginBottom: spacing.md }} numberOfLines={2}>"{result.raw}"</Text>
 

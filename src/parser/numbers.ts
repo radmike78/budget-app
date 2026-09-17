@@ -40,6 +40,8 @@ export interface WesternNumberTable {
   million?: string[];
   /** Connectors allowed inside a number ("and", "y", "et", "e", "und"). */
   connectors: string[];
+  /** A tens word right after a connector is cents ("dodici e cinquanta" = 12.50). Off for German, where "fünf und zwanzig" is 25. */
+  connectorCents?: boolean;
   /** Words meaning one that may precede hundred/thousand ("a", "un", "une", "ein"). */
   one: string[];
   /** Pre-processing to split compounds or fix hyphens before tokenizing. */
@@ -67,10 +69,15 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
     for (let idx = 0; idx < run.length; idx += 1) {
       const w = run[idx];
       if (table.connectors.includes(w)) { afterConnector = true; continue; }
-      if (table.one.includes(w)) { if (current === 0) current = 1; continue; }
+      // "un million" starts a number; after one has started, "vingt et un", "cent un", "treinta y un" add one like any unit.
+      if (table.one.includes(w)) {
+        if (!saw) { current = 1; continue; }
+        if (!(w in table.units)) { current += 1; lastSmall = true; afterConnector = false; continue; }
+      }
       // "doce cincuenta", "zwölf fünfzig": a tens word that cannot extend the number is a cents group.
       // German says the unit first ("fünf und zwanzig"), so a tens word after a connector still extends it.
-      const startsCents = saw && !afterConnector && ((w in table.tens && current % 100 !== 0) || (w in table.units && table.units[w] >= 10 && current % 100 !== 0) || (w in table.units && table.units[w] < 10 && lastSmall && current % 10 !== 0));
+      const centsAfterConnector = Boolean(table.connectorCents) && afterConnector && (w in table.tens || (w in table.units && table.units[w] >= 10));
+      const startsCents = saw && ((!afterConnector && ((w in table.tens && current % 100 !== 0) || (w in table.units && table.units[w] >= 10 && current % 100 !== 0) || (w in table.units && table.units[w] < 10 && lastSmall && current % 10 !== 0))) || centsAfterConnector);
       afterConnector = false;
       if (startsCents) {
         const cents = evaluate(run.slice(idx));
@@ -104,11 +111,13 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
       while (j < words.length) {
         const cw = strip(words[j]);
         const isConn = table.connectors.includes(cw);
-        const isOne = table.one.includes(cw) && run.length === 0;
+        const prev = run[run.length - 1] ?? '';
+        // "un million" starts a run; "treinta y un", "ciento un", "cent un" continue one after a connector or a scale word.
+        const isOne = table.one.includes(cw) && (run.length === 0 || table.connectors.includes(prev) || isScale(prev));
         if (isNum(cw) || isConn || isOne) {
           if (isConn) {
             const after = j + 1 < words.length ? strip(words[j + 1]) : '';
-            if (!isNum(after)) break;
+            if (!isNum(after) && !table.one.includes(after)) break;
           }
           run.push(cw);
           j += 1;
@@ -151,7 +160,8 @@ function cjkToNumber(s: string): number | null {
   }
   flushDigits();
   if (!sawAny) return null;
-  if (current > 0 && current < 10 && lastScale >= 100 && /[百千万萬]$/.test(s.replace(/[零〇一二两兩三四五六七八九\d]+$/, ''))) {
+  // "一百零五" is 105: the zero says the last digit is a unit, never the next scale down.
+  if (current > 0 && current < 10 && lastScale >= 100 && !/[零〇]/.test(s) && /[百千万萬]$/.test(s.replace(/[零〇一二两兩三四五六七八九\d]+$/, ''))) {
     current *= lastScale / 10;
   }
   return total + section + current;

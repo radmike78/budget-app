@@ -7,8 +7,12 @@ import { clockRule, dayWords, futureDayOfMonthRule, futureWeekdayRule, monthlyOn
 const MONTHS = { names: { janvier: 0, janv: 0, février: 1, fevrier: 1, févr: 1, fevr: 1, mars: 2, avril: 3, avr: 3, mai: 4, juin: 5, juillet: 6, juil: 6, août: 7, aout: 7, septembre: 8, sept: 8, octobre: 9, oct: 9, novembre: 10, nov: 10, décembre: 11, decembre: 11, déc: 11, dec: 11 } };
 const WEEKDAYS = { names: { dimanche: 0, lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6 }, lastAfter: ['dernier'], prefixes: ['le', 'ce'] };
 
+// 71-79 and 91-99 glue a tens word to a teen: "soixante-quinze" is 75, not 60 and 15 cents.
+const TEENS: [string, number][] = [['onze', 11], ['douze', 12], ['treize', 13], ['quatorze', 14], ['quinze', 15], ['seize', 16], ['dixsept', 17], ['dixhuit', 18], ['dixneuf', 19]];
+const SEVENTIES_NINETIES: Record<string, number> = Object.fromEntries(TEENS.flatMap(([t, v]) => [[`soixante${t}`, 60 + v], [`quatrevingt${t}`, 80 + v]]));
+
 const numberWords = makeNumberWords({
-  units: { zéro: 0, zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16, dixsept: 17, dixhuit: 18, dixneuf: 19 },
+  units: { zéro: 0, zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16, dixsept: 17, dixhuit: 18, dixneuf: 19, ...SEVENTIES_NINETIES },
   tens: { vingt: 20, vingts: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60, soixantedix: 70, quatrevingt: 80, quatrevingts: 80, quatrevingtdix: 90 },
   hundred: ['cent', 'cents'],
   thousand: ['mille'],
@@ -16,6 +20,7 @@ const numberWords = makeNumberWords({
   connectors: ['et'],
   one: ['un', 'une'],
   pre: (t) => t
+    .replace(/\b(soixante|quatre[- ]vingt)[- ](onze|douze|treize|quatorze|quinze|seize|dix[- ]sept|dix[- ]huit|dix[- ]neuf)\b/g, (_m, a: string, b: string) => a.replace(/[- ]/g, '') + b.replace(/[- ]/g, ''))
     .replace(/quatre[- ]vingt[- ]dix/g, 'quatrevingtdix')
     .replace(/quatre[- ]vingts?/g, 'quatrevingt')
     .replace(/soixante[- ]dix/g, 'soixantedix')
@@ -109,7 +114,7 @@ export const fr: LanguagePack = {
   noteStrip: [],
   listSeparators: [',', ';', 'et', 'plus', 'puis', 'et puis', 'et aussi', 'ensuite'],
   reminder: {
-    lead: /(?<![\p{L}])(?:(?:peux-tu |tu peux |pouvez-vous |s'il te plaît |stp )?(?:rappelle-moi|rappelle moi|rappelez-moi|rappelez moi|me rappeler|rappelle-nous|mets un rappel|mettre un rappel|mets-moi un rappel|crée un rappel|créer un rappel|ajoute un rappel|je veux un rappel|il me faut un rappel|rappel|préviens-moi|previens-moi|fais-moi penser|fais moi penser|ne me laisse pas oublier|pense-bête))(?![\p{L}])(?:\s+(?:de|que|à|a|pour|d'))?\s*:?/iu,
+    lead: /(?<![\p{L}])(?:(?:peux-tu |tu peux |pouvez-vous |s'il te plaît |stp )?(?:rappelle-moi|rappelle moi|rappelez-moi|rappelez moi|me rappeler|rappelle-nous|mets un rappel|mettre un rappel|mets-moi un rappel|crée un rappel|créer un rappel|ajoute un rappel|je veux un rappel|il me faut un rappel|rappel|préviens-moi|previens-moi|fais-moi penser|fais moi penser|ne me laisse pas oublier|pense-bête))(?![\p{L}])(?:\s+(?:(?:de|que|à|a|pour)(?![\p{L}])|d'))?\s*:?/iu,
     time: [
       clockRule(['à', 'a', 'vers', 'pour'], { suffix: 'h(?:eures?)?', hourSep: '(?:h|:)', dayParts: { 'du matin': 0, 'le matin': 0, "de l'après-midi": 12, "de l'apres-midi": 12, 'du soir': 12, 'le soir': 12 } }),
       ...wordTimeRules({ morning: ['le matin', 'dans la matinée', 'dans la matinee', 'ce matin', 'au réveil'], noon: ['à midi', 'a midi', 'midi', 'au déjeuner'], afternoon: ["dans l'après-midi", "dans l'apres-midi", "cet après-midi", "cet apres-midi", "l'après-midi"], evening: ['ce soir', 'le soir', 'dans la soirée', 'dans la soiree', 'cette nuit', 'avant de dormir'] }, { morning: 8, noon: 12, afternoon: 15, evening: 19 }),

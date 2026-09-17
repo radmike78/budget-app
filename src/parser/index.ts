@@ -171,12 +171,13 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const full = m[0];
-    const after = text.slice(m.index + full.length, m.index + full.length + 8);
+    const after = text.slice(m.index + full.length, m.index + full.length + 16);
     const before = text.slice(Math.max(0, m.index - 3), m.index);
     const marked = Boolean(m[1] || m[3]);
     if (!marked) {
-      if (/^(st|nd|rd|th|º|ª|°|\.|%|\s?%|\s?(am|pm)\b|:\d|\s?o'clock|\s?x\b|\s?uhr\b|\s?h\b|時|点|시|月|日|월|일|年|년)/iu.test(after) && !/^\.\s/.test(after)) continue;
-      if (/\d[.\-/]$/.test(before)) continue;
+      if (/^(st|nd|rd|th|º|ª|°|\.|%|\s?%|\s?(am|pm)\b|:\d|\s?o'clock|\s?x\b|\s?uhr\b|\s?h\b|時|点|시|月|日|월|일|年|년)/iu.test(after) && !/^\.(?:\s|$)/.test(after)) continue;
+      // "12:30" is a time: neither half is money.
+      if (/\d[.\-/:]$/.test(before)) continue;
       if (/^[.\-/]\d/.test(after)) continue;
       if (/^\s?(people|persons|items?|tickets?|days?|weeks?|months?|years?|hours?|minutes?|miles?|km|kg|lbs?|oz|packs?|personas|personnes|persone|personen|个人|名|人|명)\b/iu.test(after)) continue;
       if (/^\s?(?:份|杯|个|個|顿|頓|件|张|張|瓶|册|冊|つ|本|枚|台|回|次|개|잔|번|병|명|그릇|장)/u.test(after)) continue;
@@ -188,6 +189,35 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
     candidates.push({ value, start: m.index, end: m.index + full.length, marked });
   }
   return candidates;
+}
+
+const CENTS_CONNECTORS = 'and|e|ed|y|et|und|con|avec|mit';
+const CENTS_WORDS = 'cents?|centimes?|c[ée]ntimos?|centavos?|centesim[oi]|cent';
+const centsCache = new Map<string, RegExp | null>();
+
+/**
+ * "12 dollars and 50 cents", "12 euros y 50", "12 euro e 50", "douze euros cinquante"
+ * (already "12 euros 50" here) are one amount, not two entries: "12.50 dollars".
+ * Only currency words count, not symbols, and the cents must be a bare one- or
+ * two-digit number that is not itself marked or followed by more digits.
+ */
+export function mergeCents(text: string, pack: LanguagePack): string {
+  if (pack.tokenizer === 'cjk') return text;
+  let re = centsCache.get(pack.code);
+  if (re === undefined) {
+    const words = pack.currencyMarkers.source.split('|').filter((a) => /\p{L}/u.test(a) && !a.includes('('));
+    re = words.length
+      ? new RegExp(`(?<![\\d.,])(\\d+)\\s+(${words.join('|')})\\s+(?:(?:${CENTS_CONNECTORS})\\s+)?(\\d{1,2})(?:\\s*(?:${CENTS_WORDS}))?(?![\\d.,:%]|\\s?(?:${pack.currencyMarkers.source}))${WB_END}`, 'giu')
+      : null;
+    centsCache.set(pack.code, re);
+  }
+  if (!re) return text;
+  return text.replace(re, (_m, whole: string, cur: string, cents: string) => `${whole}.${cents.padStart(2, '0')} ${cur}`);
+}
+
+/** Normalised, number words converted, cents merged: the text every parse path starts from. */
+function prepare(raw: string, pack: LanguagePack): string {
+  return mergeCents(pack.numberWords(normalize(raw, pack)), pack);
 }
 
 export function extractAmount(text: string, pack: LanguagePack): AmountExtraction {
@@ -204,6 +234,8 @@ export function extractAmount(text: string, pack: LanguagePack): AmountExtractio
 
 function tokenize(text: string): string[] {
   return text
+    // "d'essence", "l'épicerie", "dell'acqua": the elided article is its own token. "joe's" keeps its apostrophe.
+    .replace(/(?<![\p{L}])(d|l|j|m|t|s|c|n|qu|un|dell|all|nell|dall|sull|dal|quest)'(?=\p{L})/giu, '$1 ')
     .replace(/[^\p{L}\p{N}'&+\-\s]/gu, ' ')
     .split(/\s+/)
     .map((t) => t.replace(/^'+|'+$/g, ''))
@@ -292,6 +324,8 @@ export function deriveNote(leftover: string, pack: LanguagePack): string | null 
   s = s.replace(pack.leadingFiller, '').replace(pack.trailingFiller, '').trim();
   s = s.replace(/^[\-–—.]+|[\-–—.]+$/g, '').trim();
   if (!s) return null;
+  // "got a refund of $45" leaves "of": a lone stopword is no note.
+  if (pack.tokenizer === 'space' && !s.includes(' ') && pack.stopwords.includes(s)) return null;
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -335,6 +369,10 @@ function cleanGoalName(s: string, pack: LanguagePack): string | null {
   const goalWordRe = new RegExp(`${WB_START}(?:${pack.goalWords})${WB_END}`, 'giu');
   let name = s.replace(goalWordRe, ' ').replace(pack.currencyWords, ' ').replace(/\s+/g, ' ').trim();
   for (const re of pack.noteStrip) name = name.replace(re, ' ').replace(/\s+/g, ' ').trim();
+  if (pack.tokenizer === 'cjk') {
+    name = name.replace(new RegExp(pack.contributionVerbs.source, 'gu'), ' ').replace(/\s+/g, ' ').trim();
+    name = name.replace(pack.leadingFiller, '').trim();
+  }
   name = name.replace(pack.trailingFiller, '').replace(pack.articles, '').replace(/[.,;:!。]+$/g, '').trim();
   name = name.replace(new RegExp(`^(?:${pack.forWords})\\s+`, 'iu'), '').trim();
   if (!name) return null;
@@ -481,7 +519,7 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
   const c = compile(pack);
   const raw = input.trim();
   if (!raw) return baseResult(raw, ctx.today);
-  let text = pack.numberWords(normalize(raw, pack));
+  let text = prepare(raw, pack);
 
   // ---- Reminder ----
   if (pack.reminder.lead.test(text)) return parseReminder(text, raw, ctx, pack);
@@ -634,8 +672,12 @@ export function splitEntries(text: string, pack: LanguagePack): string[] {
 
 const ABBREV = /(?:\b(?:jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec|mr|mrs|ms|dr|st|vs|approx|ca|etc|ene|abr|ago|dic|janv|févr|fevr|juil|déc|gen|mag|giu|lug|set|sett|ott|okt|dez|nr|ca|bzw|z\.b|u\.a)|\b\p{L})\.$/iu;
 
-/** Splits free text into sentences on . ! ? and CJK equivalents, keeping decimals and abbreviations intact. */
-export function splitSentences(raw: string): string[] {
+/**
+ * Splits free text into sentences on . ! ? and CJK equivalents, keeping decimals and
+ * abbreviations intact. With `ordinalDots` (German), "am 1. um 9 Uhr" and "3. September"
+ * keep their day ordinal: a one- or two-digit number, a dot and then a lowercase word or a digit.
+ */
+export function splitSentences(raw: string, ordinalDots = false): string[] {
   const parts: string[] = [];
   let buf = '';
   const chars = [...raw];
@@ -648,6 +690,7 @@ export function splitSentences(raw: string): string[] {
     if ((ch === '.' || ch === '!' || ch === '?') && (next === '' || /\s/.test(next))) {
       const prev = chars[i - 1] ?? '';
       if (ch === '.' && (/\d/.test(prev) && /\d/.test(chars[i + 2] ?? '') || ABBREV.test(buf.trim()))) continue;
+      if (ch === '.' && ordinalDots && /(?<!\d)\d{1,2}\.$/.test(buf) && /[\p{Ll}\d]/u.test(chars[i + 2] ?? '')) continue;
       parts.push(buf);
       buf = '';
     }
@@ -668,7 +711,7 @@ const MAX_QUESTION_LENGTH = 160;
 function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): ParseResult | null {
   // Questions are short sentences; long input is an entry (or noise) and skips these patterns.
   if (raw.length > MAX_QUESTION_LENGTH) return null;
-  const text = pack.numberWords(normalize(raw, pack));
+  const text = prepare(raw, pack);
   if (!text) return null;
   // "remind me to check how much I spent" is a reminder, not a question.
   if (pack.reminder.lead.test(text)) return null;
@@ -690,18 +733,23 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
   if (question) return [question];
   const command = ctx.language === 'en' && raw.length <= MAX_QUESTION_LENGTH ? parseVoiceCommand(raw) : null;
   if (command) return [{ ...baseResult(raw, ctx.today), kind: 'command', command, confidence: 1, needsReview: false }];
-  const sentences = splitSentences(raw);
+  const sentences = splitSentences(raw, pack.code === 'de');
   const results: ParseResult[] = [];
   let sharedDate: string | null = null;
   let sharedType: { type: TxType; confidence: number } | null = null;
   let multi = false;
 
   for (const sentence of sentences) {
-    const text = pack.numberWords(normalize(sentence, pack));
+    const text = prepare(sentence, pack);
     if (!text) continue;
     const isGoal = pack.reminder.lead.test(text) || pack.goalLead.test(text) || (pack.goalIntent.test(text) && !pack.goalPastVerbs.test(text)) || isDebtGoal(text, pack, ctx.today);
-    const isContribution = ctx.goals.some((g) => !g.completed) && pack.contributionVerbs.test(text);
-    if (isGoal || isContribution) { results.push(parseInput(sentence, ctx)); continue; }
+    if (isGoal) { results.push(parseInput(sentence, ctx)); continue; }
+    // "paid", "put" or "saved" may be a goal contribution; only when it really resolves to one does
+    // the sentence stay whole, otherwise "gas 40 and got paid 500" still splits into two entries.
+    if (ctx.goals.some((g) => !g.completed) && pack.contributionVerbs.test(text)) {
+      const whole = parseInput(sentence, ctx);
+      if (whole.kind === 'contribution') { results.push(whole); continue; }
+    }
 
     const dated = applyRules(pack.pastDateRules, text, ctx.today);
     const segments = splitEntries(dated.text, pack);
@@ -744,7 +792,7 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
 export function learnableWords(rawInput: string, language?: string): string[] {
   const pack = getPack(language);
   const c = compile(pack);
-  const text = pack.numberWords(normalize(rawInput, pack));
+  const text = prepare(rawInput, pack);
   const dated = applyRules(pack.pastDateRules, text, '2000-01-01');
   const amt = extractAmount(dated.text, pack);
   let leftover = amt.text.replace(pack.currencyWords, ' ');

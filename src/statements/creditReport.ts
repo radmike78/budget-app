@@ -28,6 +28,10 @@ const TYPE_WORDS: { re: RegExp; type: DebtType }[] = [
   { re: /\b(installment|personal loan|signature loan|unsecured|consumer loan|sofi|upstart|lending club|lendingclub|prosper|onemain|one main|marcus|best egg|avant|upgrade|affirm|klarna)\b/i, type: 'personal_loan' },
 ];
 
+/** First words of the labels above, so a value stops where the next label starts even with one space between. */
+const LABEL_START = '(?:current|recent|account|balance|scheduled|monthly|minimum|regular|actual|payment|terms?|pmt|credit|limit|high|original|loan|type|portfolio|kind|status|condition|pay|interest|apr|rate|creditor|company|lender|subscriber|furnisher|name|date|open|opened|acct|responsibility|ownership|last|past|amount|months|remarks|comments|closed|worst)';
+const PAIR_RE = new RegExp(`([A-Za-z][A-Za-z /#.]{1,30}?):\\s*([^:]+?)(?=\\s+${LABEL_START}\\b[A-Za-z /#.]{0,30}?:|$)`, 'gi');
+
 function typeFrom(text: string, fallback: DebtType = 'other'): DebtType {
   for (const t of TYPE_WORDS) if (t.re.test(text)) return t.type;
   return fallback;
@@ -38,8 +42,9 @@ function isConsumer(type: DebtType): boolean {
 }
 
 function statusFrom(text: string): Tradeline['status'] {
-  if (/\b(closed|paid(?: in full)?|paid off|settled|transferred|sold|charge[- ]?off|charged off|refinanced|zero balance)\b/i.test(text)) return 'closed';
-  if (/\b(open|current|pays as agreed|paid as agreed|ok|good standing|active|in repayment|deferred|forbearance|late|past due|delinquent|collection)\b/i.test(text)) return 'open';
+  // "Paid or paying as agreed" and "paid as agreed" are open accounts in good standing, so a bare "paid" never closes one.
+  if (/\b(closed|paid in full|paid off|paid,? closed|paid and closed|paid\/closed|settled|transferred|sold|charge[- ]?off|charged off|refinanced|zero balance)\b/i.test(text)) return 'closed';
+  if (/\b(open|current|pays as agreed|paid as agreed|paying as agreed|never late|ok|good standing|active|in repayment|deferred|forbearance|late|past due|delinquent|collection)\b/i.test(text)) return 'open';
   return 'unknown';
 }
 
@@ -134,8 +139,9 @@ export function parseCreditReport(rows: Row[]): Tradeline[] {
     }
     if (table && !findMoney(text).length && row.cells.length <= 1) table = null;
 
-    // "Label: value" pairs, possibly several per row.
-    const pairs = [...text.matchAll(/([A-Za-z][A-Za-z /#.]{1,30}?):\s*([^:]+?)(?=\s{2,}[A-Za-z][A-Za-z /#.]{1,30}?:|$)/g)];
+    // "Label: value" pairs, possibly several per row; a single space is enough between them
+    // ("Balance: $3,450 Monthly Payment: $85"), so the next pair is recognised by its label's first word.
+    const pairs = [...text.matchAll(PAIR_RE)];
     if (pairs.length) {
       if (!current) start('Account');
       for (const p of pairs) {

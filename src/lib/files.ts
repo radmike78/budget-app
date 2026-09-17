@@ -30,7 +30,7 @@ export async function shareTextFile(filename: string, contents: string): Promise
   file.write(contents);
   const ext = filename.split('.').pop() ?? 'txt';
   const canShare = await Sharing.isAvailableAsync();
-  if (!canShare) throw new Error('Sharing is not available on this device.');
+  if (!canShare) throw new Error('SHARING_UNAVAILABLE');
   await Sharing.shareAsync(file.uri, { mimeType: MIME[ext] ?? 'text/plain', dialogTitle: filename, UTI: ext === 'json' || ext === 'onlybudget' ? 'public.json' : 'public.plain-text' });
 }
 

@@ -330,3 +330,72 @@ describe('Korean', () => {
     expect(r.amount).toBe(50000);
   });
 });
+
+describe('number words: "and one", French 71-99, Chinese zero', () => {
+  it.each([
+    ['fr', 'vingt et un euros', '21 euros'],
+    ['fr', 'trente et un', '31'],
+    ['fr', 'cent un', '101'],
+    ['fr', 'soixante-quinze euros', '75 euros'],
+    ['fr', 'soixante-douze', '72'],
+    ['fr', 'quatre-vingt-quinze', '95'],
+    ['fr', 'quatre-vingt-onze', '91'],
+    ['fr', 'quatre-vingt-dix-sept', '97'],
+    ['fr', 'soixante et onze', '71'],
+    ['fr', 'un million', '1000000'],
+    ['es', 'treinta y un euros', '31 euros'],
+    ['es', 'ciento un euros', '101 euros'],
+    ['it', 'cento e uno', '101'],
+    ['it', 'dodici e cinquanta', '12.50'],
+    ['it', 'mille e cinquecento', '1500'],
+    ['de', 'zwei hundert ein und zwanzig', '221'],
+    ['de', 'fünf und zwanzig', '25'],
+    ['zh', '一百零五', '105'],
+    ['zh', '一千零五', '1005'],
+    ['zh', '两百零八', '208'],
+    ['zh', '两百五', '250'],
+  ])('%s: %s -> %s', (lang, input, expected) => {
+    expect(getPack(lang).numberWords(input)).toBe(expected);
+  });
+});
+
+describe('head counts and elisions', () => {
+  it('"2 personas" / "2 personnes" is a head count, not the amount', () => {
+    expect(parseInput('cena para 2 personas 40', ctx('es'))).toMatchObject({ amount: 40, categoryId: 'dining' });
+    expect(parseInput('dîner pour 2 personnes 40', ctx('fr'))).toMatchObject({ amount: 40, categoryId: 'dining' });
+  });
+  it('sees the keyword behind a French elision', () => {
+    expect(parseInput("j'ai payé 30 d'essence", ctx('fr')).categoryId).toBe('transport');
+    expect(parseInput("40 d'électricité", ctx('fr')).categoryId).toBe('utilities');
+    expect(parseInput("20 à l'épicerie", ctx('fr')).categoryId).toBe('groceries');
+    expect(parseInput("lunch at trader joe's 12", ctx('en')).categoryId).toBe('groceries');
+  });
+});
+
+describe('Chinese, Japanese and Korean details', () => {
+  it('"花了" is the verb spent, not flowers', () => {
+    expect(parseInput('花了50', ctx('zh'))).toMatchObject({ amount: 50, categoryId: 'other_expense' });
+    expect(parseInput('花了两百', ctx('zh'))).toMatchObject({ amount: 200, categoryId: 'other_expense' });
+    expect(parseInput('买花50', ctx('zh')).categoryId).toBe('shopping');
+    expect(parseInput('一百零五块午饭', ctx('zh'))).toMatchObject({ amount: 105, categoryId: 'dining' });
+  });
+  it('trims saving verbs and pronouns from Chinese and Japanese goal names', () => {
+    expect(parseInput('目标：年底前存5000去旅行', ctx('zh'))).toMatchObject({ kind: 'goal', amount: 5000, goalName: '旅行' });
+    expect(parseInput('我想存10000买房', ctx('zh'))).toMatchObject({ kind: 'goal', amount: 10000, goalName: '买房' });
+    expect(parseInput('目標：12月までに旅行のために500ドル貯める', ctx('ja'))).toMatchObject({ kind: 'goal', amount: 500, goalName: '旅行' });
+  });
+  it('"貯めたい" is a goal, not a past saving', () => {
+    expect(parseInput('家のために10万円貯めたい', ctx('ja'))).toMatchObject({ kind: 'goal', amount: 100000, goalName: '家' });
+    expect(parseInput('50万円貯めたい', ctx('ja'))).toMatchObject({ kind: 'goal', amount: 500000 });
+  });
+  it('keeps the meal when the day phrase names a time of day', () => {
+    expect(parseInput('今日の昼ごはん1200円', ctx('ja'))).toMatchObject({ amount: 1200, categoryId: 'dining', occurredAt: TODAY });
+    expect(parseInput('昨日の夜ご飯2000円', ctx('ja'))).toMatchObject({ amount: 2000, categoryId: 'dining', occurredAt: '2026-09-09' });
+    expect(parseInput('어제 점심 12000원', ctx('ko'))).toMatchObject({ amount: 12000, categoryId: 'dining', occurredAt: '2026-09-09' });
+    expect(parseInput('오늘 저녁 30000원', ctx('ko'))).toMatchObject({ amount: 30000, categoryId: 'dining', occurredAt: TODAY });
+  });
+  it('Korean 불 marks dollars only after a number', () => {
+    expect(parseInput('환불 45000원', ctx('ko'))).toMatchObject({ amount: 45000, type: 'income', categoryId: 'other_income' });
+    expect(parseInput('10불 냈어', ctx('ko'))).toMatchObject({ amount: 10, type: 'expense' });
+  });
+});

@@ -27,6 +27,7 @@ const numberWords = makeNumberWords({
   thousand: ['mille', 'mila'],
   million: ['milione', 'milioni'],
   connectors: ['e'],
+  connectorCents: true,
   one: ['un', 'uno', 'una'],
   pre: (t) => t.replace(/(\p{L})(cento|mille|mila)(?=\p{L})/gu, '$1 $2 ').replace(/(\p{L}+)(cento|mille|mila)\b/gu, (m, a: string, b: string) => (a in units || a in hundreds ? `${a} ${b}` : m)).replace(/\b(cento|mille|mila)(?=\p{L})/gu, '$1 '),
 });
@@ -114,7 +115,7 @@ export const it: LanguagePack = {
   noteStrip: [],
   listSeparators: [',', ';', 'e', 'ed', 'più', 'poi', 'e poi', 'e anche', 'anche'],
   reminder: {
-    lead: /(?<![\p{L}])(?:(?:puoi |potresti |per favore )?(?:ricordami|ricordarmi|ricordaci|mi ricordi|metti un promemoria|mettere un promemoria|mettimi un promemoria|crea un promemoria|aggiungi un promemoria|voglio un promemoria|ho bisogno di un promemoria|promemoria|avvisami|avvisarmi|non farmi dimenticare|fammi ricordare))(?![\p{L}])(?:\s+(?:di|che|per|a|su))?\s*:?/iu,
+    lead: /(?<![\p{L}])(?:(?:puoi |potresti |per favore )?(?:ricordami|ricordarmi|ricordaci|mi ricordi|metti un promemoria|mettere un promemoria|mettimi un promemoria|crea un promemoria|aggiungi un promemoria|voglio un promemoria|ho bisogno di un promemoria|promemoria|avvisami|avvisarmi|non farmi dimenticare|fammi ricordare))(?![\p{L}])(?:\s+(?:di|che|per|a|su)(?![\p{L}]))?\s*:?/iu,
     time: [
       clockRule(['alle', 'alle ore', "all'", 'verso le', 'per le', 'entro le'], { dayParts: { 'di mattina': 0, 'del mattino': 0, 'di pomeriggio': 12, 'del pomeriggio': 12, 'di sera': 12, 'della sera': 12, 'di notte': 12 } }),
       ...wordTimeRules({ morning: ['di mattina', 'la mattina', 'in mattinata', 'stamattina', 'appena sveglio'], noon: ['a mezzogiorno', 'mezzogiorno', 'a pranzo', "all'ora di pranzo"], afternoon: ['nel pomeriggio', 'di pomeriggio', 'oggi pomeriggio', 'il pomeriggio'], evening: ['stasera', 'di sera', 'la sera', 'in serata', 'stanotte', 'prima di dormire'] }, { morning: 8, noon: 12, afternoon: 15, evening: 19 }),

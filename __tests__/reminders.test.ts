@@ -82,3 +82,31 @@ describe('reminder sentence', () => {
     expect(reminderSentence({ ...base, date: '2026-09-15', time: '12:00', repeat: 'monthly' }, TODAY, es)).toBe('El día 15 de cada mes a las 12:00');
   });
 });
+
+describe('reminder lead words are whole words', () => {
+  it.each([
+    ['en', 'remind me tomorrow at 8 to call mom', 'Call mom', '2026-09-12', '08:00'],
+    ['en', 'remind me today at 5 to pay john', 'Pay john', TODAY, '17:00'],
+    ['fr', 'Rappelle-moi demain à 8h de payer le loyer', 'Payer le loyer', '2026-09-12', '08:00'],
+    ['fr', "rappelle-moi aujourd'hui à 18h de payer le loyer", 'Payer le loyer', TODAY, '18:00'],
+    ['es', 'Recuérdame parar en la farmacia mañana', 'Parar en la farmacia', '2026-09-12', '09:00'],
+    ['es', 'recuérdame decirle a juan que pague 20', 'Decirle a juan que pague 20', '2026-09-12', '09:00'],
+    ['de', 'erinnere mich um 9 uhr an die miete', 'Miete', '2026-09-12', '09:00'],
+    ['de', 'erinnere mich anzurufen morgen um 8', 'Anzurufen', '2026-09-12', '08:00'],
+    ['it', 'ricordami alle 8 di chiamare la banca', 'Chiamare la banca', '2026-09-12', '08:00'],
+  ])('%s: "%s" keeps the first word whole', (lang, text, body, date, time) => {
+    const r = parseInput(text, ctx(lang));
+    expect(r.kind).toBe('reminder');
+    expect(r.reminderText).toBe(body);
+    expect(r.occurredAt).toBe(date);
+    expect(r.reminderTime).toBe(time);
+  });
+  it('German day ordinals ("am 1.") do not end the sentence', () => {
+    const rows = parseEntries('Erinnere mich am 1. um 9 Uhr an die Miete', ctx('de'));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ kind: 'reminder', reminderText: 'Miete', occurredAt: '2026-10-01', reminderTime: '09:00', reminderRepeat: 'none' });
+    const monthly = parseEntries('erinnere mich am 15. jeden monats die karte zu zahlen', ctx('de'));
+    expect(monthly).toHaveLength(1);
+    expect(monthly[0]).toMatchObject({ kind: 'reminder', reminderRepeat: 'monthly', occurredAt: '2026-09-15', reminderText: 'Die karte zu zahlen' });
+  });
+});

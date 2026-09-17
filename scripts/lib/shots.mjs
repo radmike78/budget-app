@@ -50,6 +50,7 @@ let n = 0;
 const tx = (amount, type, categoryId, note, occurredAt, extra = {}) => ({ id: `seed-${++n}`, amount, type, categoryId, note, rawInput: null, occurredAt, createdAt: `${occurredAt}T12:00:00.000Z`, isRecurringInstance: false, recurringRuleId: null, fingerprint: null, importId: null, ...extra });
 const pay = (k) => tx(2000, 'income', 'salary', 'Salary', P(k), { isRecurringInstance: true, recurringRuleId: 'rule-pay' });
 export function seed(base) {
+  n = 0; // ids restart for every seed, so every browser context gets seed-1 … seed-22
   const categories = base.categories.map((c) => {
     if (c.id === 'groceries') return { ...c, monthlyLimit: 300, rollover: 'carry', rolloverSince: P(6) };
     if (c.id === 'dining') return { ...c, monthlyLimit: 150, rollover: 'ask', rolloverSince: P(2) };

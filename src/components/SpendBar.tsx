@@ -30,7 +30,8 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, onPress }: {
   const restTotal = rest.reduce((s, r) => s + r.total, 0);
   const segments = top.map((r) => ({ key: r.category?.id ?? 'none', label: r.category ? nameOf(r.category) : otherLabel, icon: r.category?.icon ?? null, share: r.share }));
   if (restTotal > 0) segments.push({ key: 'other', label: otherLabel, icon: null, share: restTotal / stats.expenses });
-  const shades = ramp(colors.accent, isDark ? colors.card : colors.bg, Math.max(2, segments.length));
+  // On a dark card the faintest shade would vanish, so the run stops short of the surface.
+  const shades = ramp(colors.accent, isDark ? colors.card : colors.bg, Math.max(2, segments.length), isDark ? 0.6 : 0.8);
   const pct = (share: number) => `${Math.round(share * 100)}%`;
   const body = (
     <View accessibilityRole="image" accessibilityLabel={segments.map((s) => `${s.label} ${pct(s.share)}`).join(', ')}>

@@ -48,6 +48,8 @@ export default function ImportScreen() {
 
   const cancelReading = () => {
     readToken.current += 1;
+    // Stop the extractor too, or the next pick would be refused as "busy" until this read finished.
+    extractor.current?.cancel();
     setStage('idle');
   };
 
@@ -244,7 +246,6 @@ export default function ImportScreen() {
         </>
       ) : null}
       <View style={{ height: spacing.xl }} />
-      <Text variant="small" style={{ textAlign: 'center' }}>{locale.s.importStatementSub}</Text>
     </Screen>
   );
 }

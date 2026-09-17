@@ -5,12 +5,12 @@ import { getDb } from '@/db/database';
 import { allTransactions } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { nowIso } from '@/lib/dates';
+import { longDate, nowIso, today } from '@/lib/dates';
 import { buildBackup, summaryText, transactionsToCsv } from '@/lib/export';
 import { BackupValidationError, MAX_BACKUP_BYTES, MIN_PASSPHRASE_LENGTH, validateBackup } from '@/lib/validate';
 import { decryptBackup, encryptBackup, isEncryptedBackupFile } from '@/lib/backupCrypto';
 import { pickTextFile, shareTextFile, timestampForFilename } from '@/lib/files';
-import { categoryName, useLocale, useT } from '@/i18n';
+import { categoryName, useLocale, useDateFormat, useT } from '@/i18n';
 import { confirmDialog } from '@/lib/dialogs';
 import { Sheet } from '@/components/pickers';
 import { Button, Card, Field, Screen, SectionTitle, Text } from '@/components/ui';
@@ -18,6 +18,7 @@ import { Button, Card, Field, Screen, SectionTitle, Text } from '@/components/ui
 export default function Backup() {
   const { colors } = useTheme();
   const t = useT();
+  const fmt = useDateFormat();
   const locale = useLocale();
   const settings = useAppStore((s) => s.settings);
   const categories = useAppStore((s) => s.categories);
@@ -26,6 +27,7 @@ export default function Backup() {
   const keywords = useAppStore((s) => s.keywords);
   const reminders = useAppStore((s) => s.reminders);
   const debts = useAppStore((s) => s.debts);
+  const carryovers = useAppStore((s) => s.carryovers);
   const imports = useAppStore((s) => s.imports);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const restoreAll = useAppStore((s) => s.restoreAll);
@@ -44,7 +46,8 @@ export default function Backup() {
     try {
       setStatus({ text: await fn(), error: false });
     } catch (e) {
-      setStatus({ text: t.didntWork((e as Error).message), error: true });
+      const msg = (e as Error).message === 'SHARING_UNAVAILABLE' ? t.sharingUnavailable : t.didntWork((e as Error).message);
+      setStatus({ text: msg, error: true });
     } finally {
       setBusy(null);
     }
@@ -53,7 +56,7 @@ export default function Backup() {
   const snapshot = async () => {
     const db = await getDb();
     const transactions = await allTransactions(db);
-    return buildBackup({ settings, categories, transactions, recurringRules: rules, goals, keywords, reminders, debts, imports }, nowIso());
+    return buildBackup({ settings, categories, transactions, recurringRules: rules, goals, keywords, reminders, debts, imports, carryovers }, nowIso());
   };
 
   const exportCsv = () => run('csv', async () => {
@@ -138,7 +141,7 @@ export default function Backup() {
 
   return (
     <Screen>
-      <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.backupIntro(settings.lastBackupAt ? settings.lastBackupAt.slice(0, 10) : null)}</Text>
+      <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.backupIntro(settings.lastBackupAt ? longDate(settings.lastBackupAt.slice(0, 10), today(), fmt) : null)}</Text>
 
       <SectionTitle>{t.exportSection}</SectionTitle>
       <Card style={{ gap: spacing.sm }}>

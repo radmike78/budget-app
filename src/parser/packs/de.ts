@@ -120,7 +120,7 @@ export const de: LanguagePack = {
   noteStrip: [],
   listSeparators: [',', ';', 'und', 'plus', 'dann', 'und dann', 'außerdem', 'und noch', 'sowie'],
   reminder: {
-    lead: /(?<![\p{L}])(?:(?:kannst du |könntest du |koenntest du |bitte )?(?:erinnere mich|erinner mich|erinnere uns|erinnerung|stell eine erinnerung|stelle eine erinnerung|erstell eine erinnerung|erstelle eine erinnerung|mach eine erinnerung|leg eine erinnerung an|ich brauche eine erinnerung|ich will eine erinnerung|sag mir bescheid|lass mich nicht vergessen|denk für mich dran|erinnere mich bitte|erinner mich bitte))(?![\p{L}])(?:\s+(?:daran|dran|an|zu|dass|um|für))?\s*,?\s*:?/iu,
+    lead: /(?<![\p{L}])(?:(?:kannst du |könntest du |koenntest du |bitte )?(?:erinnere mich|erinner mich|erinnere uns|erinnerung|stell eine erinnerung|stelle eine erinnerung|erstell eine erinnerung|erstelle eine erinnerung|mach eine erinnerung|leg eine erinnerung an|ich brauche eine erinnerung|ich will eine erinnerung|sag mir bescheid|lass mich nicht vergessen|denk für mich dran|erinnere mich bitte|erinner mich bitte))(?![\p{L}])(?:\s+(?:daran|dran|an|zu|dass|für)(?![\p{L}]))?\s*,?\s*:?/iu,
     time: [
       clockRule(['um', 'gegen', 'so gegen', 'ab', 'bis'], { suffix: 'uhr', dayParts: { morgens: 0, früh: 0, frueh: 0, vormittags: 0, mittags: 12, nachmittags: 12, abends: 12, nachts: 12 } }),
       ...wordTimeRules({ morning: ['morgens', 'am morgen', 'in der früh', 'in der frueh', 'früh', 'frueh', 'vormittags', 'am vormittag', 'gleich morgens'], noon: ['mittags', 'am mittag', 'zur mittagszeit', 'zum mittag'], afternoon: ['nachmittags', 'am nachmittag'], evening: ['abends', 'am abend', 'heute abend', 'nachts', 'vor dem schlafen'] }, { morning: 8, noon: 12, afternoon: 15, evening: 19 }),

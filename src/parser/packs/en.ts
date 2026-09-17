@@ -145,7 +145,7 @@ export const en: LanguagePack = {
   singularForms,
   listSeparators: [',', ';', 'and', 'plus', 'also', 'then', 'and then', 'and also'],
   reminder: {
-    lead: /\b(?:(?:can|could|would|will) you )?(?:please )?(?:remind (?:me|us)|set (?:a |an |up a )?(?:reminder|alarm|alert)|(?:i need|i want|i'd like|create|add|make) (?:a |an )?(?:reminder|alert)|reminder|don't let me forget|give me a heads[- ]up|ping me|nudge me)\b(?:\s+(?:to|that|about|for|of))?\s*:?/iu,
+    lead: /\b(?:(?:can|could|would|will) you )?(?:please )?(?:remind (?:me|us)|set (?:a |an |up a )?(?:reminder|alarm|alert)|(?:i need|i want|i'd like|create|add|make) (?:a |an )?(?:reminder|alert)|reminder|don't let me forget|give me a heads[- ]up|ping me|nudge me)\b(?:\s+(?:to|that|about|for|of)(?![\p{L}]))?\s*:?/iu,
     time: [
       meridiemRule(['at', 'around', 'about', '@', 'by']),
       clockRule(['at', 'around', 'about', '@', 'by'], { dayParts: { 'in the morning': 0, morning: 0, 'in the afternoon': 12, afternoon: 12, 'in the evening': 12, evening: 12, 'at night': 12, night: 12, tonight: 12 } }),

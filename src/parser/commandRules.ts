@@ -43,11 +43,8 @@ export function parseVoiceCommand(input: string): VoiceCommand | null {
   // "female" contains "male": check the longer word first, which GENDERS already does.
   for (const [re, g] of GENDERS) if (re.test(text)) { cmd.gender = g; break; }
   if (cmd.voice === undefined && cmd.attitude === undefined && cmd.gender === undefined) return null;
-  // "spicy" on its own could be a meal; "friend" could be a note. Ask for a lead word or "voice"
-  // unless the sentence is short and only about the voice ("female voice", "roast me harder").
-  const onlyVoiceWords = text.split(/\s+/).length <= 4;
-  if (!LEAD.test(text) && !onlyVoiceWords) return null;
-  // A bare "friend" or "coach" with no lead is more likely a note than a request.
-  if (!LEAD.test(text) && cmd.attitude === undefined && cmd.gender === undefined && !/\b(roast me|plain|quiet|no jokes|stop talking|be quiet|silent)\b/i.test(text)) return null;
+  // "spicy" on its own could be a meal, "friend" or "lady" a note ("nice dinner", "lunch with a lady").
+  // Ask for a lead word or "voice", except for the few phrases that can only be about the voice.
+  if (!LEAD.test(text) && !/\b(roast me|plain|quiet|no jokes|stop talking|be quiet|silent)\b/i.test(text)) return null;
   return cmd;
 }

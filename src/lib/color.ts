@@ -17,6 +17,6 @@ export function mix(hex: string, toward: string, amount: number): string {
 }
 
 /** A light-to-dark run of one hue for showing magnitude: index 0 is the strongest. */
-export function ramp(accent: string, surface: string, steps: number): string[] {
-  return Array.from({ length: steps }, (_, i) => mix(accent, surface, steps === 1 ? 0 : (i / (steps - 1)) * 0.8));
+export function ramp(accent: string, surface: string, steps: number, reach = 0.8): string[] {
+  return Array.from({ length: steps }, (_, i) => mix(accent, surface, steps === 1 ? 0 : (i / (steps - 1)) * reach));
 }

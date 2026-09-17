@@ -39,22 +39,38 @@ export default function GoalEditor() {
   const [addAmount, setAddAmount] = useState('');
   const [logTransfer, setLogTransfer] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const onSave = async () => {
     const targetValue = parseMoneyInput(target, decimalComma);
     const currentValue = parseMoneyInput(current, decimalComma) ?? 0;
     if (!name.trim()) { setError(t.giveGoalName); return; }
     if (targetValue == null || targetValue <= 0) { setError(t.enterTarget); return; }
-    await save({ id: existing?.id ?? newId(), name: name.trim(), kind, targetAmount: targetValue, currentAmount: currentValue, targetDate, createdAt: existing?.createdAt ?? nowIso(), completed: currentValue >= targetValue });
-    router.back();
+    if (saving) return;
+    setSaving(true);
+    try {
+      await save({ id: existing?.id ?? newId(), name: name.trim(), kind, targetAmount: targetValue, currentAmount: currentValue, targetDate, createdAt: existing?.createdAt ?? nowIso(), completed: currentValue >= targetValue });
+      router.back();
+    } catch (e) {
+      setError(t.didntWork((e as Error).message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onAdd = async () => {
     const a = parseMoneyInput(addAmount, decimalComma);
-    if (!existing || a == null || a <= 0) return;
-    await contribute(existing.id, a, { logTransfer, occurredAt: today() });
-    setAddAmount('');
-    setCurrent(String(existing.currentAmount + a));
+    if (!existing || a == null || a <= 0 || saving) return;
+    setSaving(true);
+    try {
+      await contribute(existing.id, a, { logTransfer, occurredAt: today() });
+      setAddAmount('');
+      setCurrent(String(existing.currentAmount + a));
+    } catch (e) {
+      setError(t.didntWork((e as Error).message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onDelete = async () => {
@@ -76,7 +92,7 @@ export default function GoalEditor() {
             <>
               <Row style={{ marginTop: spacing.lg }} align="flex-end">
                 <Field label={kind === 'debt' ? t.logPayment : t.addMoney} value={addAmount} onChangeText={setAddAmount} keyboardType="decimal-pad" placeholder="50" style={{ flex: 1, marginBottom: 0 }} />
-                <Button title={t.add} onPress={onAdd} disabled={!parseMoneyInput(addAmount, decimalComma)} />
+                <Button title={t.add} onPress={onAdd} loading={saving} disabled={!parseMoneyInput(addAmount, decimalComma)} />
               </Row>
               <Row style={{ marginTop: spacing.sm }}>
                 <Button tone="ghost" small title={`${logTransfer ? '✓ ' : ''}${kind === 'debt' ? t.alsoLogPaymentShort : t.alsoLogTransferShort}`} onPress={() => setLogTransfer(!logTransfer)} />
@@ -99,14 +115,14 @@ export default function GoalEditor() {
       </Row>
       {plan ? <Text variant="muted" style={{ marginBottom: spacing.lg }}>{plan}</Text> : null}
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
-      <Button title={isNew ? t.setGoal : t.save} onPress={onSave} />
+      <Button title={isNew ? t.setGoal : t.save} onPress={onSave} loading={saving} />
       {existing ? (
         <Row style={{ marginTop: spacing.md }}>
           <Button tone="secondary" title={existing.completed ? t.markActive : t.markDone} style={{ flex: 1 }} onPress={async () => { await save({ ...existing, completed: !existing.completed }); router.back(); }} />
           <Button tone="danger" title={t.remove} style={{ flex: 1 }} onPress={onDelete} />
         </Row>
       ) : null}
-      {existing ? <Text variant="small" style={{ marginTop: spacing.lg }}>{t.goalMeta(money(existing.targetAmount), existing.createdAt.slice(0, 10))}</Text> : null}
+      {existing ? <Text variant="small" style={{ marginTop: spacing.lg }}>{t.goalMeta(money(existing.targetAmount), longDate(existing.createdAt.slice(0, 10), today(), fmt))}</Text> : null}
       <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={targetDate ?? today()} onPick={setTargetDate} future />
     </Screen>
   );

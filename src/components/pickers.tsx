@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category, TxType } from '@/types';
 import { radius, spacing, useTheme } from '@/theme';
@@ -20,12 +20,14 @@ export function Sheet({ visible, onClose, title, children, tall }: { visible: bo
   const widthStyle = wide ? { left: side, right: side, marginBottom: spacing.xl, borderBottomLeftRadius: radius.lg + 6, borderBottomRightRadius: radius.lg + 6 } : null;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel={t.close} />
-      <View style={[styles.sheet, widthStyle, { backgroundColor: colors.bg, paddingBottom: insets.bottom + spacing.lg, maxHeight: tall ? '92%' : '80%' }]}>
-        <View style={[styles.handle, { backgroundColor: colors.border }]} />
-        {title ? <Text variant="heading" style={{ marginBottom: spacing.md }}>{title}</Text> : null}
-        {children}
-      </View>
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.close} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <View style={[styles.sheet, widthStyle, { backgroundColor: colors.bg, paddingBottom: insets.bottom + spacing.lg, maxHeight: tall ? '92%' : '80%' }]}>
+          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          {title ? <Text variant="heading" style={{ marginBottom: spacing.md }}>{title}</Text> : null}
+          {children}
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -50,3 +50,13 @@ describe('monthly rules keep their anchor day across short months', () => {
     expect(dueOccurrences({ nextOccurrence: '2026-02-28', frequency: 'monthly' }, '2026-03-31').due).toEqual(['2026-02-28', '2026-03-28']);
   });
 });
+
+describe('yearly rules on February 29', () => {
+  it('return to the 29th in the next leap year', () => {
+    const { advance } = require('@/lib/recurring');
+    let d = '2024-02-29';
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i += 1) { d = advance(d, 'yearly', 29); seen.push(d); }
+    expect(seen).toEqual(['2025-02-28', '2026-02-28', '2027-02-28', '2028-02-29']);
+  });
+});
