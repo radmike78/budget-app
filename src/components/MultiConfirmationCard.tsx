@@ -152,7 +152,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
         savedKeys.add(drafts[i].key);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      onDone(t.toastLoggedMany(drafts.length, out > 0 ? money(out, { compact: true }) : null, inc > 0 ? money(inc, { compact: true }) : null), biggest ? personaLineForTransaction(biggest, t) : null);
+      onDone(t.toastLoggedMany(drafts.length, out > 0 ? money(out, { compact: true }) : null, inc > 0 ? money(inc, { compact: true }) : null), biggest ? await personaLineForTransaction(biggest, t) : null);
       if (blocked) notify(t.notificationsNeeded, blocked === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
     } catch (e) {
       // What was saved stays saved and leaves the list, so trying again cannot log it twice.

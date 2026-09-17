@@ -149,6 +149,8 @@ const MIGRATIONS: string[] = [
   ALTER TABLE settings ADD COLUMN attitude TEXT DEFAULT 'playful';`,
   // v10: male or female spoken voice.
   `ALTER TABLE settings ADD COLUMN voice_gender TEXT DEFAULT 'female';`,
+  // v11: small app state that is not user data and not backed up (e.g. which voice lines were said recently).
+  `CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
 ];
 
 async function migrate(db: DB): Promise<void> {
@@ -178,7 +180,7 @@ async function seedDefaultCategories(db: DB): Promise<void> {
 /** Test/reset helper: wipes every table and re-seeds defaults. */
 export async function resetDatabase(db: DB): Promise<void> {
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers;');
+    await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers; DELETE FROM app_state;');
     await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female' WHERE id=1");
   });
   await seedDefaultCategories(db);

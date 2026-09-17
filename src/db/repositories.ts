@@ -323,6 +323,17 @@ export async function deleteKeyword(db: DB, word: string): Promise<void> {
   await db.runAsync('DELETE FROM keyword_mappings WHERE word = ?', [word]);
 }
 
+// ---------- small app state (not user data, not backed up) ----------
+
+export async function getAppState(db: DB, key: string): Promise<string | null> {
+  const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM app_state WHERE key = ?', [key]);
+  return row?.value ?? null;
+}
+
+export async function setAppState(db: DB, key: string, value: string): Promise<void> {
+  await db.runAsync('INSERT INTO app_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, value]);
+}
+
 // ---------- backup / restore ----------
 
 export async function replaceAllData(

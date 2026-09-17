@@ -112,11 +112,11 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
         onDone(t.toastGoalSet(money(amount, { compact: true }), goalName.trim(), targetDate ? longDate(targetDate, today(), fmt) : null));
       } else if (result.kind === 'contribution' && goal) {
         await contributeToGoal(goal.id, amount, { logTransfer, occurredAt: date, rawInput: result.raw });
-        onDone(t.toastAdded(money(amount, { compact: true }), goal.name), personaLineForContribution(amount, goal.id));
+        onDone(t.toastAdded(money(amount, { compact: true }), goal.name), await personaLineForContribution(amount, goal.id));
       } else {
         await addTransaction({ amount, type, categoryId, note: note.trim() || null, rawInput: result.raw, occurredAt: date });
         if (categoryId && categoryId !== result.categoryId && result.raw) await learnCategory(result.raw, categoryId);
-        onDone(t.toastLogged(money(amount, { compact: true }), type === 'income', categoryName(category, t)), personaLineForTransaction({ amount, type, categoryId, note: note.trim() || null, occurredAt: date }, t));
+        onDone(t.toastLogged(money(amount, { compact: true }), type === 'income', categoryName(category, t)), await personaLineForTransaction({ amount, type, categoryId, note: note.trim() || null, occurredAt: date }, t));
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } finally {

@@ -13,9 +13,9 @@
  * - A line that was said recently is not said again while others are available.
  */
 import type { Attitude, TxType, Voice } from '@/types';
-import { GREETINGS_EN, LINES_EN, type LineSet, type Situation } from './lines.en';
+import { FLAVORS_EN, GREETINGS_EN, LEFT_SUFFIXES_EN, LINES_EN, type Flavor, type LineSet, type Situation } from './lines.en';
 
-export type { Situation } from './lines.en';
+export type { Flavor, Situation } from './lines.en';
 
 /** Default category ids that are never material for a joke. */
 export const PROTECTED_CATEGORIES = new Set(['rent', 'utilities', 'groceries', 'health', 'debt', 'savings', 'other_expense']);
@@ -25,8 +25,13 @@ export const TEASABLE_CATEGORIES = new Set(['dining', 'entertainment', 'shopping
 const NECESSITY_WORDS = /rent|mortgage|medic|doctor|dentist|pharm|hospital|health|therap|child|daycare|school|tuition|insur|utilit|electric|water|gas bill|grocer|debt|loan|emergenc|tax|vet\b|baby|diaper/i;
 /** At or above this amount the attitude is always nice. */
 export const BIG_AMOUNT = 500;
-/** How many recent lines are avoided when picking the next one. */
-export const RECENT_WINDOW = 8;
+/** How many recent lines are avoided when picking the next one (kept across launches). */
+export const RECENT_WINDOW = 24;
+
+/** What was bought, read from the note; static patterns tested against user text, never built from it. */
+const COFFEE_RE = /\b(starbucks|coffee|latte|espresso|cappuccino|americano|caf[eé]|dunkin|peet'?s|tim hortons|costa|caffe nero|blue bottle|philz|brew|mocha|matcha|chai)\b/i;
+const DELIVERY_RE = /\b(doordash|uber ?eats|grubhub|deliveroo|postmates|just ?eat|takeout|take-?away|delivery|delivered|seamless|instacart)\b/i;
+const FLAVOR_BY_CATEGORY: Record<string, Flavor> = { dining: 'restaurant', shopping: 'shopping', subscriptions: 'subscriptions', entertainment: 'entertainment' };
 
 export interface PersonaEvent {
   kind: 'transaction' | 'contribution';
@@ -70,6 +75,15 @@ export function toneFor(categoryId: string | null, categoryName: string | null):
   return 'neutral';
 }
 
+/** The kind of purchase, so the line can fit it; null when there is nothing specific to say. */
+export function flavorFor(e: Pick<PersonaEvent, 'type' | 'note' | 'categoryId'>): Flavor | null {
+  if (e.type !== 'expense') return null;
+  const note = e.note ?? '';
+  if (COFFEE_RE.test(note)) return 'coffee';
+  if (DELIVERY_RE.test(note)) return 'delivery';
+  return e.categoryId ? FLAVOR_BY_CATEGORY[e.categoryId] ?? null : null;
+}
+
 /** Which situation an event is in, or null when the voice must stay quiet. */
 export function situationFor(e: PersonaEvent): Situation | null {
   if (e.kind === 'contribution') return e.goal ? 'contribution' : null;
@@ -111,13 +125,18 @@ export function personaLine(e: PersonaEvent, prefs: PersonaPrefs, money: (n: num
   if (e.amount >= BIG_AMOUNT) attitude = 'nice';
   if (attitude === 'spicy' && situation.startsWith('spend') && toneFor(e.categoryId, e.categoryName) !== 'teasable') attitude = 'playful';
   const set: LineSet = LINES_EN[prefs.voice];
-  const pool = set[situation][attitude];
-  if (!pool || pool.length === 0) return null;
-  const keys = pool.map((_, i) => `${prefs.voice}:${situation}:${attitude}:${i}`);
-  const fresh = keys.map((k, i) => i).filter((i) => !recent.includes(keys[i]));
-  const choices = fresh.length > 0 ? fresh : keys.map((_, i) => i);
-  const idx = choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))];
-  return { text: fill(pool[idx], e, money), key: keys[idx] };
+  const pool: { template: string; key: string }[] = set[situation][attitude].map((template, i) => ({ template, key: `${prefs.voice}:${situation}:${attitude}:${i}` }));
+  // Lines that fit what was bought join the pool; with a plan, they get the useful number appended.
+  const flavor = situation.startsWith('spend') ? flavorFor(e) : null;
+  if (flavor) {
+    const suffix = situation === 'spend_free' ? '' : LEFT_SUFFIXES_EN[Math.min(LEFT_SUFFIXES_EN.length - 1, Math.floor(random() * LEFT_SUFFIXES_EN.length))];
+    for (const [i, template] of FLAVORS_EN[prefs.voice][flavor][attitude].entries()) pool.push({ template: template + suffix, key: `${prefs.voice}:${flavor}:${attitude}:${i}` });
+  }
+  if (pool.length === 0) return null;
+  const fresh = pool.filter((p) => !recent.includes(p.key));
+  const choices = fresh.length > 0 ? fresh : pool;
+  const pick = choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))];
+  return { text: fill(pick.template, e, money), key: pick.key };
 }
 
 /** The line a voice says when it is chosen. English only, like everything else here. */
