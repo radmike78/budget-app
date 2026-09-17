@@ -110,8 +110,6 @@ export default function HomeScreen() {
           ) : null}
         </Card>
       ) : null}
-      <CarryQuestions />
-
       <SectionTitle>{payPeriod ? t.thisPeriod : t.thisMonth}</SectionTitle>
       <Card>
         <Text variant="heading" style={{ lineHeight: 26 }}>{summary}</Text>
@@ -128,6 +126,8 @@ export default function HomeScreen() {
           </Row>
         ) : null}
       </Card>
+
+      <CarryQuestions />
 
       {recap && recap.entries > 0 ? (
         <>

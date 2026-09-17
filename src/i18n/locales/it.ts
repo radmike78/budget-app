@@ -359,6 +359,7 @@ export const it: LocaleDef = {
     carriedOver: (amount: string) => `Comprende ${amount} riportati.`,
     askCarry: (amount: string, name: string) => `Nel periodo scorso ti erano rimasti ${amount} in ${name}.`,
     askCarryBody: 'Li aggiungiamo al piano di questo periodo, o ricominciamo da zero?',
+    askCarryShort: (amount: string, name: string) => `Riportare in questo periodo i ${amount} avanzati in ${name}?`,
     carryIt: 'Riportali',
     startFresh: 'Ricomincia da zero',
     undo: 'Annulla',

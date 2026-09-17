@@ -359,6 +359,7 @@ export const ja: LocaleDef = {
     carriedOver: (amount: string) => `繰り越し${amount}を含みます。`,
     askCarry: (amount: string, name: string) => `前の期間は${name}に${amount}残っていました。`,
     askCarryBody: '今回の予定に足しますか？それともリセットしますか？',
+    askCarryShort: (amount: string, name: string) => `${name}で残った${amount}を今回の期間に繰り越しますか？`,
     carryIt: '繰り越す',
     startFresh: 'リセットする',
     undo: '元に戻す',

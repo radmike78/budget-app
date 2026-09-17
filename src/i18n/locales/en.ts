@@ -378,6 +378,7 @@ export const en = {
     carriedOver: (amount: string) => `Includes ${amount} carried over.`,
     askCarry: (amount: string, name: string) => `Last period you had ${amount} left in ${name}.`,
     askCarryBody: 'Add it to this period’s plan, or start fresh?',
+    askCarryShort: (amount: string, name: string) => `Carry the ${amount} left in ${name} into this period?`,
     carryIt: 'Carry it over',
     startFresh: 'Start fresh',
     undo: 'Undo',

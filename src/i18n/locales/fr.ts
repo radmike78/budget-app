@@ -359,6 +359,7 @@ export const fr: LocaleDef = {
     carriedOver: (amount: string) => `Dont ${amount} reportés.`,
     askCarry: (amount: string, name: string) => `La période dernière, il vous restait ${amount} dans ${name}.`,
     askCarryBody: 'Les ajouter au plan de cette période, ou repartir de zéro ?',
+    askCarryShort: (amount: string, name: string) => `Reporter les ${amount} restants de ${name} sur cette période ?`,
     carryIt: 'Les reporter',
     startFresh: 'Repartir de zéro',
     undo: 'Annuler',

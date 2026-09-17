@@ -359,6 +359,7 @@ export const ko: LocaleDef = {
     carriedOver: (amount: string) => `이월된 ${amount} 포함.`,
     askCarry: (amount: string, name: string) => `지난 기간에 ${name}에서 ${amount} 남았어요.`,
     askCarryBody: '이번 기간 계획에 더할까요, 아니면 새로 시작할까요?',
+    askCarryShort: (amount: string, name: string) => `${name}에서 남은 ${amount}을 이번 기간으로 넘길까요?`,
     carryIt: '이월하기',
     startFresh: '새로 시작',
     undo: '되돌리기',

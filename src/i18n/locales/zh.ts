@@ -359,6 +359,7 @@ export const zh: LocaleDef = {
     carriedOver: (amount: string) => `含结转的 ${amount}。`,
     askCarry: (amount: string, name: string) => `上个周期${name}还剩 ${amount}。`,
     askCarryBody: '加到这个周期的计划里，还是重新开始？',
+    askCarryShort: (amount: string, name: string) => `把${name}里剩下的${amount}结转到本周期吗？`,
     carryIt: '结转',
     startFresh: '重新开始',
     undo: '撤销',

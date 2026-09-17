@@ -359,6 +359,7 @@ export const de: LocaleDef = {
     carriedOver: (amount: string) => `Davon ${amount} übertragen.`,
     askCarry: (amount: string, name: string) => `Im letzten Zeitraum hattest du bei ${name} noch ${amount} übrig.`,
     askCarryBody: 'Zum Plan für diesen Zeitraum dazurechnen oder neu anfangen?',
+    askCarryShort: (amount: string, name: string) => `Die übrigen ${amount} aus ${name} in diesen Zeitraum übernehmen?`,
     carryIt: 'Übertragen',
     startFresh: 'Neu anfangen',
     undo: 'Rückgängig',
