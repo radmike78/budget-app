@@ -144,6 +144,23 @@ for (const profile of PROFILES) {
     await goto('/budget');
     await page.getByRole('button', { name: /Previous period/ }).first().click(); await page.waitForTimeout(700);
     await shot('8-budget-previous-period');
+    // Accent colours and dark mode, on Today.
+    for (const accent of ['Ocean', 'Plum', 'Clay']) {
+      await goto('/settings');
+      await page.getByRole('button', { name: accent, exact: true }).first().click(); await page.waitForTimeout(300);
+      await goto('/');
+      await shot(`9-today-${accent.toLowerCase()}`);
+    }
+    await goto('/settings');
+    await page.getByRole('button', { name: 'Sage', exact: true }).first().click(); await page.waitForTimeout(200);
+    await text('Dark').click(); await page.waitForTimeout(400);
+    await goto('/');
+    await shot('10-today-dark');
+    await goto('/budget');
+    await shot('11-budget-dark');
+    await goto('/settings');
+    await shot('12-settings-dark');
+    await text('System').click(); await page.waitForTimeout(300);
     log.push(`ok   ${profile.name}`);
   } catch (e) {
     log.push(`FAIL ${profile.name}: ${String(e).split('\n')[0].slice(0, 200)}`);
