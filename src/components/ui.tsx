@@ -95,6 +95,7 @@ export function Screen({ children, scroll = true, padded = true, style, contentS
       contentContainerStyle={[pad, column, { paddingBottom: insets.bottom + spacing.xxl, paddingTop: spacing.sm }, contentStyle]}
       keyboardShouldPersistTaps={keyboard ? 'handled' : 'never'}
       keyboardDismissMode="on-drag"
+      automaticallyAdjustKeyboardInsets
     >
       {children}
     </ScrollView>
@@ -158,6 +159,7 @@ export function Button({ title, tone = 'primary', loading, disabled, style, smal
     <Pressable
       accessibilityRole="button"
       disabled={disabled || loading}
+      hitSlop={small ? 4 : undefined}
       {...rest}
       style={({ pressed }) => [
         styles.button,
@@ -182,7 +184,7 @@ export function Chip({ label, selected, onPress, tone = 'default', style }: { la
   const bg = selected ? (tone === 'danger' ? colors.dangerSoft : colors.accent) : colors.cardAlt;
   const fg = selected ? (tone === 'danger' ? colors.danger : colors.onAccent) : colors.text;
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!selected }} onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!selected }} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
       <RNText style={{ color: fg, fontSize: 14 * scale, fontWeight: selected ? '600' : '500' }}>{label}</RNText>
     </Pressable>
   );
@@ -196,7 +198,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
       {options.map((o) => {
         const active = o.value === value;
         return (
-          <Pressable key={o.value} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 }]}>
+          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 }]}>
             <RNText style={{ color: active ? colors.text : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale }}>{o.label}</RNText>
           </Pressable>
         );
@@ -271,9 +273,9 @@ export function Icon({ glyph, size = 28 }: { glyph: string | null | undefined; s
 const styles = StyleSheet.create({
   card: { borderRadius: radius.lg, padding: spacing.lg, borderWidth: StyleSheet.hairlineWidth },
   button: { paddingVertical: 14, paddingHorizontal: spacing.xl, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', minHeight: 48 },
-  buttonSmall: { paddingVertical: 8, paddingHorizontal: spacing.lg, minHeight: 36 },
+  buttonSmall: { paddingVertical: 8, paddingHorizontal: spacing.lg, minHeight: 40 },
   buttonText: { fontSize: 16, fontWeight: '600' },
-  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, minHeight: 36, justifyContent: 'center' },
+  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, minHeight: 40, justifyContent: 'center' },
   segmented: { flexDirection: 'row', borderRadius: radius.md, padding: 3 },
   segment: { flex: 1, paddingVertical: 9, borderRadius: radius.sm, alignItems: 'center' },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: 17, minHeight: 48 },

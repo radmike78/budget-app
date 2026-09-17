@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, type AppStateStatus, StyleSheet, View } from 'react-native';
+import { AppState, type AppStateStatus, Modal, StyleSheet, View } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { authenticate } from '@/lib/appLock';
@@ -61,15 +61,17 @@ export function LockGate({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [enabled]);
 
+  // The cover is a Modal of its own so it also sits above sheets and modal screens the OS presents
+  // over the root view; a plain overlay would leave an open editor visible in the app switcher.
   return (
     <View style={{ flex: 1 }}>
       {children}
-      {enabled && (locked || covered) ? (
+      <Modal visible={enabled && (locked || covered)} animationType="none" statusBarTranslucent presentationStyle="fullScreen" onRequestClose={() => {}}>
         <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
           <Text variant="heading">{t.lockedTitle}</Text>
           {locked ? <View style={{ marginTop: spacing.lg }}><Button title={t.unlock} onPress={unlock} loading={busy} /></View> : null}
         </View>
-      ) : null}
+      </Modal>
     </View>
   );
 }

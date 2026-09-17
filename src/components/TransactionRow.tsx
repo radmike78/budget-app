@@ -7,7 +7,6 @@ import { useAppStore } from '@/store/useAppStore';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, today } from '@/lib/dates';
 import { categoryName, useDateFormat, useMoney, useT } from '@/i18n';
-import { confirmDialog } from '@/lib/dialogs';
 import { Icon, Text } from './ui';
 
 export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transaction; onPress?: () => void; showDate?: boolean }) {
@@ -20,15 +19,16 @@ export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transacti
   const ref = useRef<SwipeableMethods>(null);
   const catName = category ? categoryName(category, t) : null;
 
-  const confirmDelete = async () => {
+  // Removal never asks: the entry goes at once and the Undo bar on the tabs puts it back.
+  const confirmDelete = () => {
     ref.current?.close();
-    if (await confirmDialog(t.removeEntryQ, `${money(tx.amount)} · ${tx.note ?? catName ?? ''}`, { confirmText: t.remove, cancelText: t.keep, destructive: true })) remove(tx.id);
+    remove(tx.id);
   };
 
   const renderRight = () => (
     <View style={styles.actions}>
       {onPress ? (
-        <Pressable accessibilityRole="button" accessibilityLabel={t.saveChanges} onPress={() => { ref.current?.close(); onPress(); }} style={[styles.action, { backgroundColor: colors.accentSoft }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.edit} onPress={() => { ref.current?.close(); onPress(); }} style={[styles.action, { backgroundColor: colors.accentSoft }]}>
           <Ionicons name="pencil" size={20} color={colors.accent} />
         </Pressable>
       ) : null}

@@ -181,6 +181,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       categoryId: catRef(raw.categoryId, 'rule category'),
       frequency: frequency as Frequency,
       nextOccurrence: day(raw.nextOccurrence, 'rule next'),
+      // The day the rule was set on, so a monthly rule on the 31st keeps returning to the 31st after a restore.
+      anchorDay: typeof raw.anchorDay === 'number' && Number.isInteger(raw.anchorDay) && raw.anchorDay >= 1 && raw.anchorDay <= 31 ? raw.anchorDay : null,
       note: text(raw.note, MAX_NOTE_LENGTH, 'rule note') || null,
       active: raw.active == null ? true : bool(raw.active),
     });

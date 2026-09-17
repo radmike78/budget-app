@@ -63,3 +63,14 @@ describe('shiftPeriod', () => {
     expect(periodLabel({ start: '2025-12-26', end: '2026-01-08' }, TODAY)).toBe('December 26, 2025 – January 8');
   });
 });
+
+describe('safeToSpend counts every occurrence before the period ends', () => {
+  it('adds a weekly bill twice when it falls due twice', () => {
+    const { safeToSpend } = require('@/lib/safeToSpend');
+    const stats = { period: { start: '2026-09-01', end: '2026-09-30' }, income: 3000, expenses: 500, month: '2026-09', byCategory: [] } as any;
+    const rule = { type: 'expense', active: true, amount: 50, nextOccurrence: '2026-09-20', frequency: 'weekly', anchorDay: null } as any;
+    expect(safeToSpend(stats, [rule], '2026-09-17')).toMatchObject({ amount: 2400, upcoming: 100 });
+    const monthly = { ...rule, frequency: 'monthly', nextOccurrence: '2026-09-25' };
+    expect(safeToSpend(stats, [monthly], '2026-09-17')).toMatchObject({ amount: 2450, upcoming: 50 });
+  });
+});

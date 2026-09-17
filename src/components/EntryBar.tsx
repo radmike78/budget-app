@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.lg, borderWidth: 1.5, paddingLeft: spacing.lg, paddingRight: 6, paddingVertical: 6, minHeight: 64, gap: 6 },
   input: { flex: 1, fontSize: 18, paddingVertical: 10, minHeight: 48 },
   mic: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });

@@ -7,6 +7,7 @@ import { llmParse } from '@/parser/llmFallback';
 import { categoryName, resolveLanguage, useMoney, useT } from '@/i18n';
 import { HINT } from '@/parser';
 import { cleanEntry } from '@/lib/validate';
+import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { queryTransactions } from '@/db/repositories';
 import { answerQuestion, periodRange } from '@/lib/questions';
@@ -55,7 +56,7 @@ export function useEntryFlow() {
     if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
   }, [t, money]);
 
-  const submit = useCallback(async (raw: string, source: EntrySource = 'typed') => {
+  const submitInner = useCallback(async (raw: string, source: EntrySource = 'typed') => {
     const text = cleanEntry(raw);
     if (!text) return;
     setLastSource(source);
@@ -127,6 +128,16 @@ export function useEntryFlow() {
     setPendingMany(null);
     setPending(result);
   }, [answerFor, t]);
+
+  // The typed text is already gone from the bar, so a failure has to say so instead of vanishing.
+  const submit = useCallback(async (raw: string, source: EntrySource = 'typed') => {
+    try {
+      await submitInner(raw, source);
+    } catch (e) {
+      setBusy(false);
+      notify(t.didntWork((e as Error).message));
+    }
+  }, [submitInner, t]);
 
   const dismiss = useCallback(() => { setPending(null); setPendingMany(null); }, []);
   const dismissAnswer = useCallback(() => setAnswer(null), []);

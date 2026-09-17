@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Debt, DebtType } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
-import { spacing, useTheme } from '@/theme';
+import { spacing } from '@/theme';
 import { nowIso } from '@/lib/dates';
 import { newId } from '@/lib/ids';
 import { parseMoneyInput } from '@/lib/money';
@@ -19,7 +19,6 @@ const CONSUMER = new Set<DebtType>(['credit_card', 'personal_loan', 'student_loa
 /** Every debt the user owes, and a plain pay-off plan for the consumer ones. */
 export default function DebtsScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
   const t = useT();
   const locale = useLocale();
   const money = useMoney();
@@ -27,6 +26,7 @@ export default function DebtsScreen() {
   const saveDebt = useAppStore((s) => s.saveDebt);
   const removeDebt = useAppStore((s) => s.removeDebt);
   const saveGoal = useAppStore((s) => s.saveGoal);
+  const goals = useAppStore((s) => s.goals);
   const decimalComma = locale.format.decimal === ',';
 
   const [extraText, setExtraText] = useState('');
@@ -50,8 +50,10 @@ export default function DebtsScreen() {
     setMinText(d?.monthlyPayment != null ? String(d.monthlyPayment) : '');
     setAprText(d?.apr != null ? String(d.apr) : '');
   };
+  const [saving, setSaving] = useState(false);
   const commitEdit = async () => {
-    if (!editing || !editing.creditor?.trim()) return;
+    if (!editing || !editing.creditor?.trim() || saving) return;
+    setSaving(true);
     const balance = parseMoneyInput(balanceText, decimalComma) ?? 0;
     const apr = Number(aprText.replace(',', '.'));
     await saveDebt({
@@ -64,15 +66,23 @@ export default function DebtsScreen() {
       apr: aprText.trim() && Number.isFinite(apr) && apr >= 0 && apr <= 100 ? apr : null,
       source: editing.source ?? 'manual',
       updatedAt: nowIso(),
-    });
+    }).finally(() => setSaving(false));
     setEditing(null);
   };
   const remove = async (d: Debt) => {
     if (await confirmDialog(t.removeDebtQ, d.creditor, { confirmText: t.remove, cancelText: t.keep, destructive: true })) await removeDebt(d.id);
   };
   const makeGoal = async (d: Debt) => {
-    await saveGoal({ id: newId(), name: d.creditor, kind: 'debt', targetAmount: d.balance, currentAmount: 0, targetDate: null, createdAt: nowIso(), completed: false });
-    router.push('/goals');
+    if (saving) return;
+    setSaving(true);
+    try {
+      // The same debt is one goal, however often the button is tapped.
+      const open = goals.find((g) => g.kind === 'debt' && !g.completed && g.name === d.creditor);
+      if (!open) await saveGoal({ id: newId(), name: d.creditor, kind: 'debt', targetAmount: d.balance, currentAmount: 0, targetDate: null, createdAt: nowIso(), completed: false });
+      router.push('/goals');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -139,9 +149,9 @@ export default function DebtsScreen() {
         <Field label={t.debtBalance} value={balanceText} onChangeText={setBalanceText} keyboardType="decimal-pad" placeholder="0" />
         <Field label={t.debtMinPayment} value={minText} onChangeText={setMinText} keyboardType="decimal-pad" placeholder={t.optional} />
         <Field label={t.debtApr} value={aprText} onChangeText={setAprText} keyboardType="decimal-pad" placeholder={t.optional} />
-        <Button title={t.save} onPress={commitEdit} disabled={!editing?.creditor?.trim()} />
+        <Button title={t.save} onPress={commitEdit} loading={saving} disabled={!editing?.creditor?.trim()} />
         <View style={{ height: spacing.sm }} />
-        <Text variant="small" color={colors.faint}>{t.debtsSub}</Text>
+        <Text variant="small">{t.debtsSub}</Text>
       </Sheet>
     </Screen>
   );

@@ -19,7 +19,7 @@ function retreat(date: string, frequency: Frequency, anchorDay?: number): string
     case 'monthly':
       return addMonths(date, -1, anchorDay);
     case 'yearly':
-      return addYears(date, -1);
+      return addYears(date, -1, anchorDay);
   }
 }
 

@@ -41,8 +41,12 @@ export default function CategoryEditor() {
     getDb().then((db) => countTransactionsInCategory(db, existing.id)).then(setUsage);
   }, [existing]);
 
+  const [saving, setSaving] = useState(false);
+
   const onSave = async () => {
     if (!name.trim()) { setError(t.giveName); return; }
+    if (saving) return;
+    setSaving(true);
     const limitValue = limit.trim() ? parseMoneyInput(limit, locale.format.decimal === ',') : null;
     // A default category keeps its translated name unless the user actually changed it.
     const renamed = existing?.isDefault && name.trim() === categoryName(existing, t) ? existing.name : name.trim();
@@ -61,8 +65,7 @@ export default function CategoryEditor() {
       isDefault: existing?.isDefault && renamed === existing.name ? true : false,
       archived: existing?.archived ?? false,
       sortOrder: existing?.sortOrder ?? 50,
-    });
-    router.back();
+    }).then(() => router.back(), (e: Error) => setError(t.didntWork(e.message))).finally(() => setSaving(false));
   };
 
   const toggleArchive = async () => {
@@ -99,7 +102,7 @@ export default function CategoryEditor() {
       ) : null}
       {usage != null ? <Text variant="small" style={{ marginBottom: spacing.md }}>{t.entryUses(usage)}</Text> : null}
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
-      <Button title={isNew ? t.addCategory : t.save} onPress={onSave} />
+      <Button title={isNew ? t.addCategory : t.save} onPress={onSave} loading={saving} />
       {existing ? (
         <Row style={{ marginTop: spacing.md }}>
           <Button tone="secondary" title={existing.archived ? t.restore : t.archive} onPress={toggleArchive} style={{ flex: 1 }} />

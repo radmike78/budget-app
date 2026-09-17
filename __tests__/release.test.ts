@@ -27,7 +27,7 @@ describe('no seeded information in the app', () => {
   it('app code carries none of the scenario markers', () => {
     for (const f of APP_SOURCES) {
       const src = read(f);
-      expect(src).not.toMatch(/seed-\d|rule-pay|ui-scenario-shots/);
+      expect(src).not.toMatch(/seed-\d|rule-pay|ui-scenario-shots|lib\/shots/);
     }
   });
   it('the database migrations create tables and default categories only, never entries', () => {
@@ -46,7 +46,7 @@ describe('no seeded information in the app', () => {
   it('the shipped build steps do not run the UI tooling', () => {
     const pkg = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
     for (const name of ['build:web', 'postinstall', 'android', 'ios', 'start']) {
-      expect(pkg.scripts[name]).not.toMatch(/ui-(screenshots|walkthrough|scenario-shots)/);
+      expect(pkg.scripts[name]).not.toMatch(/ui-(screenshots|walkthrough|scenario-shots|persona-shots|sweep-shots)|scripts\/lib\/shots/);
     }
   });
 });

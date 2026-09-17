@@ -236,7 +236,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ lastDeleted: null });
     const db = await getDb();
     // Same id and dates as before, so history and any statement fingerprint are exactly as they were.
-    if (!(await repo.getTransaction(db, last.tx.id))) await repo.insertTransaction(db, last.tx);
+    // A category or repeating rule removed in the meantime would break the foreign key, so those references drop.
+    const cats = new Set(get().categories.map((c) => c.id));
+    const ruleIds = new Set(get().rules.map((x) => x.id));
+    const tx = {
+      ...last.tx,
+      categoryId: last.tx.categoryId && cats.has(last.tx.categoryId) ? last.tx.categoryId : null,
+      recurringRuleId: last.tx.recurringRuleId && ruleIds.has(last.tx.recurringRuleId) ? last.tx.recurringRuleId : null,
+    };
+    if (!(await repo.getTransaction(db, tx.id))) await repo.insertTransaction(db, tx);
     await get().refresh();
   },
 
@@ -406,7 +414,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   saveRule: async (r) => {
     const db = await getDb();
     // The date the user picked is the anchor day, so a rule set for the 31st returns to the 31st after February.
-    await repo.upsertRule(db, { ...r, anchorDay: Number(r.nextOccurrence.slice(8, 10)) || null });
+    // Editing only the amount while the next date sits on the 28th must not move the anchor.
+    const existing = get().rules.find((x) => x.id === r.id);
+    const dateChanged = !existing || existing.nextOccurrence !== r.nextOccurrence;
+    const anchorDay = dateChanged || existing.anchorDay == null ? Number(r.nextOccurrence.slice(8, 10)) || null : existing.anchorDay;
+    await repo.upsertRule(db, { ...r, anchorDay });
     await get().runRecurringCatchUp();
     await get().refresh();
   },

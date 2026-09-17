@@ -11,7 +11,7 @@ import { addDays, currentMonthKey, monthRange, shiftMonthKey, today } from '@/li
 import { categoryName, useMoney, useT } from '@/i18n';
 import { CategoryPicker } from '@/components/pickers';
 import { TransactionRow } from '@/components/TransactionRow';
-import { Chip, ChipRow, EmptyState, Field, Text } from '@/components/ui';
+import { CONTENT_MAX_WIDTH, Chip, ChipRow, EmptyState, Field, Text } from '@/components/ui';
 
 type Range = 'month' | 'last_month' | '90d' | 'all';
 
@@ -61,6 +61,12 @@ export default function HistoryScreen() {
   const totalIn = rows.filter((r) => r.type === 'income').reduce((s, r) => s + r.amount, 0);
   const totalOut = rows.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
 
+  // A category of the other kind would leave an empty list, so the filter drops with the type.
+  const changeType = (next: TxType | null) => {
+    setType(next);
+    if (next && category && category.kind !== next) setCategoryId(null);
+  };
+
   const header = (
     <View style={{ paddingTop: spacing.sm }}>
       <Field placeholder={t.searchPlaceholder} value={search} onChangeText={setSearch} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={{ marginBottom: spacing.sm }} />
@@ -68,9 +74,9 @@ export default function HistoryScreen() {
         {ranges.map((r) => <Chip key={r.value} label={r.label} selected={range === r.value} onPress={() => setRange(r.value)} />)}
       </ChipRow>
       <ChipRow style={{ marginBottom: spacing.md }}>
-        <Chip label={t.all} selected={type === null} onPress={() => setType(null)} />
-        <Chip label={t.moneyOut} selected={type === 'expense'} onPress={() => setType('expense')} />
-        <Chip label={t.moneyIn} selected={type === 'income'} onPress={() => setType('income')} />
+        <Chip label={t.all} selected={type === null} onPress={() => changeType(null)} />
+        <Chip label={t.moneyOut} selected={type === 'expense'} onPress={() => changeType('expense')} />
+        <Chip label={t.moneyIn} selected={type === 'income'} onPress={() => changeType('income')} />
         <Chip label={category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.anyCategory} selected={!!categoryId} onPress={() => (categoryId ? setCategoryId(null) : setShowCat(true))} />
       </ChipRow>
       <Text variant="small" style={{ marginBottom: spacing.md }}>{t.historySummary(rows.length, money(totalIn, { compact: true }), money(totalOut, { compact: true }))}</Text>
@@ -85,7 +91,7 @@ export default function HistoryScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => <TransactionRow tx={item} onPress={() => router.push(`/entry/${item.id}`)} />}
         ListEmptyComponent={<EmptyState title={t.noMatches} body={t.noMatchesBody} />}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + spacing.xxl }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + spacing.xxl, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       />

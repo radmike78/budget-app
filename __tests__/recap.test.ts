@@ -38,10 +38,10 @@ describe('weekly recap', () => {
 describe('safe to spend', () => {
   const stats: MonthStats = { month: '2026-09', period: { start: '2026-09-11', end: '2026-09-24' }, income: 2000, expenses: 286.97, byCategory: [] };
   const rules = [
-    { type: 'expense' as const, active: true, amount: 120, nextOccurrence: '2026-09-20' },
-    { type: 'expense' as const, active: true, amount: 900, nextOccurrence: '2026-10-01' },
-    { type: 'expense' as const, active: false, amount: 50, nextOccurrence: '2026-09-18' },
-    { type: 'income' as const, active: true, amount: 2000, nextOccurrence: '2026-09-25' },
+    { type: 'expense' as const, active: true, amount: 120, nextOccurrence: '2026-09-20', frequency: 'monthly' as const, anchorDay: null },
+    { type: 'expense' as const, active: true, amount: 900, nextOccurrence: '2026-10-01', frequency: 'monthly' as const, anchorDay: null },
+    { type: 'expense' as const, active: false, amount: 50, nextOccurrence: '2026-09-18', frequency: 'weekly' as const, anchorDay: null },
+    { type: 'income' as const, active: true, amount: 2000, nextOccurrence: '2026-09-25', frequency: 'biweekly' as const, anchorDay: null },
   ];
   it('takes income, minus spending, minus bills still due in the period', () => {
     expect(safeToSpend(stats, rules, '2026-09-16')).toEqual({ amount: 1593.03, upcoming: 120, daysLeft: 9, perDay: 177 });

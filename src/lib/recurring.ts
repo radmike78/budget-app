@@ -22,7 +22,7 @@ export function advance(date: string, frequency: Frequency, anchorDay?: number):
     case 'monthly':
       return addMonths(date, 1, anchorDay);
     case 'yearly':
-      return addYears(date, 1);
+      return addYears(date, 1, anchorDay);
   }
 }
 

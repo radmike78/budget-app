@@ -70,11 +70,11 @@ export default function RootLayout() {
         </Stack.Protected>
         <Stack.Protected guard={onboardingDone}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="entry/[id]" options={{ title: t.saveChanges, presentation: 'modal' }} />
+          <Stack.Screen name="entry/[id]" options={{ title: t.editEntry, presentation: 'modal' }} />
           <Stack.Screen name="category/[id]" options={{ title: t.category, presentation: 'modal' }} />
-          <Stack.Screen name="goal/[id]" options={{ title: t.goals, presentation: 'modal' }} />
+          <Stack.Screen name="goal/[id]" options={{ title: t.goalTitle, presentation: 'modal' }} />
           <Stack.Screen name="recurring/index" options={{ title: t.repeatingEntries }} />
-          <Stack.Screen name="recurring/[id]" options={{ title: t.repeatingEntries, presentation: 'modal' }} />
+          <Stack.Screen name="recurring/[id]" options={{ title: t.repeatingEntry, presentation: 'modal' }} />
           <Stack.Screen name="settings/help" options={{ title: t.help }} />
           <Stack.Screen name="settings/voice" options={{ title: t.voice }} />
           <Stack.Screen name="settings/about" options={{ title: t.aboutApp }} />

@@ -37,7 +37,8 @@ export default function EditEntry() {
     (async () => {
       const db = await getDb();
       const found = await getTransaction(db, id);
-      if (!found) { router.back(); return; }
+      // Opened from a stale link there may be nothing to go back to.
+      if (!found) { if (router.canGoBack()) router.back(); else router.replace('/'); return; }
       setTx(found); setAmount(String(found.amount)); setType(found.type); setCategoryId(found.categoryId); setNote(found.note ?? ''); setDate(found.occurredAt);
     })();
   }, [id, router]);

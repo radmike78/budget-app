@@ -102,11 +102,13 @@ Looking at the real UI (each needs `npm run build:web` first; headless Chromium 
 
 ```bash
 npm run ui:shots        # every screen at phone and tablet sizes, out/shots
-npm run ui:walkthrough  # 26 flows (edit, undo, questions, goals, import, backup, languages…), logs any page error, out/walk
+npm run ui:walkthrough  # 28 flows (edit, undo, questions, goals, import, backup, languages…), logs any page error, out/walk
 npm run ui:scenario     # pay periods, roll-over, the overall plan and undo with months of sample data, out/scenario
+npm run ui:persona      # a voice in use: onboarding, each voice after an entry, the rules that keep it kind, out/persona
+npm run ui:sweep        # every screen, phone and tablet, light and dark, with a goal, a reminder and debts seeded, out/sweep
 ```
 
-The sample data used by `ui:scenario` never ships: it exists only in that script and enters a browser session through the app's own backup restore. `__tests__/release.test.ts` checks that app code carries none of it and that the database migrations insert only categories and settings. In-app instructions live under Settings → Help, in all eight languages.
+The sample data used by these scripts never ships: it exists only in `scripts/lib/shots.mjs` and enters a browser session through the app's own backup restore. `__tests__/release.test.ts` checks that app code carries none of it and that the database migrations insert only categories and settings. In-app instructions live under Settings → Help, in all eight languages.
 
 ## How parsing works
 

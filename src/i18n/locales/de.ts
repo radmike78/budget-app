@@ -23,6 +23,10 @@ export const de: LocaleDef = {
     cancel: 'Abbrechen',
     save: 'Speichern',
     saveChanges: 'Änderungen speichern',
+    editEntry: 'Eintrag bearbeiten',
+    goalTitle: 'Ziel',
+    repeatingEntry: 'Wiederkehrender Eintrag',
+    sharingUnavailable: 'Teilen ist auf diesem Gerät nicht verfügbar.',
     remove: 'Entfernen',
     keep: 'Behalten',
     edit: 'Bearbeiten',
@@ -402,6 +406,7 @@ export const de: LocaleDef = {
     safeToSpend: (amount: string, until: string, upcoming: string | null, perDay: string | null) => `Bis ${until}: ${amount} zum Ausgeben${upcoming ? ` nach ${upcoming} an anstehenden Rechnungen` : ''}${perDay ? `, etwa ${perDay} pro Tag` : ''}.`,
     planLeft: (left: string, plan: string, until: string, perDay: string | null) => `Noch ${left} von deinem Plan über ${plan}${perDay ? `, etwa ${perDay} pro Tag` : ''} bis ${until}.`,
     leftWord: 'übrig',
+    balanceShort: (amount: string) => `Saldo ${amount}`,
     spentLabel: 'ausgegeben',
     ofPlanShort: (plan: string) => `vom Plan über ${plan}`,
     toSpendUntil: (date: string) => `zum Ausgeben bis ${date}`,
@@ -422,7 +427,7 @@ export const de: LocaleDef = {
     periodNames: { today: 'heute', yesterday: 'gestern', week: 'diese Woche', lastWeek: 'letzte Woche', month: 'diesen Monat', lastMonth: 'letzten Monat', year: 'dieses Jahr', lastYear: 'letztes Jahr', all: 'insgesamt' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
-      const n = `${count} ${count === 1 ? 'Eintrag' : 'Einträge'}`;
+      const n = `${count} ${count === 1 ? 'Eintrag' : 'Einträgen'}`;
       return income ? `${p} hast du ${amount}${what ? ` von ${what}` : ''} eingenommen, in ${n}.` : `${p} hast du ${amount}${what ? ` für ${what}` : ''} ausgegeben, in ${n}.`;
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` von ${what}` : ''} eingegangen.` : `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` für ${what}` : ''} eingetragen.`),

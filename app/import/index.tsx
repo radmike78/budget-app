@@ -244,7 +244,6 @@ export default function ImportScreen() {
         </>
       ) : null}
       <View style={{ height: spacing.xl }} />
-      <Text variant="small" style={{ textAlign: 'center' }}>{locale.s.importStatementSub}</Text>
     </Screen>
   );
 }

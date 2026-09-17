@@ -41,7 +41,7 @@ export default function GoalsScreen() {
             <Pressable key={g.id} accessibilityRole="button" onPress={() => router.push(`/goal/${g.id}`)}>
               <Card style={{ marginBottom: spacing.sm }}>
                 <Row style={{ justifyContent: 'space-between' }}>
-                  <Text variant="heading">{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
+                  <Text variant="heading" style={{ flex: 1 }} numberOfLines={1}>{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
                   <Text variant="money">{money(g.currentAmount, { compact: true })} / {money(g.targetAmount, { compact: true })}</Text>
                 </Row>
                 {deadline ? <Text variant="small" style={{ marginTop: 2 }}>{deadline}</Text> : null}

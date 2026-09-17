@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
 import { today } from '@/lib/dates';
-import { balanceSentence, goalProgress, isWholeMonth } from '@/lib/plain';
+import { goalProgress, isWholeMonth } from '@/lib/plain';
 import { periodContaining, samePeriod } from '@/lib/periods';
 import { compareWeeks } from '@/lib/recap';
 import { PeriodCard } from '@/components/PeriodCard';
@@ -61,9 +61,8 @@ export default function HomeScreen() {
   if (!settings || !stats) return null;
   const currency = settings.currency;
   const todayStr = today();
-  const isCurrent = stats.period.start <= todayStr && todayStr <= stats.period.end;
   const payPeriod = settings.budgetPeriod === 'pay' && !isWholeMonth(stats.period);
-  const balance = balanceSentence(settings.startingBalance, lifetime.income, lifetime.expenses, currency, locale);
+  const balance = settings.startingBalance == null ? null : t.balanceShort(money(settings.startingBalance + lifetime.income - lifetime.expenses));
   const activeGoals = goals.filter((g) => !g.completed).slice(0, 2);
   const recapCat = recap?.topCategoryId ? categories.find((c) => c.id === recap.topCategoryId) : null;
 
@@ -113,7 +112,7 @@ export default function HomeScreen() {
             return (
               <Card key={g.id} style={{ marginBottom: spacing.sm }}>
                 <Row style={{ justifyContent: 'space-between' }}>
-                  <Text variant="body" style={{ fontWeight: '600' }}>{g.name}</Text>
+                  <Text variant="body" style={{ fontWeight: '600', flex: 1 }} numberOfLines={1}>{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
                   <Text variant="small">{{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone, no_date: '' }[p.status]}</Text>
                 </Row>
                 <Text variant="muted" style={{ marginTop: 2 }}>{t.goalShort(money(g.currentAmount, { compact: true }), money(g.targetAmount, { compact: true }), money(p.remaining, { compact: true }))}</Text>

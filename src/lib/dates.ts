@@ -74,10 +74,11 @@ export function addMonths(dateStr: string, months: number, anchorDay?: number): 
   return toDateString(target);
 }
 
-export function addYears(dateStr: string, years: number): string {
+export function addYears(dateStr: string, years: number, anchorDay?: number): string {
   const d = fromDateString(dateStr);
   const target = new Date(d.getFullYear() + years, d.getMonth(), 1);
-  target.setDate(Math.min(d.getDate(), daysInMonth(target.getFullYear(), target.getMonth())));
+  // The anchor keeps a rule set on February 29 returning there in leap years instead of settling on the 28th.
+  target.setDate(Math.min(anchorDay ?? d.getDate(), daysInMonth(target.getFullYear(), target.getMonth())));
   return toDateString(target);
 }
 

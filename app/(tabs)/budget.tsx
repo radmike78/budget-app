@@ -88,7 +88,7 @@ export default function BudgetScreen() {
                 <Icon glyph={c.icon} size={22} />
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <Row style={{ justifyContent: 'space-between' }}>
-                    <Text variant="body" style={{ fontWeight: '600' }}>{categoryName(c, t)}</Text>
+                    <Text variant="body" style={{ fontWeight: '600', flex: 1 }} numberOfLines={1}>{categoryName(c, t)}</Text>
                     <Text variant="money">{money(spent, { compact: true })}</Text>
                   </Row>
                   {plan ? <Text variant="small">{spent <= plan ? t.planShort(money(spent, { compact: true }), money(plan, { compact: true }), money(plan - spent, { compact: true })) : t.pastPlanShort(money(spent - plan, { compact: true }), money(plan, { compact: true }))}{carried > 0 ? ` · ${t.carriedShort(money(carried, { compact: true }))}` : ''}</Text> : null}
