@@ -20,6 +20,14 @@ describe('splitEntries', () => {
 });
 
 describe('parseEntries', () => {
+  it('still splits a list when a goal exists and a sentence says "paid"', () => {
+    const goal: Goal = { id: 'g', name: 'Trip to Japan', kind: 'saving', targetAmount: 3000, currentAmount: 100, targetDate: null, createdAt: '2026-01-01T00:00:00.000Z', completed: false };
+    const r = parseEntries('coffee 4.50 and gas 40 and got paid 500', ctx('en', { goals: [goal] }));
+    expect(r.map((x) => [x.kind, x.type, x.amount])).toEqual([['transaction', 'expense', 4.5], ['transaction', 'expense', 40], ['transaction', 'income', 500]]);
+    const c = parseEntries('put 50 toward the trip', ctx('en', { goals: [goal] }));
+    expect(c).toHaveLength(1);
+    expect(c[0].kind).toBe('contribution');
+  });
   it("handles: I spent $67.99 at Macy's and $121.53 at Fleming's Steakhouse", () => {
     const r = parseEntries("I spent $67.99 at Macy's and $121.53 at Fleming's Steakhouse", ctx());
     expect(r).toHaveLength(2);
@@ -133,5 +141,40 @@ describe('unknown places', () => {
       [40, 'groceries', 'Market'],
       [12, 'other_expense', "Luigi's"],
     ]);
+  });
+});
+
+describe('German day ordinals', () => {
+  it('"am 3. september" and "zum 15. dezember" stay in one sentence', () => {
+    expect(splitSentences('erinnere mich am 1. um 9 uhr an die miete', true)).toEqual(['erinnere mich am 1. um 9 uhr an die miete']);
+    expect(splitSentences('Mittagessen 12. Dann Kaffee 3.', true)).toEqual(['Mittagessen 12.', 'Dann Kaffee 3.']);
+    const dinner = parseEntries('abendessen am 3. september 25', ctx('de'));
+    expect(dinner).toHaveLength(1);
+    expect(dinner[0]).toMatchObject({ kind: 'transaction', amount: 25, categoryId: 'dining', occurredAt: '2026-09-03' });
+    const goal = parseEntries('ziel: 5.000 bis zum 15. dezember für ein auto sparen', ctx('de'));
+    expect(goal).toHaveLength(1);
+    expect(goal[0]).toMatchObject({ kind: 'goal', amount: 5000, goalName: 'Auto', targetDate: '2026-12-15' });
+  });
+});
+
+describe('cents after a currency word are one amount', () => {
+  it.each([
+    ['en', '12 dollars and 50 cents for lunch', 12.5, 'dining'],
+    ['en', 'twelve dollars fifty for lunch', 12.5, 'dining'],
+    ['it', 'ho speso 12 euro e 50', 12.5, 'other_expense'],
+    ['it', 'dodici e cinquanta di pranzo', 12.5, 'dining'],
+    ['es', '12 euros con 50 de almuerzo', 12.5, 'dining'],
+    ['es', 'gasté 12 euros y 50 en el almuerzo', 12.5, 'dining'],
+    ['fr', '12 euros 50 de déjeuner', 12.5, 'dining'],
+    ['fr', 'douze euros cinquante de déjeuner', 12.5, 'dining'],
+    ['de', '12 euro 50 mittagessen', 12.5, 'dining'],
+  ])('%s: "%s" is one entry of %s', (lang, text, amount, categoryId) => {
+    const rows = parseEntries(text, ctx(lang));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ kind: 'transaction', amount, categoryId });
+  });
+  it('still splits a real list and keeps a trailing full stop out of the amount', () => {
+    expect(parseEntries('spent 12 dollars on lunch and 40 on gas', ctx()).map((r) => r.amount)).toEqual([12, 40]);
+    expect(parseEntries('lunch 12.', ctx())[0].amount).toBe(12);
   });
 });

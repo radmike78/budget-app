@@ -307,3 +307,13 @@ describe('learnableWords', () => {
     expect(learnableWords('$30 at the dog groomer')).toEqual(['dog', 'groomer']);
   });
 });
+
+describe('numbers that are not money', () => {
+  it('ignores both halves of a clock time', () => {
+    expect(parseInput('lunch at 12:30 for 15', ctx())).toMatchObject({ amount: 15, categoryId: 'dining' });
+    expect(parseInput('coffee at 9:15 3.5', ctx())).toMatchObject({ amount: 3.5, categoryId: 'dining' });
+  });
+  it('drops a note that is only a filler word', () => {
+    expect(parseInput('got a refund of $45', ctx())).toMatchObject({ amount: 45, type: 'income', note: null });
+  });
+});

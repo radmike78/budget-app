@@ -76,3 +76,10 @@ describe('picking a spoken voice', () => {
     expect(pickVoice(voices, 'ja-JP', 'female')).toBeNull();
   });
 });
+
+describe('ordinary phrases are not voice commands', () => {
+  it.each(['nice dinner', 'lunch with a lady', 'coffee with the guy', 'spicy'])('"%s" is left alone', (text) => {
+    expect(parseVoiceCommand(text)).toBeNull();
+    expect(parseEntries(text, ctx())[0].kind).not.toBe('command');
+  });
+});
