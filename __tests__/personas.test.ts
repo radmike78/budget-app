@@ -1,4 +1,4 @@
-import { BIG_AMOUNT, RECENT_WINDOW, flavorFor, personaLine, remember, sampleLine, situationFor, toneFor, type PersonaEvent, type PersonaPrefs } from '@/lib/personas';
+import { BIG_AMOUNT, RECENT_WINDOW, flavorFor, personaLine, remember, sampleLine, situationFor, toneFor, wherePhrase, type PersonaEvent, type PersonaPrefs } from '@/lib/personas';
 import { FLAVORS_EN, LINES_EN } from '@/lib/personas/lines.en';
 import { contributionEvent, transactionEvent } from '@/lib/personas/context';
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
@@ -139,6 +139,15 @@ describe('the lines themselves', () => {
     expect(line!.text).toBe('Logged. You are still $43 under your Dining out plan.');
     const goal = personaLine({ ...spend(), kind: 'contribution', amount: 50, goal: { name: 'Vegas', current: 650, target: 1000 } }, prefs({ voice: 'coach', attitude: 'nice' }), money, [], first);
     expect(goal!.text).toBe('$50 to Vegas. $650 of $1000, 65% there.');
+  });
+  it('fits the preposition to the note: a place, a thing, or the words the user used', () => {
+    expect(wherePhrase({ type: 'expense', note: 'Starbucks', categoryId: 'dining', categoryName: 'Dining out' })).toBe('at Starbucks');
+    expect(wherePhrase({ type: 'expense', note: 'Laptop', categoryId: 'shopping', categoryName: 'Shopping' })).toBe('on Laptop');
+    expect(wherePhrase({ type: 'expense', note: 'Dinner at the thai place', categoryId: 'dining', categoryName: 'Dining out' })).toBe('at the thai place');
+    expect(wherePhrase({ type: 'expense', note: 'Gift for mom', categoryId: 'shopping', categoryName: 'Shopping' })).toBe('for mom');
+    expect(wherePhrase({ type: 'expense', note: null, categoryId: 'shopping', categoryName: 'Shopping' })).toBe('on Shopping');
+    const line = personaLine(spend({ note: 'Dinner at the thai place', plan: null }), prefs({ voice: 'friend', attitude: 'nice' }), money, [], first)!;
+    expect(line.text).not.toContain('at Dinner at');
   });
   it('does not repeat a recent line while others are available', () => {
     let recent: string[] = [];
