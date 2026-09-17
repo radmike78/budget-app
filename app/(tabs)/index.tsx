@@ -6,7 +6,12 @@ import { spacing, useTheme } from '@/theme';
 import { today } from '@/lib/dates';
 import { balanceSentence, categoryLineSentence, goalProgress, isWholeMonth, periodSummarySentence, topCategorySentence } from '@/lib/plain';
 import { periodContaining, samePeriod } from '@/lib/periods';
-import { categoryName, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
+import { safeToSpend } from '@/lib/safeToSpend';
+import { compareWeeks } from '@/lib/recap';
+import { longDate } from '@/lib/dates';
+import { SpendBar } from '@/components/SpendBar';
+import { useCountUp } from '@/components/motion';
+import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { speak } from '@/lib/speak';
 import { EntryBar } from '@/components/EntryBar';
 import { ConfirmationCard } from '@/components/ConfirmationCard';
@@ -31,6 +36,8 @@ export default function HomeScreen() {
   const recent = useAppStore((s) => s.recent);
   const goals = useAppStore((s) => s.goals);
   const lifetime = useAppStore((s) => s.lifetime);
+  const recap = useAppStore((s) => s.recap);
+  const fmt = useDateFormat();
   const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource } = useEntryFlow();
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
@@ -66,6 +73,8 @@ export default function HomeScreen() {
   const balance = balanceSentence(settings.startingBalance, lifetime.income, lifetime.expenses, currency, locale);
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
   const activeGoals = goals.filter((g) => !g.completed).slice(0, 2);
+  const safe = isCurrent ? safeToSpend(stats, rules, todayStr) : null;
+  const recapCat = recap?.topCategoryId ? categories.find((c) => c.id === recap.topCategoryId) : null;
 
   return (
     <Screen keyboard>
@@ -101,16 +110,29 @@ export default function HomeScreen() {
             <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={stats.expenses / overall} tone={stats.expenses > overall ? 'warn' : 'accent'} /></View>
           </View>
         ) : null}
+        <View style={{ marginTop: spacing.md }}>
+          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} onPress={() => router.push('/budget')} />
+        </View>
         {top ? <Text variant="muted" style={{ marginTop: spacing.sm }}>{top}</Text> : null}
+        {safe ? <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.safeToSpend(money(safe.amount, { compact: true }), longDate(stats.period.end, todayStr, fmt), safe.upcoming > 0 ? money(safe.upcoming, { compact: true }) : null, safe.perDay != null ? money(safe.perDay, { compact: true }) : null)}</Text> : null}
         {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
         {stats.income > 0 || stats.expenses > 0 ? (
           <Row style={{ marginTop: spacing.lg, justifyContent: 'space-between' }}>
-            <Stat label={t.inShort} value={money(stats.income, { compact: true })} color={colors.income} />
-            <Stat label={t.outShort} value={money(stats.expenses, { compact: true })} color={colors.text} />
-            <Stat label={t.netShort} value={money(stats.income - stats.expenses, { compact: true })} color={stats.income - stats.expenses >= 0 ? colors.income : colors.warn} />
+            <Stat label={t.inShort} value={stats.income} color={colors.income} />
+            <Stat label={t.outShort} value={stats.expenses} color={colors.text} />
+            <Stat label={t.netShort} value={stats.income - stats.expenses} color={stats.income - stats.expenses >= 0 ? colors.income : colors.warn} />
           </Row>
         ) : null}
       </Card>
+
+      {recap && recap.entries > 0 ? (
+        <>
+          <SectionTitle>{t.lastWeek}</SectionTitle>
+          <Card style={{ marginBottom: spacing.sm }}>
+            <Text variant="heading" style={{ lineHeight: 26 }}>{t.recapLine(money(recap.total, { compact: true }), recapCat ? categoryName(recapCat, t) : null, compareWeeks(recap.total, recap.previousTotal), money(Math.abs(recap.total - recap.previousTotal), { compact: true }))}</Text>
+          </Card>
+        </>
+      ) : null}
 
       {activeGoals.length > 0 ? (
         <>
@@ -141,12 +163,14 @@ export default function HomeScreen() {
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+function Stat({ label, value, color }: { label: string; value: number; color: string }) {
   const scale = useTypeScale();
+  const money = useMoney();
+  const shown = useCountUp(value);
   return (
     <View>
       <Text variant="label">{label}</Text>
-      <Text variant="money" color={color} style={{ fontSize: 20 * scale, marginTop: 2 }}>{value}</Text>
+      <Text variant="money" color={color} style={{ fontSize: 20 * scale, marginTop: 2 }}>{money(shown, { compact: true })}</Text>
     </View>
   );
 }

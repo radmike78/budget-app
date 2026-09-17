@@ -16,16 +16,25 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Animated } from 'react-native';
 import { radius, spacing, useTheme } from '@/theme';
+import { useSettle } from '@/components/motion';
+
+/**
+ * The headline sentences ("So far in September you've brought in…") are set in
+ * Fraunces, a soft serif, so the app's voice looks like a voice. Everything
+ * else stays in the system face for legibility at small sizes.
+ */
+export const HEADLINE_FONT = { display: 'Fraunces_700Bold', title: 'Fraunces_700Bold', heading: 'Fraunces_600SemiBold' } as const;
 
 // ---------- Text ----------
 
 type Variant = 'display' | 'title' | 'heading' | 'body' | 'muted' | 'small' | 'label' | 'money';
 
 const variantStyles: Record<Variant, TextStyle> = {
-  display: { fontSize: 34, fontWeight: '700', letterSpacing: -0.5, lineHeight: 40 },
-  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.3, lineHeight: 32 },
-  heading: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
+  display: { fontSize: 34, fontFamily: HEADLINE_FONT.display, letterSpacing: -0.3, lineHeight: 42 },
+  title: { fontSize: 26, fontFamily: HEADLINE_FONT.title, letterSpacing: -0.2, lineHeight: 33 },
+  heading: { fontSize: 19, fontFamily: HEADLINE_FONT.heading, lineHeight: 26 },
   body: { fontSize: 16, lineHeight: 23 },
   muted: { fontSize: 15, lineHeight: 21 },
   small: { fontSize: 13, lineHeight: 18 },
@@ -222,9 +231,11 @@ export function ListItem({ title, subtitle, right, onPress, left, style }: { tit
 export function ProgressBar({ fraction, tone = 'accent' }: { fraction: number; tone?: 'accent' | 'warn' }) {
   const { colors } = useTheme();
   const f = Math.max(0, Math.min(1, fraction));
+  // The fill settles into place rather than snapping, unless the phone asks for reduced motion.
+  const width = useSettle(f * 100).interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
   return (
     <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(f * 100) }} style={[styles.progressTrack, { backgroundColor: colors.cardAlt }]}>
-      <View style={[styles.progressFill, { width: `${f * 100}%`, backgroundColor: tone === 'warn' ? colors.warn : colors.accent }]} />
+      <Animated.View style={[styles.progressFill, { width, backgroundColor: tone === 'warn' ? colors.warn : colors.accent }]} />
     </View>
   );
 }

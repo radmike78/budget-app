@@ -326,6 +326,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     voice: s.voice === 'friend' || s.voice === 'coach' || s.voice === 'roaster' ? s.voice : 'plain',
     attitude: s.attitude === 'nice' || s.attitude === 'spicy' ? s.attitude : 'playful',
     voiceGender: s.voiceGender === 'male' ? 'male' : 'female',
+    accent: s.accent === 'ocean' || s.accent === 'plum' || s.accent === 'clay' ? s.accent : 'sage',
   };
 
   const carryovers: CarryDecision[] = [];

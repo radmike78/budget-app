@@ -39,7 +39,7 @@ describe('summaryText', () => {
 });
 
 describe('backup round trip', () => {
-  const settings: Settings = { currency: 'USD', theme: 'system', lastBackupAt: null, startingBalance: null, onboardingDone: true, reminderEnabled: false, reminderHour: 20, smartParseEnabled: false, appLockEnabled: false, language: 'system', answerMode: 'auto', budgetPeriod: 'month', overallLimit: null, voice: 'plain', attitude: 'playful', voiceGender: 'female' };
+  const settings: Settings = { currency: 'USD', theme: 'system', lastBackupAt: null, startingBalance: null, onboardingDone: true, reminderEnabled: false, reminderHour: 20, smartParseEnabled: false, appLockEnabled: false, language: 'system', answerMode: 'auto', budgetPeriod: 'month', overallLimit: null, voice: 'plain', attitude: 'playful', voiceGender: 'female', accent: 'sage' };
   const payload = buildBackup({ settings, categories: DEFAULT_CATEGORIES, transactions: tx, recurringRules: [], goals: [], keywords: [] }, '2026-09-10T00:00:00.000Z');
 
   it('validates payloads', () => {
@@ -63,7 +63,7 @@ describe('backup round trip', () => {
       { ...tx[0], id: 't4', fingerprint: 'ffffffffffffffff', importId: 'no_such_import' },
     ];
     const full = buildBackup({ settings, categories: DEFAULT_CATEGORIES, transactions: imported, recurringRules: [], goals: [], keywords: [], reminders, debts, imports }, NOW);
-    expect(full.version).toBe(5);
+    expect(full.version).toBe(6);
     // The notification id belongs to the phone that made the backup.
     expect(full.reminders[0].notificationId).toBeNull();
 
