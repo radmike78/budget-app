@@ -160,7 +160,7 @@ await step('goal editor: add money and remove goal', async () => {
   const boxes = page.getByRole('textbox');
   await boxes.nth(0).fill('50');
   await button(/^Add$/).click(); await page.waitForTimeout(600);
-  await expectText('$2,850 away');
+  await expectText('$2,850 to go');
   await button(/^Remove$/).click(); await page.waitForTimeout(800);
   await expectNoText('Trip to Japan');
 });
@@ -359,8 +359,7 @@ await step('pay-period budgeting needs a repeating income, then follows paydays'
   await expectLabel('This pay period');
   await shot('today-pay-period');
   await goto('/budget');
-  const b = await bodyText();
-  if (!/Previous period|since|from/i.test(b)) throw new Error('budget screen not in pay periods');
+  if (!(await page.getByRole('button', { name: /Previous period/ }).count())) throw new Error('budget screen not in pay periods');
   await page.getByRole('button', { name: /Previous period/ }).first().click(); await page.waitForTimeout(600);
   await shot('budget-prev-period');
   await goto('/settings');
