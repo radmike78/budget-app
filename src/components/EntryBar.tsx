@@ -1,3 +1,4 @@
+import { useAppStore } from '@/store/useAppStore';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { MAX_ENTRY_LENGTH } from '@/lib/validate';
@@ -18,6 +19,8 @@ export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: strin
   const { colors } = useTheme();
   const scale = useTypeScale();
   const t = useT();
+  // The example hint earns its place only until the first entries exist.
+  const hasEntries = useAppStore((st) => st.recent.length > 0);
   const [text, setText] = useState('');
   const inputRef = useRef<TextInput>(null);
   const voice = useVoiceInput((final) => {
@@ -88,7 +91,7 @@ export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: strin
       ) : busy ? (
         <Text variant="small" style={{ marginTop: 6, marginLeft: 4 }}>{t.checking}</Text>
       ) : (
-        <Text variant="small" style={{ marginTop: 6, marginLeft: 4 }}>{t.tryHint}</Text>
+        hasEntries ? null : <Text variant="small" style={{ marginTop: 6, marginLeft: 4 }}>{t.tryHint}</Text>
       )}
     </View>
   );

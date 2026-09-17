@@ -4,11 +4,11 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { today } from '@/lib/dates';
-import { balanceSentence, categoryLineSentence, goalProgress, isWholeMonth, periodSummarySentence, topCategorySentence } from '@/lib/plain';
+import { balanceSentence, categoryLineSentence, goalProgress, isWholeMonth, periodSummarySentence } from '@/lib/plain';
 import { periodContaining, samePeriod } from '@/lib/periods';
 import { safeToSpend } from '@/lib/safeToSpend';
 import { compareWeeks } from '@/lib/recap';
-import { longDate } from '@/lib/dates';
+import { daysBetween, longDate } from '@/lib/dates';
 import { SpendBar } from '@/components/SpendBar';
 import { useCountUp } from '@/components/motion';
 import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
@@ -19,7 +19,7 @@ import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
 import { CarryQuestions } from '@/components/CarryQuestions';
 import { TransactionRow } from '@/components/TransactionRow';
 import { useEntryFlow } from '@/components/useEntryFlow';
-import { Button, Card, EmptyState, ProgressBar, Row, Screen, SectionTitle, Spacer, Text, useTypeScale } from '@/components/ui';
+import { Button, Card, EmptyState, Row, Screen, SectionTitle, Spacer, Text, useTypeScale } from '@/components/ui';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -69,11 +69,22 @@ export default function HomeScreen() {
   const isCurrent = stats.period.start <= todayStr && todayStr <= stats.period.end;
   const payPeriod = settings.budgetPeriod === 'pay' && !isWholeMonth(stats.period);
   const summary = periodSummarySentence(stats, currency, isCurrent, settings.budgetPeriod, todayStr, locale);
-  const top = topCategorySentence(stats, categories, currency, locale, (c) => categoryName(c, t));
   const balance = balanceSentence(settings.startingBalance, lifetime.income, lifetime.expenses, currency, locale);
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
   const activeGoals = goals.filter((g) => !g.completed).slice(0, 2);
   const safe = isCurrent ? safeToSpend(stats, rules, todayStr) : null;
+  // One sentence about what is left: the overall plan when there is one, else what income leaves until payday.
+  const daysLeft = isCurrent ? daysBetween(todayStr, stats.period.end) + 1 : 0;
+  const until = longDate(stats.period.end, todayStr, fmt);
+  let leftLine: string | null = null;
+  if (overall) {
+    const remaining = overall - stats.expenses;
+    leftLine = remaining >= 0 && isCurrent
+      ? t.planLeft(money(remaining, { compact: true }), money(overall, { compact: true }), until, daysLeft > 0 ? money(remaining / daysLeft, { compact: true }) : null)
+      : categoryLineSentence(overall, stats.expenses, currency, locale, payPeriod);
+  } else if (safe) {
+    leftLine = t.safeToSpend(money(safe.amount, { compact: true }), until, safe.upcoming > 0 ? money(safe.upcoming, { compact: true }) : null, safe.perDay != null ? money(safe.perDay, { compact: true }) : null);
+  }
   const recapCat = recap?.topCategoryId ? categories.find((c) => c.id === recap.topCategoryId) : null;
 
   return (
@@ -104,17 +115,10 @@ export default function HomeScreen() {
       <SectionTitle>{payPeriod ? t.thisPeriod : t.thisMonth}</SectionTitle>
       <Card>
         <Text variant="heading" style={{ lineHeight: 26 }}>{summary}</Text>
-        {overall ? (
-          <View style={{ marginTop: spacing.sm }}>
-            <Text variant="muted">{categoryLineSentence(overall, stats.expenses, currency, locale, payPeriod)}</Text>
-            <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={stats.expenses / overall} tone={stats.expenses > overall ? 'warn' : 'accent'} /></View>
-          </View>
-        ) : null}
         <View style={{ marginTop: spacing.md }}>
           <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} onPress={() => router.push('/budget')} />
         </View>
-        {top ? <Text variant="muted" style={{ marginTop: spacing.sm }}>{top}</Text> : null}
-        {safe ? <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.safeToSpend(money(safe.amount, { compact: true }), longDate(stats.period.end, todayStr, fmt), safe.upcoming > 0 ? money(safe.upcoming, { compact: true }) : null, safe.perDay != null ? money(safe.perDay, { compact: true }) : null)}</Text> : null}
+        {leftLine ? <Text variant="muted" style={{ marginTop: spacing.md }}>{leftLine}</Text> : null}
         {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
         {stats.income > 0 || stats.expenses > 0 ? (
           <Row style={{ marginTop: spacing.lg, justifyContent: 'space-between' }}>

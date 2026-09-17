@@ -418,6 +418,7 @@ export const en = {
     accentPlum: 'Plum',
     accentClay: 'Clay',
     safeToSpend: (amount: string, until: string, upcoming: string | null, perDay: string | null) => `Until ${until}: ${amount} to spend${upcoming ? ` after ${upcoming} in upcoming bills` : ''}${perDay ? `, about ${perDay} a day` : ''}.`,
+    planLeft: (left: string, plan: string, until: string, perDay: string | null) => `${left} left of your ${plan} plan${perDay ? `, about ${perDay} a day` : ''} until ${until}.`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} went out, most of it on ${top}.` : `${total} went out.`; if (compare === 'less') return `${lead} That is ${diff} less than the week before.`; if (compare === 'more') return `${lead} That is ${diff} more than the week before.`; if (compare === 'same') return `${lead} About the same as the week before.`; return lead; },
     readAloud: 'Read aloud',
     periodNames: { today: 'today', yesterday: 'yesterday', week: 'this week', lastWeek: 'last week', month: 'this month', lastMonth: 'last month', year: 'this year', lastYear: 'last year', all: 'in total' } as Record<string, string>,
