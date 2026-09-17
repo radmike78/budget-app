@@ -127,6 +127,12 @@ for (const profile of PROFILES) {
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await goto('/category/groceries');
     await shot('4-category-rollover');
+    await goto('/history');
+    await text('Last 90 days').click(); await page.waitForTimeout(600);
+    await expectText("Trader Joe's");
+    await shot('13-history');
+    await goto('/settings');
+    await shot('14-settings');
     await goto('/settings');
     await page.getByText('Budget period', { exact: false }).first().scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
     await shot('5-settings-budget-period');
