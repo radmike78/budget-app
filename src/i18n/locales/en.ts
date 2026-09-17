@@ -261,7 +261,7 @@ export const en = {
     searchPlaceholder: 'Search notes, amounts…',
     rangeThisMonth: 'This month',
     rangeLastMonth: 'Last month',
-    range90d: 'Last 90 days',
+    range90d: '90 days',
     rangeAll: 'All time',
     historySummary: (n: number, inAmt: string, outAmt: string) => `${n === 1 ? '1 entry' : `${n} entries`} · in ${inAmt} · out ${outAmt}`,
     noMatches: 'No entries match',
