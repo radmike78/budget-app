@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme';
 import { configureNotificationHandler } from '@/lib/reminders';
@@ -24,14 +25,17 @@ export default function RootLayout() {
   const onboardingDone = useAppStore((s) => s.settings?.onboardingDone ?? false);
   const init = useAppStore((s) => s.init);
   const [error, setError] = useState<string | null>(null);
+  // If the font cannot load, the system face is used; the app never waits on it for more than a moment.
+  const [fontsLoaded, fontError] = useFonts({ Fraunces_600SemiBold, Fraunces_700Bold });
+  const fontsReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
     init().catch((e: Error) => setError(e.message));
   }, [init]);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
-  }, [ready]);
+    if (ready && fontsReady) SplashScreen.hideAsync().catch(() => {});
+  }, [ready, fontsReady]);
 
   let body: React.ReactNode;
   if (error) {
@@ -41,7 +45,7 @@ export default function RootLayout() {
         <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{error}</Text>
       </View>
     );
-  } else if (!ready) {
+  } else if (!ready || !fontsReady) {
     body = (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator color={colors.accent} />

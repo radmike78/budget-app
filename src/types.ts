@@ -1,6 +1,8 @@
 export type TxType = 'income' | 'expense';
 export type Frequency = 'weekly' | 'biweekly' | 'monthly' | 'yearly';
 export type ThemeSetting = 'system' | 'light' | 'dark';
+/** The accent colour family: sage (default), ocean, plum or clay. */
+export type Accent = 'sage' | 'ocean' | 'plum' | 'clay';
 /** Budget by calendar month, or from one payday to the next (paydays come from repeating income). */
 export type BudgetPeriodMode = 'month' | 'pay';
 /** What happens to a category's unspent plan when a period ends. */
@@ -141,6 +143,7 @@ export interface Settings {
   voice: Voice;
   attitude: Attitude;
   voiceGender: VoiceGender;
+  accent: Accent;
 }
 
 /** The user's answer to "carry over what was left?" for one category and one period (its start date). */

@@ -13,6 +13,7 @@ import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
 import { Sheet } from '@/components/pickers';
 import { CarryQuestions } from '@/components/CarryQuestions';
+import { SpendBar } from '@/components/SpendBar';
 import { Button, Card, Field, Icon, ListItem, ProgressBar, Row, Screen, SectionTitle, Text } from '@/components/ui';
 
 export default function BudgetScreen() {
@@ -69,6 +70,9 @@ export default function BudgetScreen() {
 
       <Card style={{ marginTop: spacing.md }}>
         <Text variant="body">{periodSummarySentence(stats, currency, isCurrent, settings.budgetPeriod, todayStr, locale)}</Text>
+        <View style={{ marginTop: spacing.md }}>
+          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} />
+        </View>
         {overall ? (
           <View style={{ marginTop: spacing.sm }}>
             <Text variant="small">{categoryLineSentence(overall, stats.expenses, currency, locale, payPeriod)}</Text>

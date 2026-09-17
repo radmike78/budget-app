@@ -6,6 +6,7 @@ import * as repo from '@/db/repositories';
 import { addDays, nowIso, today } from '@/lib/dates';
 import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
 import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
+import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
 import { newId } from '@/lib/ids';
 import { dueOccurrences } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
@@ -40,6 +41,8 @@ interface AppState {
   carryovers: CarryDecision[];
   /** The entry removed most recently, kept so it can be put back. */
   lastDeleted: { tx: Transaction; at: number } | null;
+  /** Last week and the week before, for the recap card at the start of a week. */
+  recap: WeekRecap | null;
 
   init: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -146,6 +149,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   carry: {},
   carryovers: [],
   lastDeleted: null,
+  recap: null,
 
   init: () => {
     if (!initPromise) {
@@ -188,7 +192,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const period = periodContaining(settings.budgetPeriod, rules, get().period.start);
     const stats = await repo.periodStats(db, period);
     const carry = await computeCarry(db, settings, rules, categories, carryovers, period);
-    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry });
+    const todayStr = today();
+    const recap = isRecapDay(todayStr) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
+    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry, recap });
   },
 
   shiftPeriod: async (delta) => {

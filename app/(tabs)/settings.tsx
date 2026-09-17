@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Platform, ScrollView, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import type { AnswerMode, BudgetPeriodMode, ThemeSetting } from '@/types';
+import type { Accent, AnswerMode, BudgetPeriodMode, ThemeSetting } from '@/types';
+import { ACCENTS } from '@/theme';
+import { Pressable } from 'react-native';
 import { useVoiceSummary } from '@/components/VoicePicker';
 import { hasPayRules } from '@/lib/periods';
 import { useAppStore } from '@/store/useAppStore';
@@ -88,6 +90,19 @@ export default function SettingsScreen() {
       <Card style={{ marginBottom: spacing.sm }}>
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.appearance}</Text>
         <Segmented<ThemeSetting> value={settings.theme} onChange={(theme) => updateSettings({ theme })} options={[{ value: 'system', label: t.themeSystem }, { value: 'light', label: t.themeLight }, { value: 'dark', label: t.themeDark }]} />
+        <Text variant="label" style={{ marginTop: spacing.md, marginBottom: spacing.sm }}>{t.accentColor}</Text>
+        <Row gap={spacing.md}>
+          {(Object.keys(ACCENTS) as Accent[]).map((a) => {
+            const selected = settings.accent === a;
+            const label = { sage: t.accentSage, ocean: t.accentOcean, plum: t.accentPlum, clay: t.accentClay }[a];
+            return (
+              <Pressable key={a} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} onPress={() => updateSettings({ accent: a })} style={{ alignItems: 'center' }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ACCENTS[a].light, borderWidth: selected ? 3 : 0, borderColor: colors.text }} />
+                <Text variant="small" style={{ marginTop: 4 }}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </Row>
       </Card>
       <Card style={{ marginBottom: spacing.sm }}>
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.answerMode}</Text>
