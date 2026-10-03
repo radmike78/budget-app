@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import type { Rollover, TxType } from '@/types';
+import type { Rollover, Tier, TxType } from '@/types';
 import { getDb } from '@/db/database';
 import { countTransactionsInCategory } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
@@ -11,6 +11,7 @@ import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useLocale, useT } from '@/i18n';
 import { confirmDialog } from '@/lib/dialogs';
 import { EmojiPicker } from '@/components/pickers';
+import { tierOf } from '@/lib/tiers';
 import { Button, Field, Row, Screen, Segmented, Text } from '@/components/ui';
 
 export default function CategoryEditor() {
@@ -32,6 +33,7 @@ export default function CategoryEditor() {
   const [kind, setKind] = useState<TxType>(existing?.kind ?? (kindParam === 'income' ? 'income' : 'expense'));
   const [limit, setLimit] = useState(existing?.monthlyLimit != null ? String(existing.monthlyLimit) : '');
   const [rollover, setRollover] = useState<Rollover>(existing?.rollover ?? 'reset');
+  const [tier, setTier] = useState<Tier>(existing ? tierOf(existing) : 'comforts');
   const [showEmoji, setShowEmoji] = useState(false);
   const [usage, setUsage] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export default function CategoryEditor() {
       monthlyLimit,
       rollover: nextRollover,
       rolloverSince,
+      tier: kind === 'expense' ? tier : null,
       isDefault: existing?.isDefault && renamed === existing.name ? true : false,
       archived: existing?.archived ?? false,
       sortOrder: existing?.sortOrder ?? 50,
@@ -92,6 +95,13 @@ export default function CategoryEditor() {
       ) : null}
       {kind === 'expense' ? (
         <Field label={payMode ? t.periodLimit : t.monthlyLimit} value={limit} onChangeText={setLimit} keyboardType="decimal-pad" placeholder={t.limitPlaceholder} hint={t.limitHint} />
+      ) : null}
+      {kind === 'expense' ? (
+        <View style={{ marginBottom: spacing.lg }}>
+          <Text variant="label" style={{ marginBottom: 6 }}>{t.tierLabel}</Text>
+          <Segmented<Tier> value={tier} onChange={setTier} options={[{ value: 'needs', label: t.tierNeeds }, { value: 'obligations', label: t.tierObligations }, { value: 'comforts', label: t.tierComforts }, { value: 'wants', label: t.tierWants }]} />
+          <Text variant="small" style={{ marginTop: 6 }}>{t.tierHint}</Text>
+        </View>
       ) : null}
       {kind === 'expense' && limit.trim() ? (
         <View style={{ marginBottom: spacing.lg }}>

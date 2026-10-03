@@ -292,7 +292,9 @@ await step('budget month navigation', async () => {
   await goto('/budget');
   await page.getByRole('button', { name: /Previous month/ }).first().click(); await page.waitForTimeout(500);
   await shot('budget-prev-month');
-  await expectText('August');
+  // Derived, not hard-coded: this step used to break on the first of every month.
+  const prevMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString('en-US', { month: 'long' });
+  await expectText(prevMonth);
 });
 await step('a voice talks back after an entry, and plain stays silent', async () => {
   await goto('/settings/voice');

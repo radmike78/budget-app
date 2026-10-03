@@ -1,4 +1,5 @@
-import type { Accent, Attitude, CarryDecision, Category, CategoryTotal, Debt, DebtType, Goal, ImportRecord, KeywordMapping, MonthStats, Period, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Transaction, TxType, Voice } from '@/types';
+import type { Accent, Attitude, CarryDecision, Category, CategoryTotal, Debt, DebtType, Goal, ImportRecord, KeywordMapping, MonthStats, Period, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Tier, Transaction, TxType, Voice } from '@/types';
+import { TIERS } from '@/lib/tiers';
 import type { DB } from './database';
 import { isValidDateString, monthKey, monthRange } from '@/lib/dates';
 
@@ -15,12 +16,13 @@ const toTx = (r: TxRow): Transaction => ({
   fingerprint: r.fingerprint ?? null, importId: r.import_id ?? null,
 });
 
-type CatRow = { id: string; name: string; icon: string | null; kind: TxType; monthly_limit: number | null; is_default: number; archived: number; sort_order: number; rollover?: string | null; rollover_since?: string | null };
+type CatRow = { id: string; name: string; icon: string | null; kind: TxType; monthly_limit: number | null; is_default: number; archived: number; sort_order: number; rollover?: string | null; rollover_since?: string | null; tier?: string | null };
 const ROLLOVERS: Rollover[] = ['reset', 'carry', 'ask'];
 const toRollover = (v: unknown): Rollover => ((ROLLOVERS as unknown[]).includes(v) ? (v as Rollover) : 'reset');
 const toCat = (r: CatRow): Category => ({
   id: r.id, name: r.name, icon: r.icon, kind: r.kind, monthlyLimit: r.monthly_limit, isDefault: r.is_default === 1, archived: r.archived === 1, sortOrder: r.sort_order,
   rollover: toRollover(r.rollover), rolloverSince: r.rollover_since && isValidDateString(r.rollover_since) ? r.rollover_since : null,
+  tier: TIERS.includes(r.tier as Tier) ? (r.tier as Tier) : null,
 });
 
 type RuleRow = { id: string; amount: number; type: TxType; category_id: string | null; frequency: RecurringRule['frequency']; next_occurrence: string; note: string | null; active: number; anchor_day: number | null };
@@ -217,9 +219,9 @@ export async function allCategories(db: DB): Promise<Category[]> {
 
 export async function upsertCategory(db: DB, c: Category): Promise<void> {
   await db.runAsync(
-    `INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, icon = excluded.icon, kind = excluded.kind, monthly_limit = excluded.monthly_limit, archived = excluded.archived, sort_order = excluded.sort_order, rollover = excluded.rollover, rollover_since = excluded.rollover_since`,
-    [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null],
+    `INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since, tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, icon = excluded.icon, kind = excluded.kind, monthly_limit = excluded.monthly_limit, archived = excluded.archived, sort_order = excluded.sort_order, rollover = excluded.rollover, rollover_since = excluded.rollover_since, tier = excluded.tier`,
+    [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null, c.tier ?? null],
   );
 }
 
@@ -345,8 +347,8 @@ export async function replaceAllData(
   await db.withTransactionAsync(async () => {
     await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers;');
     for (const c of data.categories) {
-      await db.runAsync('INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null]);
+      await db.runAsync('INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since, tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null, c.tier ?? null]);
     }
     for (const d of data.carryovers ?? []) {
       await db.runAsync('INSERT OR REPLACE INTO carryovers (category_id, period, amount) VALUES (?, ?, ?)', [d.categoryId, d.period, d.amount]);

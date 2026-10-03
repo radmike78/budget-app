@@ -3,7 +3,7 @@ import { buildBackup, isBackupPayload, summaryText, transactionsToCsv } from '@/
 import { base64ToBytes, bytesToBase64, decryptBackup, encryptBackup } from '@/lib/backupCrypto';
 import { validateBackup } from '@/lib/validate';
 import { de } from '@/i18n/locales/de';
-import type { Debt, Goal, ImportRecord, Reminder, Settings, Transaction } from '@/types';
+import type { Debt, Goal, ImportRecord, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 
 const tx: Transaction[] = [
   { id: 't1', amount: 12, type: 'expense', categoryId: 'dining', note: 'Lunch, with "Sam"', rawInput: 'spent 12 on lunch', occurredAt: '2026-09-02', createdAt: '2026-09-02T12:00:00.000Z', isRecurringInstance: false, recurringRuleId: null },
@@ -113,16 +113,14 @@ describe('backup round trip', () => {
 });
 
 describe('backup keeps the anchor day of repeating rules', () => {
+  const NOW = '2026-09-17T00:00:00.000Z';
   it('restores anchorDay and drops a bad one', () => {
-    const { buildBackup } = require('@/lib/export');
-    const { validateBackup } = require('@/lib/validate');
-    const { DEFAULT_CATEGORIES } = require('@/lib/defaultCategories');
     const settings: Settings = { currency: 'USD', theme: 'system', lastBackupAt: null, startingBalance: null, onboardingDone: true, reminderEnabled: false, reminderHour: 20, smartParseEnabled: false, appLockEnabled: false, language: 'system', answerMode: 'auto', budgetPeriod: 'month', overallLimit: null, voice: 'plain', attitude: 'playful', voiceGender: 'female', accent: 'sage' };
-    const rule = { id: 'r1', amount: 1400, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: '2026-02-28', anchorDay: 31, note: 'Rent', active: true };
-    const payload = buildBackup({ settings, categories: DEFAULT_CATEGORIES, transactions: [], recurringRules: [rule], goals: [], keywords: [] }, '2026-09-17T00:00:00.000Z');
-    const restored = validateBackup(JSON.parse(JSON.stringify(payload)));
+    const rule: RecurringRule = { id: 'r1', amount: 1400, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: '2026-02-28', anchorDay: 31, note: 'Rent', active: true };
+    const payload = buildBackup({ settings, categories: DEFAULT_CATEGORIES, transactions: [], recurringRules: [rule], goals: [], keywords: [] }, NOW);
+    const restored = validateBackup(JSON.parse(JSON.stringify(payload)), NOW);
     expect(restored.recurringRules[0].anchorDay).toBe(31);
     const bad = JSON.parse(JSON.stringify(payload)); bad.recurringRules[0].anchorDay = 99;
-    expect(validateBackup(bad).recurringRules[0].anchorDay).toBeNull();
+    expect(validateBackup(bad, NOW).recurringRules[0].anchorDay).toBeNull();
   });
 });

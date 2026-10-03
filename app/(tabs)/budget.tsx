@@ -8,6 +8,7 @@ import { monthLabel, today } from '@/lib/dates';
 import { isWholeMonth } from '@/lib/plain';
 import { periodLabel } from '@/lib/periods';
 import { effectivePlan } from '@/lib/rollover';
+import { flexibleTotal, tierTotals } from '@/lib/tiers';
 import { monthlyEquivalent } from '@/lib/recurring';
 import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
@@ -51,6 +52,10 @@ export default function BudgetScreen() {
   const activeRules = rules.filter((r) => r.active);
   const recurringOut = activeRules.filter((r) => r.type === 'expense').reduce((s, r) => s + monthlyEquivalent(r), 0);
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
+
+  const tiers = useMemo(() => tierTotals(stats, categories), [stats, categories]);
+  const flexible = flexibleTotal(tiers);
+  const tierNames = { needs: t.tierNeeds, obligations: t.tierObligations, comforts: t.tierComforts, wants: t.tierWants };
 
   const openOverall = () => { setOverallText(overall != null ? String(overall) : ''); setShowOverall(true); };
   const saveOverall = async () => {
@@ -99,6 +104,24 @@ export default function BudgetScreen() {
           </Pressable>
         );
       })}
+
+      {stats.expenses > 0 ? (
+        <>
+          <SectionTitle>{t.whereItGoes}</SectionTitle>
+          <Card>
+            {tiers.map((row, i) => (
+              <View key={row.tier} style={{ marginTop: i === 0 ? 0 : spacing.md }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>{tierNames[row.tier]}</Text>
+                  <Text variant="money">{money(row.total, { compact: true })}</Text>
+                </Row>
+                <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={row.share} /></View>
+              </View>
+            ))}
+            <Text variant="muted" style={{ marginTop: spacing.md }}>{t.flexibleShort(money(flexible, { compact: true }))}</Text>
+          </Card>
+        </>
+      ) : null}
 
       <SectionTitle right={<Button tone="ghost" small title={t.add} onPress={() => router.push('/category/new?kind=income')} />}>{t.incomeSection}</SectionTitle>
       {incomeCats.map((c) => (
