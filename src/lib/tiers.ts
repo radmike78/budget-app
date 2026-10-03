@@ -4,6 +4,9 @@
  *
  * The order of TIERS is the order they are shown in, which is also priority
  * order: what keeps the lights on, what you owe, what makes life easier, the rest.
+ *
+ * These ids are stored and never change. What a person reads comes from the
+ * locale tables, so `obligations` is shown as "Debts".
  */
 import type { Category, MonthStats, Tier } from '@/types';
 

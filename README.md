@@ -108,7 +108,7 @@ npm run ui:persona      # a voice in use: onboarding, each voice after an entry,
 npm run ui:sweep        # every screen, phone and tablet, light and dark, with a goal, a reminder and debts seeded, out/sweep
 ```
 
-Spending is also split four ways on the Budget tab, in priority order: needs, obligations, comforts and wants. Every category starts in a sensible tier so there is nothing to set up, and one line adds comforts and wants together, which is the money that can actually move. The app shows the split and never tells anyone what to cut.
+Spending is also split four ways on the Budget tab, in priority order: needs, debts, comforts and wants. Every category starts in a sensible tier so there is nothing to set up, and one line adds comforts and wants together, which is the money that can actually move. The app shows the split and never tells anyone what to cut.
 
 The sample data used by these scripts never ships: it exists only in `scripts/lib/shots.mjs` and enters a browser session through the app's own backup restore. `__tests__/release.test.ts` checks that app code carries none of it and that the database migrations insert only categories and settings. In-app instructions live under Settings → Help, in all eight languages.
 
