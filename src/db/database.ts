@@ -160,6 +160,10 @@ const MIGRATIONS: string[] = [
   UPDATE categories SET tier = 'obligations' WHERE id IN ('debt');
   UPDATE categories SET tier = 'wants' WHERE id IN ('dining', 'entertainment', 'shopping');
   UPDATE categories SET tier = 'comforts' WHERE id IN ('subscriptions', 'other_expense');`,
+  // v14: the middle tier is gone. Three buckets match the 50/30/20 split people already know,
+  // and none of them needs a sentence of explanation. "Other" is protected rather than called negotiable.
+  `UPDATE categories SET tier = 'needs' WHERE tier = 'comforts' AND id = 'other_expense';
+  UPDATE categories SET tier = 'wants' WHERE tier = 'comforts';`,
 ];
 
 async function migrate(db: DB): Promise<void> {

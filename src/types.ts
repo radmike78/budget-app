@@ -60,7 +60,7 @@ export interface ImportRecord {
 }
 
 /** How negotiable a category is, in priority order. See src/lib/tiers.ts. */
-export type Tier = 'needs' | 'obligations' | 'comforts' | 'wants';
+export type Tier = 'needs' | 'obligations' | 'wants';
 
 export interface Category {
   id: string;

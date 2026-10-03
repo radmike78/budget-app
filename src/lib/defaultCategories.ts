@@ -19,10 +19,10 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'health', name: 'Health', icon: '🩺', kind: 'expense', monthlyLimit: null, tier: 'needs', isDefault: true, archived: false, sortOrder: 15 },
   { id: 'entertainment', name: 'Entertainment', icon: '🎬', kind: 'expense', monthlyLimit: null, tier: 'wants', isDefault: true, archived: false, sortOrder: 16 },
   { id: 'shopping', name: 'Shopping', icon: '🛍️', kind: 'expense', monthlyLimit: null, tier: 'wants', isDefault: true, archived: false, sortOrder: 17 },
-  { id: 'subscriptions', name: 'Subscriptions', icon: '🔁', kind: 'expense', monthlyLimit: null, tier: 'comforts', isDefault: true, archived: false, sortOrder: 18 },
+  { id: 'subscriptions', name: 'Subscriptions', icon: '🔁', kind: 'expense', monthlyLimit: null, tier: 'wants', isDefault: true, archived: false, sortOrder: 18 },
   { id: 'debt', name: 'Debt payment', icon: '🏦', kind: 'expense', monthlyLimit: null, tier: 'obligations', isDefault: true, archived: false, sortOrder: 19 },
   { id: 'savings', name: 'Savings / Transfer', icon: '🐖', kind: 'expense', monthlyLimit: null, tier: 'needs', isDefault: true, archived: false, sortOrder: 20 },
-  { id: 'other_expense', name: 'Other', icon: '🧾', kind: 'expense', monthlyLimit: null, tier: 'comforts', isDefault: true, archived: false, sortOrder: 21 },
+  { id: 'other_expense', name: 'Other', icon: '🧾', kind: 'expense', monthlyLimit: null, tier: 'needs', isDefault: true, archived: false, sortOrder: 21 },
 ];
 
 export const FALLBACK_EXPENSE_CATEGORY_ID = 'other_expense';
