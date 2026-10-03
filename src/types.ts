@@ -59,12 +59,17 @@ export interface ImportRecord {
   importedAt: string;
 }
 
+/** How negotiable a category is, in priority order. See src/lib/tiers.ts. */
+export type Tier = 'needs' | 'obligations' | 'comforts' | 'wants';
+
 export interface Category {
   id: string;
   name: string;
   icon: string | null;
   kind: TxType;
   monthlyLimit: number | null;
+  /** How negotiable this spending is; unset falls back to a sensible default. */
+  tier?: Tier | null;
   /** Unspent plan at the end of a period: start fresh (default), carry it over, or ask. */
   rollover?: Rollover | null;
   /** Start of the period in which carrying over was switched on; earlier periods never carry. */

@@ -53,7 +53,6 @@ describe('monthly rules keep their anchor day across short months', () => {
 
 describe('yearly rules on February 29', () => {
   it('return to the 29th in the next leap year', () => {
-    const { advance } = require('@/lib/recurring');
     let d = '2024-02-29';
     const seen: string[] = [];
     for (let i = 0; i < 4; i += 1) { d = advance(d, 'yearly', 29); seen.push(d); }

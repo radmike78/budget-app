@@ -13,6 +13,7 @@
  * - A line that was said recently is not said again while others are available.
  */
 import type { Attitude, TxType, Voice } from '@/types';
+import { NECESSITY_WORDS } from '@/lib/tiers';
 import { FLAVORS_EN, GREETINGS_EN, LEFT_SUFFIXES_EN, LINES_EN, type Flavor, type LineSet, type Situation } from './lines.en';
 
 export type { Flavor, Situation } from './lines.en';
@@ -21,8 +22,6 @@ export type { Flavor, Situation } from './lines.en';
 export const PROTECTED_CATEGORIES = new Set(['rent', 'utilities', 'groceries', 'health', 'debt', 'savings', 'other_expense']);
 /** Default category ids the voices may tease at full strength. */
 export const TEASABLE_CATEGORIES = new Set(['dining', 'entertainment', 'shopping', 'subscriptions']);
-/** Words in a custom category name that make it a necessity. Static pattern tested against user text, never built from it. */
-const NECESSITY_WORDS = /rent|mortgage|medic|doctor|dentist|pharm|hospital|health|therap|child|daycare|school|tuition|insur|utilit|electric|water|gas bill|grocer|debt|loan|emergenc|tax|vet\b|baby|diaper/i;
 /** At or above this amount the attitude is always nice. */
 export const BIG_AMOUNT = 500;
 /** How many recent lines are avoided when picking the next one (kept across launches). */

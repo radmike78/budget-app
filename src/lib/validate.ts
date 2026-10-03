@@ -5,7 +5,8 @@
  * input at it. Covers OWASP MASVS-CODE-4 (input validation) and the storage
  * side of MASVS-STORAGE (nothing untrusted reaches SQLite unchecked).
  */
-import type { CarryDecision, Category, Debt, DebtType, Frequency, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Transaction, TxType } from '@/types';
+import type { CarryDecision, Category, Debt, DebtType, Frequency, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Tier, Transaction, TxType } from '@/types';
+import { TIERS } from './tiers';
 import { isValidDateString } from './dates';
 
 /** A spoken entry is a sentence or two; anything longer is not an entry. */
@@ -146,8 +147,11 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     seenCat.add(cid);
     const limit = raw.monthlyLimit == null ? null : money(raw.monthlyLimit, 'category limit');
     const rollover = raw.rollover == null ? 'reset' : oneOf(raw.rollover, ROLLOVERS, 'category rollover');
+    // An unknown or missing tier is dropped; the app falls back to the category's default.
+    const tier = TIERS.includes(raw.tier as Tier) ? (raw.tier as Tier) : null;
     categories.push({
       rollover,
+      tier,
       rolloverSince: rollover !== 'reset' && typeof raw.rolloverSince === 'string' && isValidDateString(raw.rolloverSince) ? raw.rolloverSince : null,
       id: cid,
       name: text(raw.name, 60, 'category name', true),

@@ -153,6 +153,13 @@ const MIGRATIONS: string[] = [
   `CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
   // v12: accent colour family.
   `ALTER TABLE settings ADD COLUMN accent TEXT DEFAULT 'sage';`,
+  // v13: how negotiable a category is, so the Budget screen can show where the money goes.
+  // Existing categories are placed where they obviously belong; everything else sits in the middle.
+  `ALTER TABLE categories ADD COLUMN tier TEXT;
+  UPDATE categories SET tier = 'needs' WHERE id IN ('groceries', 'rent', 'utilities', 'transport', 'health', 'savings');
+  UPDATE categories SET tier = 'obligations' WHERE id IN ('debt');
+  UPDATE categories SET tier = 'wants' WHERE id IN ('dining', 'entertainment', 'shopping');
+  UPDATE categories SET tier = 'comforts' WHERE id IN ('subscriptions', 'other_expense');`,
 ];
 
 async function migrate(db: DB): Promise<void> {

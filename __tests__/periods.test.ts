@@ -1,4 +1,5 @@
 import type { RecurringRule } from '@/types';
+import { safeToSpend } from '@/lib/safeToSpend';
 import { hasPayRules, payDates, periodContaining, periodLabel, samePeriod, shiftPeriod } from '@/lib/periods';
 
 const TODAY = '2026-09-16';
@@ -66,7 +67,6 @@ describe('shiftPeriod', () => {
 
 describe('safeToSpend counts every occurrence before the period ends', () => {
   it('adds a weekly bill twice when it falls due twice', () => {
-    const { safeToSpend } = require('@/lib/safeToSpend');
     const stats = { period: { start: '2026-09-01', end: '2026-09-30' }, income: 3000, expenses: 500, month: '2026-09', byCategory: [] } as any;
     const rule = { type: 'expense', active: true, amount: 50, nextOccurrence: '2026-09-20', frequency: 'weekly', anchorDay: null } as any;
     expect(safeToSpend(stats, [rule], '2026-09-17')).toMatchObject({ amount: 2400, upcoming: 100 });
