@@ -1,5 +1,5 @@
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
-import { FLEXIBLE_TIERS, TIERS, defaultTierFor, flexibleTotal, tierOf, tierTotals } from '@/lib/tiers';
+import { TIERS, defaultTierFor, tierOf, tierTotals } from '@/lib/tiers';
 import { buildBackup } from '@/lib/export';
 import { validateBackup } from '@/lib/validate';
 import type { Category, MonthStats, Settings } from '@/types';
@@ -26,8 +26,9 @@ describe('default tiers', () => {
     // Paying yourself is a need, not a leftover.
     expect(tierFor('savings')).toBe('needs');
     expect(tierFor('debt')).toBe('obligations');
-    expect(tierFor('subscriptions')).toBe('comforts');
-    expect(tierFor('other_expense')).toBe('comforts');
+    expect(tierFor('subscriptions')).toBe('wants');
+    // "Other" is unidentified money, so it is protected rather than called negotiable.
+    expect(tierFor('other_expense')).toBe('needs');
     expect(tierFor('dining')).toBe('wants');
     expect(tierFor('entertainment')).toBe('wants');
     expect(tierFor('shopping')).toBe('wants');
@@ -39,9 +40,9 @@ describe('default tiers', () => {
     expect(custom('Car insurance')).toBe('needs');
     expect(custom('Prescriptions pharmacy')).toBe('needs');
     expect(custom('Student loan')).toBe('needs');
-    // Nothing recognised sits in the middle, where it accuses no one.
-    expect(custom('Golf')).toBe('comforts');
-    expect(custom('Record shop')).toBe('comforts');
+    // A category a person chose to create and name starts as a want; one tap moves it.
+    expect(custom('Golf')).toBe('wants');
+    expect(custom('Record shop')).toBe('wants');
   });
 
   it('uses the stored tier when there is one, and ignores a bad value', () => {
@@ -55,9 +56,9 @@ describe('default tiers', () => {
 describe('tierTotals', () => {
   const cats = DEFAULT_CATEGORIES;
 
-  it('always returns all four tiers in priority order', () => {
+  it('always returns all three tiers in priority order', () => {
     expect(tierTotals(stats([]), cats).map((r) => r.tier)).toEqual(TIERS);
-    expect(TIERS).toEqual(['needs', 'obligations', 'comforts', 'wants']);
+    expect(TIERS).toEqual(['needs', 'obligations', 'wants']);
   });
 
   it('adds spending up by tier and gives each a share of the period', () => {
@@ -70,15 +71,15 @@ describe('tierTotals', () => {
       { categoryId: 'shopping', total: 100 },
     ]), cats);
     const by = Object.fromEntries(rows.map((r) => [r.tier, r.total]));
-    expect(by).toEqual({ needs: 1500, obligations: 150, comforts: 50, wants: 300 });
+    expect(by).toEqual({ needs: 1500, obligations: 150, wants: 350 });
     expect(rows.find((r) => r.tier === 'needs')!.share).toBeCloseTo(0.75);
     expect(rows.reduce((s, r) => s + r.share, 0)).toBeCloseTo(1);
   });
 
-  it('counts spending with no category as a comfort, never as a need or a want', () => {
+  it('protects spending with no category instead of calling it negotiable', () => {
     const rows = tierTotals(stats([{ categoryId: null, total: 40 }]), cats);
-    expect(rows.find((r) => r.tier === 'comforts')!.total).toBe(40);
-    expect(rows.find((r) => r.tier === 'needs')!.total).toBe(0);
+    expect(rows.find((r) => r.tier === 'needs')!.total).toBe(40);
+    expect(rows.find((r) => r.tier === 'wants')!.total).toBe(0);
   });
 
   it('leaves income out of the split', () => {
@@ -95,19 +96,6 @@ describe('tierTotals', () => {
     const rows = tierTotals(stats([{ categoryId: 'dining', total: 90 }]), moved);
     expect(rows.find((r) => r.tier === 'needs')!.total).toBe(90);
     expect(rows.find((r) => r.tier === 'wants')!.total).toBe(0);
-  });
-});
-
-describe('flexibleTotal', () => {
-  it('is comforts plus wants, the money that can actually move', () => {
-    expect(FLEXIBLE_TIERS).toEqual(['comforts', 'wants']);
-    const rows = tierTotals(stats([
-      { categoryId: 'rent', total: 1200 },
-      { categoryId: 'debt', total: 150 },
-      { categoryId: 'subscriptions', total: 50 },
-      { categoryId: 'dining', total: 200 },
-    ]), DEFAULT_CATEGORIES);
-    expect(flexibleTotal(rows)).toBe(250);
   });
 });
 

@@ -8,7 +8,7 @@ import { monthLabel, today } from '@/lib/dates';
 import { isWholeMonth } from '@/lib/plain';
 import { periodLabel } from '@/lib/periods';
 import { effectivePlan } from '@/lib/rollover';
-import { flexibleTotal, tierTotals } from '@/lib/tiers';
+import { tierTotals } from '@/lib/tiers';
 import { monthlyEquivalent } from '@/lib/recurring';
 import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
@@ -54,8 +54,7 @@ export default function BudgetScreen() {
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
 
   const tiers = useMemo(() => tierTotals(stats, categories), [stats, categories]);
-  const flexible = flexibleTotal(tiers);
-  const tierNames = { needs: t.tierNeeds, obligations: t.tierObligations, comforts: t.tierComforts, wants: t.tierWants };
+  const tierNames = { needs: t.tierNeeds, obligations: t.tierObligations, wants: t.tierWants };
 
   const openOverall = () => { setOverallText(overall != null ? String(overall) : ''); setShowOverall(true); };
   const saveOverall = async () => {
@@ -118,7 +117,6 @@ export default function BudgetScreen() {
                 <View style={{ marginTop: spacing.xs }}><ProgressBar fraction={row.share} /></View>
               </View>
             ))}
-            <Text variant="muted" style={{ marginTop: spacing.md }}>{t.flexibleShort(money(flexible, { compact: true }))}</Text>
           </Card>
         </>
       ) : null}
