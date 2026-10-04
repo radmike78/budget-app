@@ -293,6 +293,13 @@ export const en = {
     deleteCategoryQ: (name: string) => `Delete ${name}?`,
     deleteCategoryUsed: (n: number) => `${n === 1 ? '1 entry' : `${n} entries`} will keep their amounts but lose this category. Archiving keeps everything intact.`,
     cannotUndo: 'This cannot be undone.',
+    privacyPolicy: 'Privacy policy',
+    eraseEverything: 'Erase everything',
+    eraseEverythingSub: 'Remove every entry, goal and setting from this phone.',
+    eraseEverythingQ: 'Erase everything?',
+    eraseEverythingBody: 'Every entry, goal, reminder and debt on this phone will be removed, and the app will be as it was when you installed it. This cannot be undone. Export a backup first if you want to keep a copy.',
+    erase: 'Erase',
+    erased: 'Everything has been erased.',
     // goal editor
     addMoney: 'Add money',
     alsoLogTransferShort: 'Also log as Savings / Transfer',
