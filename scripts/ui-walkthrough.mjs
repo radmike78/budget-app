@@ -391,6 +391,19 @@ await step('pay-period budgeting needs a repeating income, then follows paydays'
   await goto('/settings');
   await text('Calendar month').click(); await page.waitForTimeout(500);
 });
+await step('erase everything leaves the app as it was installed', async () => {
+  await goto('/settings');
+  await button(/^Erase everything$/).click(); await page.waitForTimeout(1200);
+  await goto('/');
+  await expectText('Nothing here yet');
+  await goto('/budget');
+  await expectNoText('Trader Joe');
+  await goto('/goals');
+  await expectText('No goals yet');
+  await goto('/settings/keywords');
+  await expectNoText('costco');
+  await shot('erased');
+});
 
 await context.close(); await browser.close(); server.close();
 console.log(log.join('\n'));

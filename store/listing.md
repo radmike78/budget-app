@@ -54,6 +54,8 @@ First release.
 
 ## Privacy
 
+Full policy: `docs/PRIVACY.md`, rendered to `docs/privacy.html`. Host it and put the URL in both consoles (see `docs/RELEASE.md`).
+
 ### Apple privacy nutrition label
 - **Data not collected.** The app has no server, no analytics SDK, no advertising identifier, and no crash reporting service.
 - Speech recognition uses Apple's Speech framework on the device where supported. Apple's own on-device / server recognition policy applies to the recognizer, not to OnlyBudget.
@@ -62,7 +64,7 @@ First release.
 ### Google Play data safety
 - Does the app collect or share user data? **No** by default.
 - Optional feature: "Smart parsing assist" (off by default, user provides own API key) transmits short text phrases to Anthropic's API for processing. Data type: *Other user-generated content*. Purpose: *App functionality*. Optional: *Yes*. Encrypted in transit: *Yes*. Not shared with third parties beyond the processing itself. Users can disable at any time.
-- Data is stored on the device only. Users can delete it by uninstalling or by using the in-app export/restore tools.
+- Data is stored on the device only. Users can delete all of it at any time with Settings → Erase everything, which also clears the optional Smart Assist key, or by uninstalling the app.
 
 ### Permissions
 - **Microphone**: to hear a spoken entry. Only while the mic button is active.

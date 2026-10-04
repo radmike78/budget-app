@@ -191,11 +191,15 @@ async function seedDefaultCategories(db: DB): Promise<void> {
   }
 }
 
-/** Test/reset helper: wipes every table and re-seeds defaults. */
+/**
+ * Wipes every table and puts the settings row back to its defaults, so the app is
+ * as it was on the day it was installed. `onboarding_done` is the one thing kept:
+ * someone erasing their data has already met the app and does not need meeting again.
+ */
 export async function resetDatabase(db: DB): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers; DELETE FROM app_state;');
-    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female', accent='sage' WHERE id=1");
+    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', app_lock=0, answer_mode='auto', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female', accent='sage' WHERE id=1");
   });
   await seedDefaultCategories(db);
 }

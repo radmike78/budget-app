@@ -14,9 +14,9 @@ import { cancelDailyReminder, scheduleDailyReminder } from '@/lib/reminders';
 import { authenticate, canUseAppLock } from '@/lib/appLock';
 import { triggerOfflineModelDownload } from '@/lib/speech';
 import { LANGUAGE_OPTIONS, useLanguageCode, useT } from '@/i18n';
-import { notify } from '@/lib/dialogs';
+import { confirmDialog, notify } from '@/lib/dialogs';
 import { Sheet } from '@/components/pickers';
-import { Button, Card, ListItem, Row, Screen, SectionTitle, Segmented, Text } from '@/components/ui';
+import { Button, Card, ListItem, Row, Screen, SectionTitle, Segmented, Spacer, Text } from '@/components/ui';
 
 function hourLabel(h: number): string {
   return `${h < 10 ? '0' : ''}${h}:00`;
@@ -29,11 +29,13 @@ export default function SettingsScreen() {
   const languageCode = useLanguageCode();
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
+  const resetAll = useAppStore((s) => s.resetAll);
   const keywords = useAppStore((s) => s.keywords);
   const rules = useAppStore((s) => s.rules);
   const voiceSummary = useVoiceSummary();
   const [showCurrency, setShowCurrency] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  const [erasing, setErasing] = useState(false);
   if (!settings) return null;
 
   const reminderText = { title: t.reminderTitle, body: t.reminderBody, channelName: t.reminderChannelDaily };
@@ -72,6 +74,22 @@ export default function SettingsScreen() {
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const languageLabel = settings.language === 'system' ? `${t.systemLanguage} (${LANGUAGE_OPTIONS.find((o) => o.code === languageCode)?.name ?? languageCode})` : LANGUAGE_OPTIONS.find((o) => o.code === settings.language)?.name ?? settings.language;
+
+  // Last thing on the screen, behind a dialog, and genuinely final: this is the
+  // answer to "can I get my data off here", so it must leave nothing behind.
+  const eraseEverything = async () => {
+    if (erasing) return;
+    if (!(await confirmDialog(t.eraseEverythingQ, t.eraseEverythingBody, { confirmText: t.erase, cancelText: t.cancel, destructive: true }))) return;
+    setErasing(true);
+    try {
+      await resetAll();
+      notify(t.eraseEverything, t.erased);
+    } catch (e) {
+      notify(t.eraseEverything, t.didntWork((e as Error).message));
+    } finally {
+      setErasing(false);
+    }
+  };
 
   return (
     <Screen>
@@ -148,7 +166,15 @@ export default function SettingsScreen() {
       <SectionTitle>{t.about}</SectionTitle>
       <ListItem title={t.help} subtitle={t.helpSub} onPress={() => router.push('/settings/help')} />
       <ListItem title={t.aboutApp} subtitle={t.aboutSub} onPress={() => router.push('/settings/about')} />
-      <Text variant="small" style={{ marginTop: spacing.md, textAlign: 'center' }}>{t.appName} {version}</Text>
+
+      <SectionTitle>{t.eraseEverything}</SectionTitle>
+      <Card>
+        <Text variant="muted">{t.eraseEverythingSub}</Text>
+        <Spacer size={spacing.md} />
+        <Button tone="danger" title={t.eraseEverything} onPress={eraseEverything} loading={erasing} />
+      </Card>
+
+      <Text variant="small" style={{ marginTop: spacing.xl, textAlign: 'center' }}>{t.appName} {version}</Text>
 
       <Sheet visible={showCurrency} onClose={() => setShowCurrency(false)} title={t.currency} tall>
         <ScrollView>

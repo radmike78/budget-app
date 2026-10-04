@@ -12,6 +12,7 @@ import { dueOccurrences } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
 import { redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
+import { setApiKey } from '@/lib/secrets';
 import { cancelAllReminderNotifications, cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
 import { getLocale, resolveLanguage } from '@/i18n';
 
@@ -516,8 +517,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   resetAll: async () => {
     const db = await getDb();
+    // Reminders already on the phone's schedule would outlive the data they came from.
+    await cancelAllReminderNotifications();
     const { resetDatabase } = await import('@/db/database');
     await resetDatabase(db);
+    // The Smart Assist key is the user's own credential and lives outside the database.
+    await setApiKey(null).catch(() => {});
     await get().refresh();
   },
 }));
