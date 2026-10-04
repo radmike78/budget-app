@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Frequency, TxType } from '@/types';
@@ -39,6 +39,9 @@ export default function RecurringEditor() {
   const [showCat, setShowCat] = useState(false);
   const [showDate, setShowDate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  // Settled when the editor opens, so a double tap upserts one rule rather than making two.
+  const newRuleId = useRef(newId());
   const category = categories.find((c) => c.id === categoryId);
 
   const changeType = (nextType: TxType) => {
@@ -47,18 +50,22 @@ export default function RecurringEditor() {
   };
 
   const persist = async (rule: Parameters<typeof save>[0]) => {
+    if (saving) return;
+    setSaving(true);
     try {
       await save(rule);
       router.back();
     } catch (e) {
       notify(t.didntWork((e as Error).message));
+    } finally {
+      setSaving(false);
     }
   };
 
   const onSave = async () => {
     const a = parseMoneyInput(amount, locale.format.decimal === ',');
     if (a == null || a <= 0) { setError(t.enterAmount); return; }
-    await persist({ id: existing?.id ?? newId(), amount: a, type, categoryId, frequency, nextOccurrence: next, note: note.trim() || null, active: existing?.active ?? true });
+    await persist({ id: existing?.id ?? newRuleId.current, amount: a, type, categoryId, frequency, nextOccurrence: next, note: note.trim() || null, active: existing?.active ?? true });
   };
 
   const onDelete = async () => {
@@ -84,10 +91,10 @@ export default function RecurringEditor() {
       <Text variant="small" style={{ marginBottom: spacing.lg }}>{t.firstDateHint}</Text>
       <Field label={t.note} value={note} onChangeText={setNote} placeholder={t.recurringNotePlaceholder} />
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
-      <Button title={isNew ? t.startRepeating : t.save} onPress={onSave} />
+      <Button title={isNew ? t.startRepeating : t.save} onPress={onSave} loading={saving} />
       {existing ? (
         <Row style={{ marginTop: spacing.md }}>
-          <Button tone="secondary" title={existing.active ? t.pause : t.resume} style={{ flex: 1 }} onPress={() => persist({ ...existing, active: !existing.active })} />
+          <Button tone="secondary" title={existing.active ? t.pause : t.resume} style={{ flex: 1 }} disabled={saving} onPress={() => persist({ ...existing, active: !existing.active })} />
           <Button tone="danger" title={t.remove} style={{ flex: 1 }} onPress={onDelete} />
         </Row>
       ) : null}

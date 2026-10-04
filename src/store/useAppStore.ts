@@ -226,7 +226,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     const tx = await repo.getTransaction(db, id);
     await repo.deleteTransaction(db, id);
-    set({ lastDeleted: tx ? { tx, at: Date.now() } : null });
+    // Nothing was there to remove (a second tap on the same button): the offer to
+    // put back the entry that *was* removed has to survive it.
+    if (tx) set({ lastDeleted: { tx, at: Date.now() } });
     await get().refresh();
   },
 

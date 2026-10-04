@@ -183,9 +183,10 @@ async function seedDefaultCategories(db: DB): Promise<void> {
   const count = await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM categories');
   if ((count?.n ?? 0) > 0) return;
   for (const c of DEFAULT_CATEGORIES) {
+    // Seeding runs after every migration, so the tier column is always there to fill.
     await db.runAsync(
-      'INSERT OR IGNORE INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder],
+      'INSERT OR IGNORE INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.tier ?? null],
     );
   }
 }

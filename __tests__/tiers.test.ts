@@ -34,6 +34,13 @@ describe('default tiers', () => {
     expect(tierFor('shopping')).toBe('wants');
   });
 
+  it('ships the same tier it would derive, so the seeded rows and the code agree', () => {
+    for (const c of DEFAULT_CATEGORIES) {
+      if (c.kind !== 'expense') { expect(c.tier ?? null).toBeNull(); continue; }
+      expect(c.tier).toBe(defaultTierFor(c));
+    }
+  });
+
   it('reads a custom category that sounds like a necessity as one', () => {
     const custom = (name: string) => defaultTierFor({ id: 'custom-1', name, kind: 'expense' });
     expect(custom('Childcare')).toBe('needs');

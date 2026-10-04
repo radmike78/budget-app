@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
@@ -40,6 +40,8 @@ export default function GoalEditor() {
   const [logTransfer, setLogTransfer] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Settled when the editor opens, so a double tap upserts one goal rather than making two.
+  const newGoalId = useRef(newId());
 
   const onSave = async () => {
     const targetValue = parseMoneyInput(target, decimalComma);
@@ -49,7 +51,9 @@ export default function GoalEditor() {
     if (saving) return;
     setSaving(true);
     try {
-      await save({ id: existing?.id ?? newId(), name: name.trim(), kind, targetAmount: targetValue, currentAmount: currentValue, targetDate, createdAt: existing?.createdAt ?? nowIso(), completed: currentValue >= targetValue });
+      // "Mark done" is an answer, not a calculation: editing the name later must not undo it.
+      const completed = currentValue >= targetValue || (existing?.completed ?? false);
+      await save({ id: existing?.id ?? newGoalId.current, name: name.trim(), kind, targetAmount: targetValue, currentAmount: currentValue, targetDate, createdAt: existing?.createdAt ?? nowIso(), completed });
       router.back();
     } catch (e) {
       setError(t.didntWork((e as Error).message));
