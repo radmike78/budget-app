@@ -18,6 +18,7 @@
     "ui:scenario": "node scripts/ui-scenario-shots.mjs dist out/scenario",
     "ui:persona": "node scripts/ui-persona-shots.mjs dist out/persona",
     "ui:sweep": "node scripts/ui-sweep-shots.mjs dist out/sweep",
+    "ui:gallery": "node scripts/ui-gallery.mjs dist out/gallery",
     "audit": "npm audit --omit=dev",
     "postinstall": "node scripts/build-pdf-extractor.js",
     "check:pdf-security": "node --experimental-strip-types --no-warnings scripts/pdf-security-check.mjs"
