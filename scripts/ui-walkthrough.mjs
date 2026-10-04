@@ -196,10 +196,34 @@ await step('repeating entry', async () => {
   const boxes = page.getByRole('textbox');
   await boxes.nth(0).fill('15.49');
   await boxes.nth(1).fill('Netflix').catch(() => {});
-  await button(/Start repeating/).click(); await page.waitForTimeout(800);
+  // Two taps in a row must leave one rule, not two: a duplicate would log Netflix twice a month.
+  const start = button(/Start repeating/);
+  await start.click({ force: true });
+  await start.click({ force: true, timeout: 1500 }).catch(() => {});
+  await page.waitForTimeout(1200);
   await goto('/recurring');
   await expectText('Netflix');
+  const netflixRows = await page.getByText('Netflix', { exact: false }).count();
+  if (netflixRows !== 1) throw new Error(`expected one Netflix rule, found ${netflixRows}`);
   await shot('recurring-list');
+});
+await step('removing an entry twice still offers to put it back', async () => {
+  await goto('/');
+  await entry('taxi 18');
+  await button(/^Save$/).click(); await page.waitForTimeout(900);
+  await goto('/history');
+  await page.getByText('Taxi', { exact: false }).first().click(); await page.waitForTimeout(800);
+  const removeBtn = button(/Remove entry/);
+  await removeBtn.click({ force: true });
+  await removeBtn.click({ force: true, timeout: 1500 }).catch(() => {});
+  await page.waitForTimeout(900);
+  await expectText('Entry removed');
+  await button(/^Undo$/).click(); await page.waitForTimeout(900);
+  await goto('/history');
+  await expectText('Taxi');
+  // Put it back the way the screen was found.
+  await page.getByText('Taxi', { exact: false }).first().click(); await page.waitForTimeout(800);
+  await button(/Remove entry/).click(); await page.waitForTimeout(900);
 });
 await step('history search', async () => {
   await goto('/history');

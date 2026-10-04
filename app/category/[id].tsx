@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Rollover, Tier, TxType } from '@/types';
@@ -46,6 +46,8 @@ export default function CategoryEditor() {
   }, [existing]);
 
   const [saving, setSaving] = useState(false);
+  // Settled when the editor opens, so a double tap upserts one category rather than making two.
+  const newCategoryId = useRef(newId());
 
   const onSave = async () => {
     if (!name.trim()) { setError(t.giveName); return; }
@@ -59,7 +61,7 @@ export default function CategoryEditor() {
     // Carrying over starts with the period it was switched on in; earlier periods never add anything.
     const rolloverSince = nextRollover === 'reset' ? null : (existing?.rollover ?? 'reset') !== 'reset' && existing?.rolloverSince ? existing.rolloverSince : period.start;
     await save({
-      id: existing?.id ?? newId(),
+      id: existing?.id ?? newCategoryId.current,
       name: renamed,
       icon,
       kind,

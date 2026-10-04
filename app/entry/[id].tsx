@@ -32,6 +32,7 @@ export default function EditEntry() {
   const [showCat, setShowCat] = useState(false);
   const [showDate, setShowDate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -54,15 +55,30 @@ export default function EditEntry() {
   const save = async () => {
     const a = parseMoneyInput(amount, locale.format.decimal === ',');
     if (a == null || a <= 0) { setError(t.enterAmount); return; }
-    await update({ ...tx, amount: a, type, categoryId, note: note.trim() || null, occurredAt: date });
-    if (categoryId && categoryId !== tx.categoryId && tx.rawInput) await learn(tx.rawInput, categoryId);
-    router.back();
+    if (busy) return;
+    setBusy(true);
+    try {
+      await update({ ...tx, amount: a, type, categoryId, note: note.trim() || null, occurredAt: date });
+      if (categoryId && categoryId !== tx.categoryId && tx.rawInput) await learn(tx.rawInput, categoryId);
+      router.back();
+    } catch (e) {
+      setError(t.didntWork((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
   };
 
   // No "are you sure?": the entry goes at once and the Undo bar on the tabs puts it back.
   const removeEntry = async () => {
-    await remove(tx.id);
-    router.back();
+    if (busy) return;
+    setBusy(true);
+    try {
+      await remove(tx.id);
+      router.back();
+    } catch (e) {
+      setError(t.didntWork((e as Error).message));
+      setBusy(false);
+    }
   };
 
   return (
@@ -80,8 +96,8 @@ export default function EditEntry() {
       </Row>
       <Field label={t.note} value={note} onChangeText={setNote} placeholder={t.optional} />
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
-      <Button title={t.saveChanges} onPress={save} />
-      <View style={{ marginTop: spacing.md }}><Button tone="danger" title={t.removeEntry} onPress={removeEntry} /></View>
+      <Button title={t.saveChanges} onPress={save} loading={busy} />
+      <View style={{ marginTop: spacing.md }}><Button tone="danger" title={t.removeEntry} onPress={removeEntry} disabled={busy} /></View>
       <CategoryPicker visible={showCat} onClose={() => setShowCat(false)} onPick={(c) => setCategoryId(c.id)} kind={type} selectedId={categoryId} categories={categories} />
       <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={date} onPick={setDate} />
     </Screen>

@@ -93,16 +93,22 @@ export function useVoiceInput(onFinal: (text: string) => void) {
       onDevice = false;
     }
     const pack = getPack(language);
-    ExpoSpeechRecognitionModule.start({
-      lang: pack.speechTag,
-      interimResults: true,
-      maxAlternatives: 1,
-      continuous: false,
-      requiresOnDeviceRecognition: onDevice,
-      addsPunctuation: false,
-      iosTaskHint: 'dictation',
-      contextualStrings: pack.contextualStrings,
-    });
+    try {
+      ExpoSpeechRecognitionModule.start({
+        lang: pack.speechTag,
+        interimResults: true,
+        maxAlternatives: 1,
+        continuous: false,
+        requiresOnDeviceRecognition: onDevice,
+        addsPunctuation: false,
+        iosTaskHint: 'dictation',
+        contextualStrings: pack.contextualStrings,
+      });
+    } catch {
+      // A recognizer that refuses the request outright never sends an error event,
+      // so say so here rather than leaving the mic looking as if it is listening.
+      setState((s) => ({ ...s, listening: false, error: t.voiceErrors.unavailable }));
+    }
   }, [language, t]);
 
   const stop = useCallback(() => {

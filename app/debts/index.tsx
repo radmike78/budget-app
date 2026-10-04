@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Debt, DebtType } from '@/types';
@@ -51,13 +51,18 @@ export default function DebtsScreen() {
     setAprText(d?.apr != null ? String(d.apr) : '');
   };
   const [saving, setSaving] = useState(false);
+  // A React state flag is set too late to stop a second tap in the same frame; a ref is not,
+  // and an id settled when the editor opens means a tap that slips through upserts one row.
+  const inFlight = useRef(false);
+  const newDebtId = useRef(newId());
   const commitEdit = async () => {
-    if (!editing || !editing.creditor?.trim() || saving) return;
+    if (!editing || !editing.creditor?.trim() || inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     const balance = parseMoneyInput(balanceText, decimalComma) ?? 0;
     const apr = Number(aprText.replace(',', '.'));
     await saveDebt({
-      id: editing.id ?? newId(),
+      id: editing.id ?? newDebtId.current,
       creditor: editing.creditor.trim().slice(0, 80),
       type: editing.type ?? 'other',
       balance,
@@ -66,14 +71,16 @@ export default function DebtsScreen() {
       apr: aprText.trim() && Number.isFinite(apr) && apr >= 0 && apr <= 100 ? apr : null,
       source: editing.source ?? 'manual',
       updatedAt: nowIso(),
-    }).finally(() => setSaving(false));
+    }).finally(() => { inFlight.current = false; setSaving(false); });
+    newDebtId.current = newId();
     setEditing(null);
   };
   const remove = async (d: Debt) => {
     if (await confirmDialog(t.removeDebtQ, d.creditor, { confirmText: t.remove, cancelText: t.keep, destructive: true })) await removeDebt(d.id);
   };
   const makeGoal = async (d: Debt) => {
-    if (saving) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     try {
       // The same debt is one goal, however often the button is tapped.
@@ -81,6 +88,7 @@ export default function DebtsScreen() {
       if (!open) await saveGoal({ id: newId(), name: d.creditor, kind: 'debt', targetAmount: d.balance, currentAmount: 0, targetDate: null, createdAt: nowIso(), completed: false });
       router.push('/goals');
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   };
