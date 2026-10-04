@@ -41,12 +41,16 @@ export function PeriodCard({ stats, settings, categories, rules, today, onBarPre
   if (overall) {
     const remaining = overall - stats.expenses;
     headline = Math.abs(remaining);
-    label = remaining >= 0 ? t.ofPlanShort(money(overall, { compact: true })) : t.pastPlanShort(money(-remaining, { compact: true }), money(overall, { compact: true }));
+    // The headline already is the amount, so the label is words only: never the same number twice.
+    label = remaining >= 0 ? t.ofPlanShort(money(overall, { compact: true })) : t.pastPlanLabel(money(overall, { compact: true }));
     if (remaining >= 0 && daysLeft > 0) detail = t.perDayShort(money(remaining / daysLeft, { compact: true }));
     tone = remaining >= 0 ? colors.income : colors.warn;
   } else if (safe) {
     headline = Math.abs(safe.amount);
-    label = safe.amount >= 0 ? t.toSpendUntil(until) : t.pastPlanShort(money(-safe.amount, { compact: true }), money(stats.income, { compact: true }));
+    // No plan was set, so income is not "the plan". The shortfall counts the bills still due
+    // this period, so when there are any it is "short once they are paid", and only without
+    // them is it simply "more than came in".
+    label = safe.amount >= 0 ? t.toSpendUntil(until) : t.shortOfIncome(safe.upcoming > 0);
     if (safe.perDay != null) detail = t.perDayShort(money(safe.perDay, { compact: true }));
     tone = safe.amount >= 0 ? colors.income : colors.warn;
   } else if (stats.income > 0) {

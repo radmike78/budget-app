@@ -87,7 +87,10 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
         { label: friendlyDate(addDays(t, -2), t, fmt), date: addDays(t, -2) },
         { label: friendlyDate(addDays(t, -3), t, fmt), date: addDays(t, -3) },
       ];
-  const valid = isValidDateString(custom);
+  // A deadline or a reminder belongs to today or later; an entry may be any day at all.
+  const forward = future || mode === 'reminder';
+  const tooEarly = forward && isValidDateString(custom) && custom < t;
+  const valid = isValidDateString(custom) && !tooEarly;
   return (
     <Sheet visible={visible} onClose={onClose} title={s.date}>
       <Row style={{ flexWrap: 'wrap' }}>
@@ -97,7 +100,7 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
       </Row>
       <View style={{ height: spacing.lg }} />
       <Row gap={spacing.sm} align="flex-end">
-        <Field label={s.orTypeDate} placeholder="YYYY-MM-DD" value={custom} onChangeText={setCustom} autoCapitalize="none" keyboardType="numbers-and-punctuation" style={{ flex: 1, marginBottom: 0 }} hint={custom && !valid ? s.dateFormatHint : undefined} />
+        <Field label={s.orTypeDate} placeholder="YYYY-MM-DD" value={custom} onChangeText={setCustom} autoCapitalize="none" keyboardType="numbers-and-punctuation" style={{ flex: 1, marginBottom: 0 }} hint={tooEarly ? s.dateNotPast : custom && !valid ? s.dateFormatHint : undefined} />
         <Button title={s.use} disabled={!valid} onPress={() => { onPick(custom); onClose(); }} />
       </Row>
       {value ? <Text variant="small" style={{ marginTop: spacing.md }}>{s.currently(friendlyDate(value, t, fmt))}</Text> : null}

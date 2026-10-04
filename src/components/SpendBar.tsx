@@ -4,6 +4,7 @@ import type { Category, MonthStats } from '@/types';
 import { spacing, useTheme } from '@/theme';
 import { ramp } from '@/lib/color';
 import { expenseBreakdown } from '@/lib/plain';
+import { FALLBACK_EXPENSE_CATEGORY_ID } from '@/lib/defaultCategories';
 import { Row, Text } from '@/components/ui';
 
 /** How many categories get their own segment; the rest fold into "Other". */
@@ -25,8 +26,11 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, onPress }: {
   const { colors, isDark } = useTheme();
   if (stats.expenses <= 0) return null;
   const rows = expenseBreakdown(stats, categories);
-  const top = rows.slice(0, SEGMENTS - 1);
-  const rest = rows.slice(SEGMENTS - 1);
+  // The "Other" category and spending with no category are both "other": giving either a
+  // segment of its own would put two "Other" labels side by side with the folded remainder.
+  const named = rows.filter((r) => r.category && r.category.id !== FALLBACK_EXPENSE_CATEGORY_ID);
+  const top = named.slice(0, SEGMENTS - 1);
+  const rest = rows.filter((r) => !top.includes(r));
   const restTotal = rest.reduce((s, r) => s + r.total, 0);
   const segments = top.map((r) => ({ key: r.category?.id ?? 'none', label: r.category ? nameOf(r.category) : otherLabel, icon: r.category?.icon ?? null, share: r.share }));
   if (restTotal > 0) segments.push({ key: 'other', label: otherLabel, icon: null, share: restTotal / stats.expenses });

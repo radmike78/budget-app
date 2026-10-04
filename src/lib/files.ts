@@ -55,6 +55,27 @@ export async function pickTextFile(): Promise<{ name: string; text: string } | n
   return { name: asset.name, text };
 }
 
+/**
+ * Every export is written to the cache before the share sheet takes it, and a plain
+ * backup holds the whole budget. The receiving app may still be reading it when the
+ * sheet closes, so nothing is deleted then; instead the next launch, and Erase
+ * everything, remove whatever an earlier export left behind. Returns how many went.
+ */
+export async function sweepExportCache(): Promise<number> {
+  if (Platform.OS === 'web') return 0;
+  let removed = 0;
+  try {
+    for (const entry of Paths.cache.list()) {
+      if (entry instanceof File && /^onlybudget-(?:entries|summary|backup)-/i.test(entry.name)) {
+        try { entry.delete(); removed += 1; } catch { /* best effort */ }
+      }
+    }
+  } catch {
+    // no cache directory yet
+  }
+  return removed;
+}
+
 export function timestampForFilename(d = new Date()): string {
   const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
