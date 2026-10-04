@@ -62,9 +62,10 @@ function groupThousands(intPart: string, sep: string): string {
 export function formatMoney(amount: number, code: string, opts: { compact?: boolean; format?: MoneyFormat } = {}): string {
   const info = currencyInfo(code);
   const fmt = opts.format ?? DEFAULT_MONEY_FORMAT;
-  const negative = amount < 0;
   const abs = Math.abs(amount);
   const rounded = Math.round(abs * 10 ** info.decimals) / 10 ** info.decimals;
+  // Decided after rounding: income minus spending can come out as -0.0000001, which is no money at all.
+  const negative = amount < 0 && rounded > 0;
   let numberText: string;
   if (opts.compact && Number.isInteger(rounded)) {
     numberText = groupThousands(String(rounded), fmt.group);

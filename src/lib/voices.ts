@@ -22,8 +22,11 @@ export function genderOf(name: string): VoiceGender | null {
   if (/\bfemale\b|_female|#female|-female/.test(n)) return 'female';
   if (/\bmale\b|_male|#male|-male/.test(n)) return 'male';
   const words = n.replace(/[()_,-]/g, ' ').split(/\s+/);
-  if (FEMALE_NAMES.some((f) => words.includes(f) || n.includes(f))) return 'female';
-  if (MALE_NAMES.some((m) => words.includes(m))) return 'male';
+  // A name is matched as a whole word: "ava" must not claim "Gustavo", nor "flo" "Florian".
+  // Only the entries that are themselves phrases ("siri female") are looked for inside the name.
+  const has = (entry: string) => (entry.includes(' ') ? n.includes(entry) : words.includes(entry));
+  if (FEMALE_NAMES.some(has)) return 'female';
+  if (MALE_NAMES.some(has)) return 'male';
   return null;
 }
 

@@ -447,6 +447,8 @@ export const en = {
     planShort: (spent: string, plan: string, left: string) => `${left} left of ${plan}`,
     toGoShort: (toGo: string) => `${toGo} to go`,
     pastPlanShort: (over: string, plan: string) => `${over} past the ${plan} plan`,
+    shortOfIncome: (billsDue: boolean): string => (billsDue ? 'short once the bills are paid' : 'more than came in'),
+    pastPlanLabel: (plan: string) => `past the ${plan} plan`,
     carriedShort: (amount: string) => `+${amount} carried over`,
     goalShort: (current: string, target: string, toGo: string) => `${current} of ${target} · ${toGo} to go`,
     paceAhead: 'ahead of pace',
@@ -570,6 +572,7 @@ export const en = {
     inAYear: 'In a year',
     orTypeDate: 'Or type a date',
     dateFormatHint: 'Use the format 2026-09-03.',
+    dateNotPast: 'Pick today or a later date.',
     currently: (d: string) => `Currently: ${d}`,
     // reminders
     reminderTitle: 'Anything to log today?',

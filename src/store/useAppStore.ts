@@ -13,7 +13,8 @@ import { learnableWords } from '@/parser';
 import { redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
-import { cancelAllReminderNotifications, cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
+import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
+import { sweepExportCache } from '@/lib/files';
 import { getLocale, resolveLanguage } from '@/i18n';
 
 interface AppState {
@@ -163,6 +164,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ ready: true });
         get().rearmReminders().catch(() => {});
         sweepImportCache().catch(() => {});
+        sweepExportCache().catch(() => {});
       })().catch((e) => {
         initPromise = null; // a failed start may be retried
         throw e;
@@ -271,7 +273,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveGoal: async (g) => {
     const db = await getDb();
-    await repo.upsertGoal(db, { ...g, name: redactSensitive(g.name) || g.name });
+    // Money on a goal is never negative. A typed "-50" would otherwise be stored, and the
+    // backup validator (rightly) refuses negative amounts, so every later restore would fail.
+    const nonNegative = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
+    await repo.upsertGoal(db, { ...g, name: redactSensitive(g.name) || g.name, targetAmount: nonNegative(g.targetAmount), currentAmount: nonNegative(g.currentAmount) });
     await get().refresh();
   },
 
@@ -517,12 +522,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   resetAll: async () => {
     const db = await getDb();
-    // Reminders already on the phone's schedule would outlive the data they came from.
+    // Reminders already on the phone's schedule would outlive the data they came from,
+    // and so would the evening nudge: the setting goes back to off, so must the alarm.
     await cancelAllReminderNotifications();
+    await cancelDailyReminder();
     const { resetDatabase } = await import('@/db/database');
     await resetDatabase(db);
     // The Smart Assist key is the user's own credential and lives outside the database.
     await setApiKey(null).catch(() => {});
+    // An export written before the erase is a full copy of what was just erased.
+    await sweepExportCache().catch(() => {});
+    // The voices' memory of recent lines is kept in the module as well as the table just wiped.
+    const { forgetRecentLines } = await import('@/components/persona');
+    forgetRecentLines();
     await get().refresh();
   },
 }));

@@ -323,7 +323,9 @@ export function deriveNote(leftover: string, pack: LanguagePack): string | null 
   for (const re of pack.noteStrip) s = s.replace(re, ' ').replace(/\s+/g, ' ').trim();
   s = s.replace(pack.leadingFiller, '').replace(pack.trailingFiller, '').trim();
   s = s.replace(/^[\-–—.]+|[\-–—.]+$/g, '').trim();
-  if (!s) return null;
+  // "$-20 refund" or "coffee $" leave a bare symbol behind; it is not part of what was bought.
+  s = s.replace(/(^|\s)[$€£¥₩₹₱]+(?=\s|$)/gu, ' ').replace(/\s+/g, ' ').trim();
+  if (!/[\p{L}\p{N}]/u.test(s)) return null;
   // "got a refund of $45" leaves "of": a lone stopword is no note.
   if (pack.tokenizer === 'space' && !s.includes(' ') && pack.stopwords.includes(s)) return null;
   return s.charAt(0).toUpperCase() + s.slice(1);
