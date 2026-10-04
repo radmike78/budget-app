@@ -45,6 +45,7 @@ export const en = {
     clear: 'Clear',
     manage: 'Manage',
     seeAll: 'See all',
+    showMore: 'Show more',
     allGoals: 'All goals',
     today: 'Today',
     yesterday: 'Yesterday',

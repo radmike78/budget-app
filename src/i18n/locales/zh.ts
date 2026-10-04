@@ -39,6 +39,7 @@ export const zh: LocaleDef = {
     clear: '清除',
     manage: '管理',
     seeAll: '查看全部',
+    showMore: '显示更多',
     allGoals: '全部目标',
     today: '今天',
     yesterday: '昨天',

@@ -39,6 +39,7 @@ export const ja: LocaleDef = {
     clear: 'クリア',
     manage: '管理',
     seeAll: 'すべて見る',
+    showMore: 'もっと見る',
     allGoals: 'すべての目標',
     today: '今日',
     yesterday: '昨日',

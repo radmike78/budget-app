@@ -11,7 +11,7 @@ import { parseMoneyInput } from '@/lib/money';
 import { categoryName, useLocale, useT } from '@/i18n';
 import { confirmDialog } from '@/lib/dialogs';
 import { EmojiPicker } from '@/components/pickers';
-import { tierOf } from '@/lib/tiers';
+import { defaultTierFor, tierOf } from '@/lib/tiers';
 import { Button, Field, Row, Screen, Segmented, Text } from '@/components/ui';
 
 export default function CategoryEditor() {
@@ -33,7 +33,9 @@ export default function CategoryEditor() {
   const [kind, setKind] = useState<TxType>(existing?.kind ?? (kindParam === 'income' ? 'income' : 'expense'));
   const [limit, setLimit] = useState(existing?.monthlyLimit != null ? String(existing.monthlyLimit) : '');
   const [rollover, setRollover] = useState<Rollover>(existing?.rollover ?? 'reset');
-  const [tier, setTier] = useState<Tier>(existing ? tierOf(existing) : 'wants');
+  // A new category follows its name ("Daycare" starts on Needs) until the control is touched.
+  const [tier, setTier] = useState<Tier | null>(existing ? tierOf(existing) : null);
+  const effectiveTier: Tier = tier ?? defaultTierFor({ id: '', name, kind });
   const [showEmoji, setShowEmoji] = useState(false);
   const [usage, setUsage] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function CategoryEditor() {
       monthlyLimit,
       rollover: nextRollover,
       rolloverSince,
-      tier: kind === 'expense' ? tier : null,
+      tier: kind === 'expense' ? effectiveTier : null,
       isDefault: existing?.isDefault && renamed === existing.name ? true : false,
       archived: existing?.archived ?? false,
       sortOrder: existing?.sortOrder ?? 50,
@@ -99,7 +101,7 @@ export default function CategoryEditor() {
       {kind === 'expense' ? (
         <View style={{ marginBottom: spacing.lg }}>
           <Text variant="label" style={{ marginBottom: 6 }}>{t.tierLabel}</Text>
-          <Segmented<Tier> value={tier} onChange={setTier} options={[{ value: 'needs', label: t.tierNeeds }, { value: 'obligations', label: t.tierObligations }, { value: 'wants', label: t.tierWants }]} />
+          <Segmented<Tier> value={effectiveTier} onChange={setTier} options={[{ value: 'needs', label: t.tierNeeds }, { value: 'obligations', label: t.tierObligations }, { value: 'wants', label: t.tierWants }]} />
           <Text variant="small" style={{ marginTop: 6 }}>{t.tierHint}</Text>
         </View>
       ) : null}

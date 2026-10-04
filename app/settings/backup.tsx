@@ -107,6 +107,9 @@ export default function Backup() {
     return t.restored(data.transactions.length);
   };
 
+  /** The passphrase never outlives the sheet it was typed into. */
+  const closePassphrase = () => { setAskPass(null); setPass(''); setPass2(''); };
+
   const parseFile = (text: string): unknown => {
     if (text.length > MAX_BACKUP_BYTES) throw new Error(t.notBackupFile);
     try {
@@ -133,6 +136,7 @@ export default function Backup() {
     try {
       json = decryptBackup(askPass.file as Parameters<typeof decryptBackup>[0], pass);
     } catch {
+      setPass('');
       throw new Error(t.wrongPassphrase);
     }
     setAskPass(null); setPass('');
@@ -164,13 +168,13 @@ export default function Backup() {
 
       {status ? <Text variant="body" color={status.error ? colors.danger : colors.text} style={{ marginTop: spacing.lg }}>{status.text}</Text> : null}
 
-      <Sheet visible={!!askPass} onClose={() => setAskPass(null)} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase}>
+      <Sheet visible={!!askPass} onClose={closePassphrase} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase}>
         <Field label={t.passphrase} value={pass} onChangeText={setPass} secureTextEntry autoCapitalize="none" autoFocus />
         {askPass?.mode === 'encrypt' ? <Field label={t.repeatPassphrase} value={pass2} onChangeText={setPass2} secureTextEntry autoCapitalize="none" /> : null}
         <View>
           <Button title={askPass?.mode === 'encrypt' ? t.createEncrypted : t.unlockRestore} onPress={askPass?.mode === 'encrypt' ? exportEncrypted : decryptAndRestore} loading={busy != null} />
         </View>
-        {status && askPass ? <Text variant="small" color={colors.danger} style={{ marginTop: spacing.sm }}>{status.text}</Text> : null}
+        {status && askPass ? <Text variant="small" color={status.error ? colors.danger : colors.text} style={{ marginTop: spacing.sm }}>{status.text}</Text> : null}
       </Sheet>
     </Screen>
   );

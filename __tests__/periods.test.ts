@@ -73,4 +73,14 @@ describe('safeToSpend counts every occurrence before the period ends', () => {
     const monthly = { ...rule, frequency: 'monthly', nextOccurrence: '2026-09-25' };
     expect(safeToSpend(stats, [monthly], '2026-09-17')).toMatchObject({ amount: 2450, upcoming: 50 });
   });
+
+  it('counts nothing that has already happened, however far behind the rule sits', () => {
+    const stats = { period: { start: '2026-09-01', end: '2026-09-30' }, income: 3000, expenses: 500, month: '2026-09', byCategory: [] } as any;
+    // Already due this period but in the past: it is in `expenses` already, never in "still to come".
+    const passed = { type: 'expense', active: true, amount: 50, nextOccurrence: '2026-09-04', frequency: 'monthly', anchorDay: 4 } as any;
+    expect(safeToSpend(stats, [passed], '2026-09-17')).toMatchObject({ upcoming: 0 });
+    // A rule the catch-up has not finished walking forward still reports the right bills ahead.
+    const behind = { type: 'expense', active: true, amount: 50, nextOccurrence: '2019-01-02', frequency: 'weekly', anchorDay: null } as any;
+    expect(safeToSpend(stats, [behind], '2026-09-17')).toMatchObject({ upcoming: 100 });
+  });
 });

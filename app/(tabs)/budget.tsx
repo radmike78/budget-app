@@ -40,6 +40,8 @@ export default function BudgetScreen() {
     return m;
   }, [stats]);
 
+  const tiers = useMemo(() => (stats ? tierTotals(stats, categories) : []), [stats, categories]);
+
   if (!settings || !stats) return null;
   const currency = settings.currency;
   const todayStr = today();
@@ -52,8 +54,6 @@ export default function BudgetScreen() {
   const activeRules = rules.filter((r) => r.active);
   const recurringOut = activeRules.filter((r) => r.type === 'expense').reduce((s, r) => s + monthlyEquivalent(r), 0);
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
-
-  const tiers = useMemo(() => tierTotals(stats, categories), [stats, categories]);
   const tierNames = { needs: t.tierNeeds, obligations: t.tierObligations, wants: t.tierWants };
 
   const openOverall = () => { setOverallText(overall != null ? String(overall) : ''); setShowOverall(true); };
