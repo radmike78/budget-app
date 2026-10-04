@@ -39,6 +39,7 @@ export const es: LocaleDef = {
     clear: 'Quitar',
     manage: 'Gestionar',
     seeAll: 'Ver todo',
+    showMore: 'Mostrar más',
     allGoals: 'Todas las metas',
     today: 'Hoy',
     yesterday: 'Ayer',

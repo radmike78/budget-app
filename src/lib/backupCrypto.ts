@@ -69,8 +69,12 @@ export function encryptBackup(plaintextJson: string, passphrase: string, randomB
 }
 
 const B64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
-/** Bounds on the key-derivation cost a file may ask for, so a hostile file cannot exhaust memory or time. */
-const KDF_LIMITS = { minN: 2 ** 14, maxN: 2 ** 20, maxR: 16, maxP: 4 };
+/**
+ * Bounds on the key-derivation cost a file may ask for, so a hostile file cannot
+ * exhaust memory or time. scrypt needs 128 * N * r bytes, so N and r are capped
+ * together as well as separately: the most any file can ask for is 64 MiB.
+ */
+const KDF_LIMITS = { minN: 2 ** 14, maxN: 2 ** 20, maxR: 16, maxP: 4, maxBytes: 64 * 1024 * 1024 };
 
 /**
  * True only for a well-formed file of the one format this app writes. Anything
@@ -89,6 +93,7 @@ export function isEncryptedBackupFile(x: unknown): x is EncryptedBackupFile {
   if (typeof N !== 'number' || typeof r !== 'number' || typeof p !== 'number') return false;
   if (!Number.isInteger(N) || N < KDF_LIMITS.minN || N > KDF_LIMITS.maxN || (N & (N - 1)) !== 0) return false;
   if (!Number.isInteger(r) || r < 1 || r > KDF_LIMITS.maxR || !Number.isInteger(p) || p < 1 || p > KDF_LIMITS.maxP) return false;
+  if (128 * N * r > KDF_LIMITS.maxBytes) return false;
   return true;
 }
 

@@ -29,8 +29,11 @@ export function safeToSpend(stats: MonthStats, rules: Pick<RecurringRule, 'type'
     // A weekly bill can fall due several times before the period ends; every occurrence counts.
     const anchor = r.anchorDay ?? fromDateString(r.nextOccurrence).getDate();
     let d = r.nextOccurrence;
+    // A rule can sit behind today when the catch-up has not finished walking it
+    // forward yet, so skip the past first and count only what is still to come.
+    for (let guard = 0; d <= today && guard < 2000; guard += 1) d = advance(d, r.frequency, anchor);
     for (let guard = 0; d <= end && guard < 60; guard += 1) {
-      if (d > today) upcoming += r.amount;
+      upcoming += r.amount;
       d = advance(d, r.frequency, anchor);
     }
   }

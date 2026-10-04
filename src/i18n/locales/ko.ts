@@ -39,6 +39,7 @@ export const ko: LocaleDef = {
     clear: '지우기',
     manage: '관리',
     seeAll: '모두 보기',
+    showMore: '더 보기',
     allGoals: '모든 목표',
     today: '오늘',
     yesterday: '어제',

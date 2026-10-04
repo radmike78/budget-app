@@ -194,7 +194,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
   const { colors } = useTheme();
   const scale = useTypeScale();
   return (
-    <View style={[styles.segmented, { backgroundColor: colors.cardAlt }]}>
+    <View accessibilityRole="radiogroup" style={[styles.segmented, { backgroundColor: colors.cardAlt }]}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -217,6 +217,8 @@ export function Field({ label, hint, style, inputStyle, ...rest }: TextInputProp
       {label ? <Text variant="label" style={{ marginBottom: 6 }}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={colors.faint}
+        accessibilityLabel={label}
+        accessibilityHint={hint}
         {...rest}
         style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, fontSize: 17 * scale }, inputStyle]}
       />
@@ -277,7 +279,7 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: 16, fontWeight: '600' },
   chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, minHeight: 40, justifyContent: 'center' },
   segmented: { flexDirection: 'row', borderRadius: radius.md, padding: 3 },
-  segment: { flex: 1, paddingVertical: 9, borderRadius: radius.sm, alignItems: 'center' },
+  segment: { flex: 1, paddingVertical: 9, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', minHeight: 42 },
   input: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: 17, minHeight: 48 },
   listItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, marginBottom: spacing.sm },
   progressTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },

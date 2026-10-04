@@ -3,13 +3,15 @@
  *   - the user turned it on in Settings and pasted their own API key,
  *   - the Tier 1 parser was not confident,
  *   - the device has a connection (an 8s timeout guards against hanging offline).
- * The phrase (and category names) are the only things sent. If anything fails,
+ * The phrase (and category names) are the only things sent, and the phrase goes
+ * through the same redaction the app uses before storing anything, so a card or
+ * account number typed by mistake never leaves the device. If anything fails,
  * the caller falls back to "review manually" with the Tier 1 result.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import type { Category, TxType } from '@/types';
 import type { ParseResult } from './index';
-import { validateAssistReply } from '@/lib/validate';
+import { redactSensitive, validateAssistReply } from '@/lib/validate';
 
 export const LLM_MODEL = 'claude-opus-5';
 
@@ -51,6 +53,9 @@ export async function llmParse(
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 0, timeout: timeoutMs });
   const active = categories.filter((c) => !c.archived);
   const names = active.map((c) => `${c.name} (${c.kind})`).join(', ');
+  // Nothing leaves the phone un-redacted, even to the user's own API key.
+  const phrase = redactSensitive(raw);
+  if (!phrase) return null;
   try {
     const response = await client.messages.create({
       model: LLM_MODEL,
@@ -61,7 +66,7 @@ export async function llmParse(
         names +
         `. Today is ${today}. The phrase is in the language with code "${language}"; reply with the note in that language. Pick the closest category; use null only when nothing fits. Amounts are always positive. ` +
         'A phrase about wanting to save a target amount for something is kind "goal". Do not invent an amount.',
-      messages: [{ role: 'user', content: raw }],
+      messages: [{ role: 'user', content: phrase }],
     });
     if (response.stop_reason === 'refusal') return null;
     const text = response.content.find((b) => b.type === 'text')?.text;

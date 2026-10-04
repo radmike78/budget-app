@@ -139,22 +139,46 @@ export interface TransactionQuery {
   offset?: number;
 }
 
-export async function queryTransactions(db: DB, q: TransactionQuery): Promise<Transaction[]> {
+/** `%` and `_` typed in a search box are letters to the person typing, not wildcards. */
+const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/** The WHERE clause shared by the list and its totals, so both always describe the same rows. */
+function filterTransactions(q: TransactionQuery): { where: string; params: (string | number)[] } {
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (q.search && q.search.trim()) {
-    where.push('(LOWER(COALESCE(note, \'\')) LIKE ? OR LOWER(COALESCE(raw_input, \'\')) LIKE ? OR CAST(amount AS TEXT) LIKE ?)');
-    const like = `%${q.search.trim().toLowerCase()}%`;
+    where.push("(LOWER(COALESCE(note, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(raw_input, '')) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\')");
+    const like = `%${escapeLike(q.search.trim().toLowerCase())}%`;
     params.push(like, like, like);
   }
   if (q.type) { where.push('type = ?'); params.push(q.type); }
   if (q.categoryId) { where.push('category_id = ?'); params.push(q.categoryId); }
   if (q.from) { where.push('occurred_at >= ?'); params.push(q.from); }
   if (q.to) { where.push('occurred_at <= ?'); params.push(q.to); }
-  const sql = `SELECT * FROM transactions ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY occurred_at DESC, created_at DESC LIMIT ? OFFSET ?`;
-  params.push(q.limit ?? 200, q.offset ?? 0);
-  const rows = await db.getAllAsync<TxRow>(sql, params);
+  return { where: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
+}
+
+export async function queryTransactions(db: DB, q: TransactionQuery): Promise<Transaction[]> {
+  const { where, params } = filterTransactions(q);
+  const sql = `SELECT * FROM transactions ${where} ORDER BY occurred_at DESC, created_at DESC LIMIT ? OFFSET ?`;
+  const rows = await db.getAllAsync<TxRow>(sql, [...params, q.limit ?? 200, q.offset ?? 0]);
   return rows.map(toTx);
+}
+
+/**
+ * How many entries match a query and what they add up to, counted in SQL over
+ * every match. The History screen shows these, so its one line stays true however
+ * many rows the list itself has loaded.
+ */
+export async function queryTransactionTotals(db: DB, q: TransactionQuery): Promise<{ count: number; income: number; expenses: number }> {
+  const { where, params } = filterTransactions(q);
+  const sql = `SELECT type, SUM(amount) AS total, COUNT(*) AS n FROM transactions ${where} GROUP BY type`;
+  const rows = await db.getAllAsync<{ type: TxType; total: number; n: number }>(sql, params);
+  return {
+    count: rows.reduce((s, r) => s + r.n, 0),
+    income: rows.find((r) => r.type === 'income')?.total ?? 0,
+    expenses: rows.find((r) => r.type === 'expense')?.total ?? 0,
+  };
 }
 
 export async function monthStats(db: DB, month: string): Promise<MonthStats> {

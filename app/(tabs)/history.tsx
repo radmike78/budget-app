@@ -4,16 +4,19 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Transaction, TxType } from '@/types';
 import { getDb } from '@/db/database';
-import { queryTransactions } from '@/db/repositories';
+import { queryTransactionTotals, queryTransactions } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { addDays, currentMonthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
 import { categoryName, useMoney, useT } from '@/i18n';
 import { CategoryPicker } from '@/components/pickers';
 import { TransactionRow } from '@/components/TransactionRow';
-import { CONTENT_MAX_WIDTH, Chip, ChipRow, EmptyState, Field, Text } from '@/components/ui';
+import { Button, CONTENT_MAX_WIDTH, Chip, ChipRow, EmptyState, Field, Text } from '@/components/ui';
 
 type Range = 'month' | 'last_month' | '90d' | 'all';
+
+/** Entries loaded at a time. "Show more" adds another page; the totals above always count them all. */
+const PAGE = 100;
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -29,6 +32,10 @@ export default function HistoryScreen() {
   const [range, setRange] = useState<Range>('month');
   const [showCat, setShowCat] = useState(false);
   const [rows, setRows] = useState<Transaction[]>([]);
+  // Counted in SQL over every match, so the one line under the filters is true
+  // whether the list below it holds a page or everything.
+  const [totals, setTotals] = useState({ count: 0, income: 0, expenses: 0 });
+  const [shown, setShown] = useState(PAGE);
   // Queries can finish out of order while typing; only the latest one may set the rows.
   const requestId = useRef(0);
 
@@ -50,16 +57,20 @@ export default function HistoryScreen() {
   const load = useCallback(async () => {
     const id = ++requestId.current;
     const db = await getDb();
-    const list = await queryTransactions(db, { search, type, categoryId, from: bounds.start, to: bounds.end, limit: 500 });
-    if (id === requestId.current) setRows(list);
-  }, [search, type, categoryId, bounds]);
+    const query = { search, type, categoryId, from: bounds.start, to: bounds.end };
+    const [list, sums] = await Promise.all([
+      queryTransactions(db, { ...query, limit: shown }),
+      queryTransactionTotals(db, query),
+    ]);
+    if (id === requestId.current) { setRows(list); setTotals(sums); }
+  }, [search, type, categoryId, bounds, shown]);
 
   useEffect(() => { load(); }, [load, recent]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  // A new filter starts at the first page again.
+  useEffect(() => { setShown(PAGE); }, [search, type, categoryId, range]);
 
   const category = categories.find((c) => c.id === categoryId);
-  const totalIn = rows.filter((r) => r.type === 'income').reduce((s, r) => s + r.amount, 0);
-  const totalOut = rows.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
 
   // A category of the other kind would leave an empty list, so the filter drops with the type.
   const changeType = (next: TxType | null) => {
@@ -79,7 +90,7 @@ export default function HistoryScreen() {
         <Chip label={t.moneyIn} selected={type === 'income'} onPress={() => changeType('income')} />
         <Chip label={category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.anyCategory} selected={!!categoryId} onPress={() => (categoryId ? setCategoryId(null) : setShowCat(true))} />
       </ChipRow>
-      <Text variant="small" style={{ marginBottom: spacing.md }}>{t.historySummary(rows.length, money(totalIn, { compact: true }), money(totalOut, { compact: true }))}</Text>
+      <Text variant="small" style={{ marginBottom: spacing.md }}>{t.historySummary(totals.count, money(totals.income, { compact: true }), money(totals.expenses, { compact: true }))}</Text>
     </View>
   );
 
@@ -91,6 +102,7 @@ export default function HistoryScreen() {
         ListHeaderComponent={header}
         renderItem={({ item }) => <TransactionRow tx={item} onPress={() => router.push(`/entry/${item.id}`)} />}
         ListEmptyComponent={<EmptyState title={t.noMatches} body={t.noMatchesBody} />}
+        ListFooterComponent={rows.length < totals.count ? <Button tone="secondary" title={t.showMore} onPress={() => setShown((n) => n + PAGE)} style={{ marginTop: spacing.md }} /> : null}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: insets.bottom + spacing.xxl, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
