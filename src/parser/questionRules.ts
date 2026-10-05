@@ -22,6 +22,11 @@ export interface QuestionPack {
   remainingLead: RegExp;
   /** Words removed from the target of a "what's left" question ("budget", "plan", "left"). Global. */
   remainingWords: RegExp;
+  /**
+   * Looser spending phrasings ("coffee total this month", "spending on gas", a bare "how much coffee")
+   * that are a question only when the sentence has no amount in it; "lunch 12 total" stays an entry.
+   */
+  weakLead?: RegExp;
   /** Everyday words that cover more than one category ("food" is groceries and eating out). The whole target must match. */
   groups: { words: string[]; ids: string[] }[];
 }
@@ -74,8 +79,9 @@ function stripAll(text: string, rules: RegExp[]): string {
 export function parseQuestion(text: string, pack: QuestionPack, ctx: QuestionContext): ParsedQuestion | null {
   // "How much do I have left" is checked first: some spending leads ("多少", "は…いくら") would also match it.
   const remaining = pack.remainingLead.exec(text);
-  const expense = remaining ? null : pack.lead.exec(text);
+  let expense = remaining ? null : pack.lead.exec(text);
   const income = remaining ? null : pack.incomeLead.exec(text);
+  if (!remaining && !expense && !income && pack.weakLead && !/\d/.test(text)) expense = pack.weakLead.exec(text);
   if (!remaining && !expense && !income) return null;
   // The lead that appears first decides what is being asked about.
   const useIncome = !remaining && !!income && (!expense || income.index < expense.index);

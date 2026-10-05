@@ -365,6 +365,15 @@ function findGoal(name: string, goals: Goal[], c: Compiled): Goal | null {
   const contains = open.find((g) => needle.includes(norm(g.name)) || norm(g.name).includes(needle));
   if (contains) return contains;
   if (c.pack.tokenizer === 'cjk') return null;
+  // "the Japan fund" or "my Japan savings": once the generic words are gone, what is left must name the goal.
+  const nouns = c.pack.goalNouns;
+  if (nouns) {
+    const core = tokenize(needle).filter((w) => !c.stopwords.has(w) && !nouns.test(w)).join(' ');
+    if (core && core !== needle) {
+      const hits = open.filter((g) => ` ${norm(g.name)} `.includes(` ${core} `));
+      if (hits.length === 1) return hits[0];
+    }
+  }
   const needleWords = new Set(tokenize(needle).filter((w) => !c.stopwords.has(w)));
   let best: { goal: Goal; score: number } | null = null;
   for (const g of open) {

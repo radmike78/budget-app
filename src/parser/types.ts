@@ -52,6 +52,8 @@ export interface LanguagePack {
   forWords: string;
   /** Words meaning "goal" that may trail a name. */
   goalWords: string;
+  /** Generic words around a goal's name when paying into it ("the Japan fund", "my Japan savings"); whole words. */
+  goalNouns?: RegExp;
   /** Words stripped from the start of a goal name. */
   articles: RegExp;
   /** Filler stripped from the start / end of a note. */
