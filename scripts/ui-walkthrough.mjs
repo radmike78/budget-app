@@ -154,6 +154,32 @@ await step('what is left, and food as one word', async () => {
   await expectText('on Food');
   await button(/^Done$/).click();
 });
+await step('fixing the last entry by voice, then undoing a removal', async () => {
+  await entry('spent 21 on parking');
+  await button(/^Save$/).click(); await page.waitForTimeout(600);
+  await entry('make that 23');
+  await expectText('Edit entry');
+  await shot('correction-card');
+  await button(/^Save changes$/).click(); await page.waitForTimeout(600);
+  await expectText('Changed to $23');
+  await expectNoText('$21');
+  await entry('delete that');
+  await expectText('Removed Parking, $23.00');
+  await button(/^Undo$/).click(); await page.waitForTimeout(800);
+  await expectText('Parking');
+});
+await step('comparing, the most, and affording', async () => {
+  await entry('what did I spend the most on');
+  await expectText('the most went to');
+  await button(/^Done$/).click();
+  await entry('did I spend more than last month');
+  await expectText('last month');
+  await button(/^Done$/).click();
+  await entry('can I afford a $200 jacket');
+  await expectText('$200.00');
+  await shot('answer-afford');
+  await button(/^Done$/).click();
+});
 await step('goal, then contribution', async () => {
   await entry('goal: save 3000 for a trip to Japan by June');
   await button(/Set goal/).click(); await page.waitForTimeout(600);
@@ -419,6 +445,29 @@ await step('erase everything leaves the app as it was installed', async () => {
   await goto('/settings/keywords');
   await expectNoText('costco');
   await shot('erased');
+});
+
+await step('a new phone: pay and rent in onboarding give a real number at once', async () => {
+  const fresh = await browser.newContext({ ...devices['iPhone 15'], colorScheme: 'light', locale: 'en-US' });
+  const p2 = await fresh.newPage();
+  p2.on('pageerror', (e) => issues.push(`pageerror: ${String(e).slice(0, 300)}`));
+  const body2 = async () => (await p2.locator('body').innerText()).replace(/\s+/g, ' ');
+  await p2.goto(origin + '/', { waitUntil: 'load' });
+  await p2.getByText('OnlyBudget').first().waitFor({ timeout: 30000 });
+  await p2.getByText('Next', { exact: true }).nth(0).click(); await p2.waitForTimeout(400);
+  await p2.getByText('Next', { exact: true }).nth(1).click(); await p2.waitForTimeout(600);
+  await p2.getByLabel('Take-home pay').fill('2000');
+  await p2.getByText('Every 2 weeks', { exact: true }).first().click();
+  await p2.getByLabel('Rent or mortgage, each month').fill('900');
+  await p2.screenshot({ path: path.join(out, 'onboarding-money.png') });
+  await p2.getByText('Next', { exact: true }).nth(2).click(); await p2.waitForTimeout(400);
+  await p2.getByText('Start', { exact: true }).first().click(); await p2.waitForTimeout(500);
+  await p2.getByText('No thanks, keep it plain', { exact: true }).first().click(); await p2.waitForTimeout(1500);
+  const b = await body2();
+  if (!b.includes('to spend until')) throw new Error(`expected a safe-to-spend number after the money setup, got: ${b.slice(0, 300)}`);
+  if (!b.toLowerCase().includes('this pay period')) throw new Error('expected the screens to follow paydays');
+  await p2.screenshot({ path: path.join(out, 'today-after-money-setup.png') });
+  await fresh.close();
 });
 
 await context.close(); await browser.close(); server.close();

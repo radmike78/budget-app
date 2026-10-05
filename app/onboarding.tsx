@@ -4,12 +4,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { CURRENCIES, parseMoneyInput } from '@/lib/money';
-import { LANGUAGE_OPTIONS, deviceLanguage, getLocale, useLocale, useT } from '@/i18n';
-import { Sheet } from '@/components/pickers';
-import { Button, Card, CONTENT_MAX_WIDTH, Field, ListItem, Row, Text, useTypeScale } from '@/components/ui';
+import { daysInMonth, friendlyDate, fromDateString, today } from '@/lib/dates';
+import { newId } from '@/lib/ids';
+import type { Frequency } from '@/types';
+import { LANGUAGE_OPTIONS, deviceLanguage, getLocale, useDateFormat, useLocale, useT } from '@/i18n';
+import { DatePicker, Sheet } from '@/components/pickers';
+import { Button, Card, CONTENT_MAX_WIDTH, Field, ListItem, Row, Segmented, Text, useTypeScale } from '@/components/ui';
 import { VoicePicker } from '@/components/VoicePicker';
 
-const PAGES = ['why', 'setup', 'how', 'voice', 'pick'] as const;
+const PAGES = ['why', 'setup', 'money', 'how', 'voice', 'pick'] as const;
 
 export default function Onboarding() {
   const { colors } = useTheme();
@@ -24,6 +27,15 @@ export default function Onboarding() {
   const [balance, setBalance] = useState('');
   const [showCurrency, setShowCurrency] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  // Pay and rent, all optional: with them, Today has a real "safe to spend" from the first minute.
+  const fmt = useDateFormat();
+  const saveRule = useAppStore((s) => s.saveRule);
+  const [payText, setPayText] = useState('');
+  const [payFrequency, setPayFrequency] = useState<Frequency>('biweekly');
+  const [lastPayday, setLastPayday] = useState(today());
+  const [showPayday, setShowPayday] = useState(false);
+  const [rentText, setRentText] = useState('');
+  const [rentDayText, setRentDayText] = useState('1');
   const listRef = useRef<FlatList<string>>(null);
   const { width } = useWindowDimensions();
 
@@ -37,8 +49,32 @@ export default function Onboarding() {
     listRef.current?.scrollToIndex({ index: i, animated: true });
   };
 
+  /**
+   * Pay becomes a repeating income from the last payday, so this period's pay is already counted and the
+   * screens follow paydays. Rent becomes a monthly bill on its day this month: logged if that day has passed,
+   * counted as still due if not. Both are ordinary repeating entries the person can change or stop.
+   */
+  const saveMoney = async () => {
+    const decimalComma = locale.format.decimal === ',';
+    const pay = parseMoneyInput(payText, decimalComma);
+    const rent = parseMoneyInput(rentText, decimalComma);
+    if (pay != null && pay > 0) {
+      await saveRule({ id: newId(), amount: pay, type: 'income', categoryId: 'salary', frequency: payFrequency, nextOccurrence: lastPayday > today() ? today() : lastPayday, note: t.payNote, active: true });
+    }
+    if (rent != null && rent > 0) {
+      const day = Math.min(31, Math.max(1, Math.round(Number(rentDayText) || 1)));
+      const now = fromDateString(today());
+      const y = now.getFullYear();
+      const m = now.getMonth();
+      const date = `${y}-${String(m + 1).padStart(2, '0')}-${String(Math.min(day, daysInMonth(y, m))).padStart(2, '0')}`;
+      await saveRule({ id: newId(), amount: rent, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: date, note: t.rentNote, active: true });
+    }
+    return pay != null && pay > 0;
+  };
+
   const finish = async (voiceWanted: boolean) => {
-    await updateSettings({ currency, startingBalance: parseMoneyInput(balance, locale.format.decimal === ','), onboardingDone: true, ...(voiceWanted ? null : { voice: 'plain' as const }) });
+    const paid = await saveMoney();
+    await updateSettings({ ...(paid ? { budgetPeriod: 'pay' as const } : null), currency, startingBalance: parseMoneyInput(balance, locale.format.decimal === ','), onboardingDone: true, ...(voiceWanted ? null : { voice: 'plain' as const }) });
   };
 
   const languageName = settings?.language && settings.language !== 'system'
@@ -84,6 +120,34 @@ export default function Onboarding() {
         </View>
       );
     }
+    if (key === 'money') {
+      return (
+        <View style={{ width, height: pageHeight || undefined }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.xl, flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
+        <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
+          <Text variant="title">{t.moneySetupTitle}</Text>
+          <Text variant="muted" style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>{t.moneySetupBody}</Text>
+          <Field label={t.takeHomePay} value={payText} onChangeText={setPayText} keyboardType="decimal-pad" placeholder={t.optional} />
+          <View style={{ marginBottom: spacing.lg }}>
+            <Segmented value={payFrequency} onChange={setPayFrequency} options={[{ value: 'weekly', label: t.frequency.weekly }, { value: 'biweekly', label: t.frequency.biweekly }, { value: 'monthly', label: t.frequency.monthly }]} />
+          </View>
+          <Text variant="label" style={{ marginBottom: 6 }}>{t.lastPayday}</Text>
+          <Row style={{ marginBottom: spacing.lg }}>
+            <Button tone="secondary" small title={friendlyDate(lastPayday, today(), fmt)} onPress={() => setShowPayday(true)} />
+          </Row>
+          <Field label={t.rentOrMortgage} value={rentText} onChangeText={setRentText} keyboardType="decimal-pad" placeholder={t.optional} />
+          <Field label={t.rentDueDay} value={rentDayText} onChangeText={setRentDayText} keyboardType="number-pad" placeholder="1" />
+          <Row>
+            <Button tone="ghost" title={t.back} onPress={() => go(1)} />
+            <Button tone="ghost" title={t.skip} onPress={() => { setPayText(''); setRentText(''); go(3); }} />
+            <Button title={t.next} onPress={() => go(3)} style={{ flex: 1 }} />
+          </Row>
+          <DatePicker visible={showPayday} onClose={() => setShowPayday(false)} value={lastPayday} onPick={setLastPayday} />
+        </View>
+        </ScrollView>
+        </View>
+      );
+    }
     if (key === 'voice') {
       return (
         <View style={{ width, minHeight: pageHeight, padding: spacing.xl, justifyContent: 'center' }}>
@@ -98,9 +162,9 @@ export default function Onboarding() {
               </View>
             ))}
           </Card>
-          <View style={{ marginTop: spacing.xxl }}><Button title={t.onboardVoiceYes} onPress={() => { if (settings?.voice === 'plain') updateSettings({ voice: 'friend' }); go(4); }} /></View>
+          <View style={{ marginTop: spacing.xxl }}><Button title={t.onboardVoiceYes} onPress={() => { if (settings?.voice === 'plain') updateSettings({ voice: 'friend' }); go(5); }} /></View>
           <View style={{ marginTop: spacing.md }}><Button tone="secondary" title={t.onboardVoiceNo} onPress={() => finish(false)} /></View>
-          <View style={{ marginTop: spacing.md, alignItems: 'flex-start' }}><Button tone="ghost" title={t.back} onPress={() => go(2)} /></View>
+          <View style={{ marginTop: spacing.md, alignItems: 'flex-start' }}><Button tone="ghost" title={t.back} onPress={() => go(3)} /></View>
         </View>
         </View>
       );
@@ -113,7 +177,7 @@ export default function Onboarding() {
           <Text variant="title" style={{ marginBottom: spacing.lg }}>{t.voice}</Text>
           <VoicePicker compact />
           <Row style={{ marginTop: spacing.xl }}>
-            <Button tone="ghost" title={t.back} onPress={() => go(3)} />
+            <Button tone="ghost" title={t.back} onPress={() => go(4)} />
             <Button title={t.done} onPress={() => finish(true)} style={{ flex: 1 }} />
           </Row>
         </View>
@@ -130,8 +194,8 @@ export default function Onboarding() {
         </Card>
         <Text variant="muted" style={{ marginTop: spacing.lg }}>{t.onboardLearn}</Text>
         <Row style={{ marginTop: spacing.xxl }}>
-          <Button tone="ghost" title={t.back} onPress={() => go(1)} />
-          <Button title={t.start} onPress={() => go(3)} style={{ flex: 1 }} />
+          <Button tone="ghost" title={t.back} onPress={() => go(2)} />
+          <Button title={t.start} onPress={() => go(4)} style={{ flex: 1 }} />
         </Row>
       </View>
       </View>

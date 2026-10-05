@@ -3,12 +3,12 @@ import { Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
-import { today } from '@/lib/dates';
+import { monthKey, monthName, today } from '@/lib/dates';
 import { goalProgress, isWholeMonth } from '@/lib/plain';
 import { periodContaining, samePeriod } from '@/lib/periods';
 import { compareWeeks } from '@/lib/recap';
 import { PeriodCard } from '@/components/PeriodCard';
-import { categoryName, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
+import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { speak } from '@/lib/speak';
 import { EntryBar } from '@/components/EntryBar';
 import { ConfirmationCard } from '@/components/ConfirmationCard';
@@ -33,6 +33,8 @@ export default function HomeScreen() {
   const goals = useAppStore((s) => s.goals);
   const lifetime = useAppStore((s) => s.lifetime);
   const recap = useAppStore((s) => s.recap);
+  const review = useAppStore((s) => s.review);
+  const fmt = useDateFormat();
   const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource } = useEntryFlow();
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
@@ -94,6 +96,29 @@ export default function HomeScreen() {
       {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
 
       <CarryQuestions />
+
+      {review ? (() => {
+        // The period just ended, for the first days of a new one: numbers and key words, nothing advised.
+        const monthOf = (p: { start: string; end: string } | null) => (p && isWholeMonth(p) ? monthName(monthKey(p.start), fmt) : null);
+        const title = monthOf(review.period);
+        const nameOfCat = (id: string | null) => { const c = id ? categories.find((x) => x.id === id) : null; return c ? categoryName(c, t) : t.otherSpending; };
+        return (
+          <>
+            <SectionTitle>{title ? title.charAt(0).toUpperCase() + title.slice(1) : t.lastPayPeriod}</SectionTitle>
+            <Card style={{ marginBottom: spacing.sm }}>
+              <Text variant="body">{t.reviewOut(money(review.spent, { compact: true }), review.change, money(Math.abs(review.spent - review.previousSpent), { compact: true }), t.reviewPrev(monthOf(review.previousPeriod)))}</Text>
+              {review.kept != null ? <Text variant="muted" style={{ marginTop: 2 }}>{t.reviewIn(money(review.income, { compact: true }), money(Math.abs(review.kept), { compact: true }), review.kept < 0)}</Text> : null}
+              {review.rows.map((row) => (
+                <Row key={row.categoryId ?? 'none'} style={{ justifyContent: 'space-between', marginTop: spacing.sm }}>
+                  <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>{nameOfCat(row.categoryId)}</Text>
+                  <Text variant="body" style={{ fontWeight: '600' }}>{money(row.total, { compact: true })}</Text>
+                  {row.change !== 'first' ? <Text variant="small" style={{ marginLeft: spacing.sm, minWidth: 96, textAlign: 'right' }}>{t.reviewChange(row.change, money(Math.abs(row.total - row.previous), { compact: true }))}</Text> : null}
+                </Row>
+              ))}
+            </Card>
+          </>
+        );
+      })() : null}
 
       {recap && recap.entries > 0 ? (
         <>

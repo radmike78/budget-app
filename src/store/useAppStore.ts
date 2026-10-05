@@ -7,6 +7,7 @@ import { addDays, nowIso, today } from '@/lib/dates';
 import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
 import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
 import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
+import { isReviewTime, periodReview, type PeriodReview } from '@/lib/review';
 import { newId } from '@/lib/ids';
 import { dueOccurrences } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
@@ -47,6 +48,8 @@ interface AppState {
   lastSavedId: string | null;
   /** Last week and the week before, for the recap card at the start of a week. */
   recap: WeekRecap | null;
+  /** The look back at the period just ended, for the first days of a new one (src/lib/review.ts). */
+  review: PeriodReview | null;
 
   init: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -155,6 +158,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastDeleted: null,
   lastSavedId: null,
   recap: null,
+  review: null,
 
   init: () => {
     if (!initPromise) {
@@ -200,7 +204,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const carry = await computeCarry(db, settings, rules, categories, carryovers, period);
     const todayStr = today();
     const recap = isRecapDay(todayStr) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
-    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry, recap });
+    const current = periodContaining(settings.budgetPeriod, rules, todayStr);
+    let review: PeriodReview | null = null;
+    if (isReviewTime(current, todayStr)) {
+      const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
+      const before = shiftPeriod(settings.budgetPeriod, rules, last, -1);
+      const [lastStats, beforeStats] = await Promise.all([repo.periodStats(db, last), repo.periodStats(db, before)]);
+      review = periodReview(lastStats, beforeStats.expenses > 0 || beforeStats.income > 0 ? beforeStats : null);
+    }
+    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry, recap, review });
   },
 
   shiftPeriod: async (delta) => {
