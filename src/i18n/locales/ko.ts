@@ -117,6 +117,11 @@ export const ko: LocaleDef = {
     toastGoalSet: (amount, name, by) => `목표 설정: ${name} ${amount}${by ? ` (${by})` : ''}.`,
     toastAdded: (amount, goal) => `${goal}에 ${amount}를 추가했어요.`,
     toastLogged: (amount, isIncome, category) => `${isIncome ? '수입' : '지출'} ${amount} 기록됨 · ${category}.`,
+    toastUpdated: (amount, category) => `${amount}(으)로 변경 · ${category}.`,
+    correctionOnCard: '카드에서 고친 뒤 저장하세요.',
+    correctionCancelled: '취소했어요. 아무것도 저장하지 않았어요.',
+    correctionNothing: '아직 고칠 기록이 없어요.',
+    correctionRemoved: (amount, what) => (what ? `${what} ${amount} 삭제했어요. '되돌리기'로 되살릴 수 있어요.` : `${amount} 삭제했어요. '되돌리기'로 되살릴 수 있어요.`),
     // several entries in one go
     multiTitle: (n: number) => `${n}개 항목`,
     multiIntro: '하나씩 확인한 뒤 함께 저장하세요. 카테고리를 눌러서 바꿀 수 있어요.',
@@ -445,6 +450,17 @@ export const ko: LocaleDef = {
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => (income ? `${period}${what ? ` ${what}` : ''} 수입은 ${amount}입니다 (${count}건).` : `${period}${what ? ` ${what}` : ''} 지출은 ${amount}입니다 (${count}건).`),
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period}${what ? ` ${what}` : ''} 수입 기록이 없습니다.` : `${period}${what ? ` ${what}` : ''} 기록이 없습니다.`),
     answerFallback: (target: string, category: string) => `'${target}'이(가) 적힌 기록이 없어서 '${category}' 합계를 보여 드립니다.`,
+    answerCompare: (period, amount, what, direction, diff, prev) => {
+      const base = `${period}${what ? ` ${what}` : ''} 지출은 ${amount}`;
+      if (direction === 'first') return `${base}입니다. 비교할 ${prev} 기록이 아직 없습니다.`;
+      if (direction === 'same') return `${base}로, ${prev} 같은 시점과 거의 같습니다.`;
+      return `${base}로, ${prev} 같은 시점보다 ${diff} ${direction === 'more' ? '많습니다' : '적습니다'}.`;
+    },
+    comparePrev: { week: '지난주', month: '지난달', year: '작년', budget: '지난 급여 기간' } as Record<string, string>,
+    answerTop: (period, category, amount, total) => `${period} 가장 많이 나간 곳은 ${category}로, ${total} 중 ${amount}입니다.`,
+    answerAffordFits: (price, left, what, until) => (what ? `${price}을(를) 써도 ${what} 계획은 ${until}까지 ${left} 남습니다.` : `${price}을(를) 써도 ${until}까지 ${left} 남습니다.`),
+    answerAffordShort: (price, short, what, until) => (what ? `${price}은(는) ${what} 계획의 ${until}까지 남은 금액보다 ${short} 많습니다.` : `${price}은(는) ${until}까지 남은 금액보다 ${short} 많습니다.`),
+    answerAffordUnknown: (price) => `이번 기간에는 아직 계획도 수입도 없어서 ${price}을(를) 비교할 기준이 없습니다.`,
     answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `${what} 계획 ${plan} 중 ${until}까지 ${left} 남았습니다.` : `계획 ${plan} 중 ${until}까지 ${left} 남았습니다.`),
     answerPast: (over: string, plan: string, what: string | null) => (what ? `이번 기간 ${what} 계획 ${plan}보다 ${over} 더 썼습니다.` : `이번 기간 계획 ${plan}보다 ${over} 더 썼습니다.`),
     answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `남은 청구서를 빼면 ${until}까지 ${left} 쓸 수 있습니다.` : `${until}까지 ${left} 쓸 수 있습니다.`),

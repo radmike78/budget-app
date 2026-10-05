@@ -117,6 +117,11 @@ export const de: LocaleDef = {
     toastGoalSet: (amount, name, by) => `Ziel angelegt: ${amount} für ${name}${by ? ` bis ${by}` : ''}.`,
     toastAdded: (amount, goal) => `${amount} zu ${goal} hinzugefügt.`,
     toastLogged: (amount, isIncome, category) => `${amount} ${isIncome ? 'Einnahme' : 'Ausgabe'} eingetragen · ${category}.`,
+    toastUpdated: (amount, category) => `Geändert auf ${amount} · ${category}.`,
+    correctionOnCard: 'Ändere es auf der Karte und speichere dann.',
+    correctionCancelled: 'Abgebrochen. Nichts wurde gespeichert.',
+    correctionNothing: 'Es gibt noch nichts zu ändern.',
+    correctionRemoved: (amount, what) => (what ? `Entfernt: ${what}, ${amount}. Rückgängig holt es zurück.` : `Entfernt: ${amount}. Rückgängig holt es zurück.`),
     // several entries in one go
     multiTitle: (n: number) => `${n} Einträge`,
     multiIntro: 'Prüf jeden Eintrag und speichere sie dann zusammen. Tipp eine Kategorie an, um sie zu ändern.',
@@ -449,6 +454,17 @@ export const de: LocaleDef = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` von ${what}` : ''} eingegangen.` : `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` für ${what}` : ''} eingetragen.`),
     answerFallback: (target: string, category: string) => `Kein Eintrag erwähnt ${target}, darum ist das die Summe für ${category}.`,
+    answerCompare: (period, amount, what, direction, diff, prev) => {
+      const base = `${period.charAt(0).toUpperCase() + period.slice(1)} hast du ${amount}${what ? ` für ${what}` : ''} ausgegeben`;
+      if (direction === 'first') return `${base}. ${prev.charAt(0).toUpperCase() + prev.slice(1)} ist noch nichts eingetragen, womit sich das vergleichen ließe.`;
+      if (direction === 'same') return `${base}, etwa so viel wie zum selben Zeitpunkt ${prev}.`;
+      return `${base}, ${diff} ${direction === 'more' ? 'mehr' : 'weniger'} als zum selben Zeitpunkt ${prev}.`;
+    },
+    comparePrev: { week: 'letzte Woche', month: 'letzten Monat', year: 'letztes Jahr', budget: 'in der letzten Gehaltsperiode' } as Record<string, string>,
+    answerTop: (period, category, amount, total) => `${period.charAt(0).toUpperCase() + period.slice(1)} ging am meisten an ${category}: ${amount} von ${total}.`,
+    answerAffordFits: (price, left, what, until) => (what ? `Nach ${price} hättest du noch ${left} vom Plan für ${what}, bis ${until}.` : `Nach ${price} hättest du noch ${left}, bis ${until}.`),
+    answerAffordShort: (price, short, what, until) => (what ? `${price} sind ${short} mehr, als bis ${until} vom Plan für ${what} übrig ist.` : `${price} sind ${short} mehr, als bis ${until} übrig ist.`),
+    answerAffordUnknown: (price) => `Für diesen Zeitraum gibt es noch keinen Plan und kein Einkommen, also nichts, woran sich ${price} messen lässt.`,
     answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Du hast noch ${left} vom Plan über ${plan} für ${what}, bis ${until}.` : `Du hast noch ${left} vom Plan über ${plan}, bis ${until}.`),
     answerPast: (over: string, plan: string, what: string | null) => (what ? `Du hast in diesem Zeitraum ${over} mehr als den Plan über ${plan} für ${what} ausgegeben.` : `Du hast in diesem Zeitraum ${over} mehr als den Plan über ${plan} ausgegeben.`),
     answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Nach den noch fälligen Rechnungen hast du ${left} zum Ausgeben bis ${until}.` : `Du hast ${left} zum Ausgeben bis ${until}.`),

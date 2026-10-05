@@ -43,6 +43,8 @@ interface AppState {
   carryovers: CarryDecision[];
   /** The entry removed most recently, kept so it can be put back. */
   lastDeleted: { tx: Transaction; at: number } | null;
+  /** The entry saved last in this session, so "make that 14" changes the one just said. */
+  lastSavedId: string | null;
   /** Last week and the week before, for the recap card at the start of a week. */
   recap: WeekRecap | null;
 
@@ -151,6 +153,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   carry: {},
   carryovers: [],
   lastDeleted: null,
+  lastSavedId: null,
   recap: null,
 
   init: () => {
@@ -215,6 +218,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     const t: Transaction = { ...input, note: input.note ? redactSensitive(input.note) || null : null, rawInput: input.rawInput ? redactSensitive(input.rawInput) || null : null, id: newId(), createdAt: nowIso(), isRecurringInstance: false, recurringRuleId: null };
     await repo.insertTransaction(db, t);
+    set({ lastSavedId: t.id });
     await get().refresh();
     return t;
   },
@@ -535,6 +539,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // The voices' memory of recent lines is kept in the module as well as the table just wiped.
     const { forgetRecentLines } = await import('@/components/persona');
     forgetRecentLines();
+    // Nothing erased may come back through the undo bar or be changed by "make that 14".
+    set({ lastDeleted: null, lastSavedId: null });
     await get().refresh();
   },
 }));

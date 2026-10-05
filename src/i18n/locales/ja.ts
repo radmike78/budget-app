@@ -117,6 +117,11 @@ export const ja: LocaleDef = {
     toastGoalSet: (amount, name, by) => `目標を設定：${name}に${amount}${by ? `（${by}まで）` : ''}。`,
     toastAdded: (amount, goal) => `${goal}に${amount}を追加しました。`,
     toastLogged: (amount, isIncome, category) => `${isIncome ? '収入' : '支出'} ${amount}を記録 · ${category}。`,
+    toastUpdated: (amount, category) => `${amount}に変更 · ${category}。`,
+    correctionOnCard: 'カードで直してから保存してください。',
+    correctionCancelled: '取り消しました。何も保存していません。',
+    correctionNothing: 'まだ直せる記録がありません。',
+    correctionRemoved: (amount, what) => (what ? `${what}（${amount}）を削除しました。「元に戻す」で戻せます。` : `${amount}を削除しました。「元に戻す」で戻せます。`),
     // several entries in one go
     multiTitle: (n: number) => `${n}件の記録`,
     multiIntro: 'それぞれ確認してから、まとめて保存します。カテゴリをタップして変更できます。',
@@ -445,6 +450,17 @@ export const ja: LocaleDef = {
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => (income ? `${period}${what ? `の${what}` : ''}の収入は${amount}です（${count}件）。` : `${period}${what ? `の${what}` : ''}の支出は${amount}です（${count}件）。`),
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period}${what ? `の${what}` : ''}の収入はありません。` : `${period}${what ? `の${what}` : ''}の記録はありません。`),
     answerFallback: (target: string, category: string) => `「${target}」を含む記録がないので、「${category}」の合計を表示しています。`,
+    answerCompare: (period, amount, what, direction, diff, prev) => {
+      const base = `${period}${what ? `の${what}` : ''}の支出は${amount}`;
+      if (direction === 'first') return `${base}です。比べられる${prev}の記録はまだありません。`;
+      if (direction === 'same') return `${base}で、${prev}の同じ時点とほぼ同じです。`;
+      return `${base}で、${prev}の同じ時点より${diff}${direction === 'more' ? '多い' : '少ない'}です。`;
+    },
+    comparePrev: { week: '先週', month: '先月', year: '去年', budget: '前回の給料期間' } as Record<string, string>,
+    answerTop: (period, category, amount, total) => `${period}いちばん多かったのは${category}で、${total}のうち${amount}です。`,
+    answerAffordFits: (price, left, what, until) => (what ? `${price}使っても、${what}の計画は${until}まで${left}残ります。` : `${price}使っても、${until}まで${left}残ります。`),
+    answerAffordShort: (price, short, what, until) => (what ? `${price}は、${what}の計画の${until}までの残りより${short}多いです。` : `${price}は、${until}までの残りより${short}多いです。`),
+    answerAffordUnknown: (price) => `この期間にはまだ計画も収入もないので、${price}と比べられるものがありません。`,
     answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `${what}の計画${plan}のうち、${until}まで残り${left}です。` : `計画${plan}のうち、${until}まで残り${left}です。`),
     answerPast: (over: string, plan: string, what: string | null) => (what ? `この期間、${what}の計画${plan}より${over}多く使っています。` : `この期間、計画${plan}より${over}多く使っています。`),
     answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `これから払う請求を引くと、${until}まで${left}使えます。` : `${until}まで${left}使えます。`),

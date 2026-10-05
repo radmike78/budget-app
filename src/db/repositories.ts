@@ -119,6 +119,12 @@ export async function getTransaction(db: DB, id: string): Promise<Transaction | 
   return row ? toTx(row) : null;
 }
 
+/** The entry saved most recently (by when it was saved, not the date it is for), for "make that 14". */
+export async function latestSavedTransaction(db: DB): Promise<Transaction | null> {
+  const row = await db.getFirstAsync<TxRow>('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1');
+  return row ? toTx(row) : null;
+}
+
 export async function recentTransactions(db: DB, limit = 10): Promise<Transaction[]> {
   const rows = await db.getAllAsync<TxRow>('SELECT * FROM transactions ORDER BY occurred_at DESC, created_at DESC LIMIT ?', [limit]);
   return rows.map(toTx);

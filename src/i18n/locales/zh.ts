@@ -117,6 +117,11 @@ export const zh: LocaleDef = {
     toastGoalSet: (amount, name, by) => `目标已设定：${name} ${amount}${by ? `，${by}前` : ''}。`,
     toastAdded: (amount, goal) => `已向 ${goal} 存入 ${amount}。`,
     toastLogged: (amount, isIncome, category) => `已记录${isIncome ? '收入' : '支出'} ${amount} · ${category}。`,
+    toastUpdated: (amount, category) => `已改为 ${amount} · ${category}。`,
+    correctionOnCard: '请在卡片上修改，然后保存。',
+    correctionCancelled: '已取消，没有保存任何内容。',
+    correctionNothing: '还没有可以修改的记录。',
+    correctionRemoved: (amount, what) => (what ? `已删除${what}，${amount}。点"撤销"可以恢复。` : `已删除 ${amount}。点"撤销"可以恢复。`),
     // several entries in one go
     multiTitle: (n: number) => `${n} 条记录`,
     multiIntro: '请逐条检查，然后一起保存。点一下分类可以修改。',
@@ -445,6 +450,17 @@ export const zh: LocaleDef = {
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => (income ? `${period}${what ? `来自${what}` : ''}的收入是${amount}，共${count}笔。` : `${period}${what ? `在${what}上` : ''}花了${amount}，共${count}笔。`),
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period}没有${what ? `来自${what}的` : ''}收入记录。` : `${period}没有${what ? `关于${what}的` : ''}记录。`),
     answerFallback: (target: string, category: string) => `没有记录提到${target}，所以这是"${category}"的合计。`,
+    answerCompare: (period, amount, what, direction, diff, prev) => {
+      const base = `${period}${what ? `在${what}上` : ''}花了${amount}`;
+      if (direction === 'first') return `${base}，还没有${prev}的记录可以比较。`;
+      if (direction === 'same') return `${base}，和${prev}同一时间差不多。`;
+      return `${base}，比${prev}同一时间${direction === 'more' ? '多' : '少'}${diff}。`;
+    },
+    comparePrev: { week: '上周', month: '上个月', year: '去年', budget: '上个发薪周期' } as Record<string, string>,
+    answerTop: (period, category, amount, total) => `${period}花得最多的是${category}：${total}里占${amount}。`,
+    answerAffordFits: (price, left, what, until) => (what ? `花了${price}以后，${what}计划到${until}为止还剩${left}。` : `花了${price}以后，到${until}为止还剩${left}。`),
+    answerAffordShort: (price, short, what, until) => (what ? `${price}比${what}计划到${until}为止剩下的多${short}。` : `${price}比到${until}为止剩下的多${short}。`),
+    answerAffordUnknown: (price) => `这个周期还没有计划，也没有收入，所以没有可以和${price}比较的数。`,
     answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `${what}的${plan}计划还剩${left}，到${until}为止。` : `${plan}的计划还剩${left}，到${until}为止。`),
     answerPast: (over: string, plan: string, what: string | null) => (what ? `这个周期在${what}上比${plan}的计划多花了${over}。` : `这个周期比${plan}的计划多花了${over}。`),
     answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `扣掉还没付的账单，到${until}为止还有${left}可以花。` : `到${until}为止还有${left}可以花。`),

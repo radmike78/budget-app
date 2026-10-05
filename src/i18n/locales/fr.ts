@@ -117,6 +117,11 @@ export const fr: LocaleDef = {
     toastGoalSet: (amount, name, by) => `Objectif créé : ${amount} pour ${name}${by ? ` avant le ${by}` : ''}.`,
     toastAdded: (amount, goal) => `${amount} ajoutés à ${goal}.`,
     toastLogged: (amount, isIncome, category) => `${amount} ${isIncome ? 'reçus' : 'dépensés'} · ${category}.`,
+    toastUpdated: (amount, category) => `Modifié : ${amount} · ${category}.`,
+    correctionOnCard: 'Modifie-le sur la carte, puis enregistre.',
+    correctionCancelled: 'Annulé. Rien n’a été enregistré.',
+    correctionNothing: 'Il n’y a encore rien à modifier.',
+    correctionRemoved: (amount, what) => (what ? `Supprimé : ${what}, ${amount}. Annuler le remet.` : `Supprimé : ${amount}. Annuler le remet.`),
     // several entries in one go
     multiTitle: (n: number) => `${n} entrées`,
     multiIntro: 'Vérifiez chacune, puis enregistrez-les ensemble. Touchez une catégorie pour la changer.',
@@ -449,6 +454,17 @@ export const fr: LocaleDef = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Rien n\'est rentré${what ? ` de ${what}` : ''} ${period}.` : `Rien n\'a été noté${what ? ` pour ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `Aucune entrée ne mentionne ${target}, donc voici le total de ${category}.`,
+    answerCompare: (period, amount, what, direction, diff, prev) => {
+      const base = `${period.charAt(0).toUpperCase() + period.slice(1)}, tu as dépensé ${amount}${what ? ` pour ${what}` : ''}`;
+      if (direction === 'first') return `${base}. Il n’y a encore rien ${prev} pour comparer.`;
+      if (direction === 'same') return `${base}, à peu près comme au même moment ${prev}.`;
+      return `${base}, ${diff} de ${direction === 'more' ? 'plus' : 'moins'} qu’au même moment ${prev}.`;
+    },
+    comparePrev: { week: 'la semaine dernière', month: 'le mois dernier', year: 'l’an dernier', budget: 'la période de paie précédente' } as Record<string, string>,
+    answerTop: (period, category, amount, total) => `${period.charAt(0).toUpperCase() + period.slice(1)}, le plus est allé à ${category} : ${amount} sur ${total}.`,
+    answerAffordFits: (price, left, what, until) => (what ? `Après ${price}, il te resterait ${left} du plan ${what}, jusqu’au ${until}.` : `Après ${price}, il te resterait ${left}, jusqu’au ${until}.`),
+    answerAffordShort: (price, short, what, until) => (what ? `${price}, c’est ${short} de plus que ce qui reste du plan ${what} jusqu’au ${until}.` : `${price}, c’est ${short} de plus que ce qui reste jusqu’au ${until}.`),
+    answerAffordUnknown: (price) => `Il n’y a encore ni plan ni revenu sur cette période, donc rien à quoi comparer ${price}.`,
     answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Il te reste ${left} sur le plan de ${plan} pour ${what}, jusqu’au ${until}.` : `Il te reste ${left} sur le plan de ${plan}, jusqu’au ${until}.`),
     answerPast: (over: string, plan: string, what: string | null) => (what ? `Tu as dépensé ${over} de plus que le plan de ${plan} pour ${what} sur cette période.` : `Tu as dépensé ${over} de plus que le plan de ${plan} sur cette période.`),
     answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Après les factures encore à venir, tu as ${left} à dépenser jusqu’au ${until}.` : `Tu as ${left} à dépenser jusqu’au ${until}.`),

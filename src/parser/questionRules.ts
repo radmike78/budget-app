@@ -32,19 +32,33 @@ export interface QuestionPack {
    * that are a question only when the sentence has no amount in it; "lunch 12 total" stays an entry.
    */
   weakLead?: RegExp;
+  /** "did I spend more than last month?", "how does this month compare": spending so far against the same point last time. */
+  compareLead?: RegExp;
+  /** "what did I spend the most on?", "where did most of my money go?" */
+  topLead?: RegExp;
+  /** "can I afford a $200 jacket?": the one question that carries an amount. */
+  affordLead?: RegExp;
+  /** Words removed from the target of a compare, top or afford question ("more", "than", "most", "on it"). Global. */
+  askWords?: RegExp;
   /** Everyday words that cover more than one category ("food" is groceries and eating out). The whole target must match. */
   groups: { words: string[]; ids: string[] }[];
 }
 
 export interface ParsedQuestion {
   type: 'expense' | 'income';
-  /** `spent` sums entries; `left` asks what remains of this period's plan or income. */
-  ask: 'spent' | 'left';
+  /**
+   * `spent` sums entries; `left` asks what remains of this period's plan or income; `compare` sets spending so
+   * far against the same point in the period before; `top` names where most went; `afford` weighs `price`
+   * against what is left.
+   */
+  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford';
   period: QuestionPeriod;
   /** True when no period was said; the answer then uses the current budget period. */
   periodDefaulted: boolean;
   /** For `recentDays`: how many days, today included. */
   days?: number;
+  /** For `afford`: the amount being weighed. */
+  price?: number;
   /** What the user asked about, in their own casing ("Starbucks", "dining out"); null for a plain total. */
   target: string | null;
   /** Set when the target is a category name; the answer then sums that category. */
@@ -63,7 +77,14 @@ export interface QuestionContext {
   detect: (text: string) => { categoryId: string; matched: string | null } | null;
   /** Restores the user's casing for a lowercased fragment. */
   restoreCase: (fragment: string) => string;
+  /** Finds the amount in a sentence (for "can I afford 200 for shoes"), supplied by the parser. */
+  amount?: (text: string) => { amount: number | null; text: string };
 }
+
+/** What a comparison measures, for each period word that can come with it. */
+const COMPARE_PERIOD: Partial<Record<QuestionPeriod, QuestionPeriod>> = {
+  week: 'week', lastWeek: 'week', month: 'month', lastMonth: 'month', year: 'year', lastYear: 'year', budget: 'budget',
+};
 
 /** Word boundary that also works for scripts without spaces. */
 const trimPunct = (s: string) => s.replace(/^[\s,.;:!?¿¡'"()]+|[\s,.;:!?¿¡'"()]+$/gu, '').trim();
@@ -72,7 +93,11 @@ function stripAll(text: string, rules: RegExp[]): string {
   let out = text;
   for (let pass = 0; pass < 3; pass += 1) {
     const before = out;
-    for (const re of rules) out = out.replace(re, ' ');
+    for (const re of rules) {
+      out = out.replace(re, ' ');
+      // A leading rule needs a space after each word; a lone leftover word ("to", "over") has none.
+      if (re.source.startsWith('^')) out = `${out.trim()} `.replace(re, ' ').trim();
+    }
     out = trimPunct(out.replace(/\s+/g, ' '));
     if (out === before) break;
   }
@@ -95,19 +120,36 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
       text = `${text.slice(0, recent.index)} ${text.slice(recent.index + recent[0].length)}`.replace(/\s+/g, ' ').trim();
     }
   }
+  // "can I afford a $200 jacket?" is the one question with an amount in it; the amount is the price, taken out
+  // before the lead is read again ("is 80 ok for dinner" reads as "is ok for dinner"). Without an amount,
+  // "can I afford to eat out?" asks what is left.
+  let price: number | null = null;
+  let affordLead: RegExpExecArray | null = null;
+  let affordAsLeft: RegExpExecArray | null = null;
+  if (pack.affordLead) {
+    const found = /\d/.test(text) ? ctx.amount?.(text) : null;
+    if (found && found.amount != null && found.amount > 0) {
+      const again = pack.affordLead.exec(found.text);
+      if (again) { price = found.amount; text = found.text; affordLead = again; }
+    } else if (!/\d/.test(text)) affordAsLeft = pack.affordLead.exec(text);
+  }
   const hasDigit = /\d/.test(text);
-  // "How much do I have left" is checked first: some spending leads ("多少", "は…いくら") would also match it.
-  // With an amount in the sentence it is an entry, never a question ("left 5 for the tip").
-  const remaining = hasDigit ? null : pack.remainingLead.exec(text);
-  let expense = remaining ? null : pack.lead.exec(text);
-  const income = remaining ? null : pack.incomeLead.exec(text);
-  if (!remaining && !expense && !income && pack.weakLead && !hasDigit) expense = pack.weakLead.exec(text);
-  if (!remaining && !expense && !income) return null;
+  // Without an amount: comparing first ("how am I doing compared to last month"), then "how much do I have
+  // left", as some spending leads ("多少", "は…いくら") would also match it, then "the most", which also holds
+  // spending words. With an amount in the sentence it is an entry, never a question ("left 5 for the tip").
+  const compare = affordLead || hasDigit ? null : pack.compareLead?.exec(text) ?? null;
+  const remaining = affordLead || compare || hasDigit ? null : pack.remainingLead.exec(text) ?? affordAsLeft;
+  const top = affordLead || remaining || compare || hasDigit ? null : pack.topLead?.exec(text) ?? null;
+  const special = affordLead ?? remaining ?? compare ?? top;
+  let expense = special ? null : pack.lead.exec(text);
+  const income = special ? null : pack.incomeLead.exec(text);
+  if (!special && !expense && !income && pack.weakLead && !hasDigit) expense = pack.weakLead.exec(text);
+  if (!special && !expense && !income) return null;
   // The lead that appears first decides what is being asked about.
-  const useIncome = !remaining && !!income && (!expense || income.index < expense.index);
-  const lead = remaining ?? (useIncome ? income! : expense!);
+  const useIncome = !special && !!income && (!expense || income.index < expense.index);
+  const lead = special ?? (useIncome ? income! : expense!);
   const type: ParsedQuestion['type'] = useIncome ? 'income' : 'expense';
-  const ask: ParsedQuestion['ask'] = remaining ? 'left' : 'spent';
+  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : remaining ? 'left' : compare ? 'compare' : top ? 'top' : 'spent';
   let rest = text.slice(0, lead.index) + ' ' + text.slice(lead.index + lead[0].length);
 
   let period: QuestionPeriod = 'month';
@@ -117,10 +159,18 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
     const m = p.re.exec(rest);
     if (m) { period = p.period; periodDefaulted = false; rest = rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length); break; }
   }
-  // What is left is always about the current budget period, whatever period word came with it.
-  if (remaining) { period = 'budget'; rest = rest.replace(pack.remainingWords, ' '); }
+  // What is left, and whether something fits in it, are always about the current budget period.
+  if (remaining || affordLead) { period = 'budget'; rest = rest.replace(pack.remainingWords, ' '); }
+  // A comparison is between this week, month, year or pay period so far and the same point in the one before;
+  // "than last month" names the one before, so it means this month.
+  if (compare) {
+    period = COMPARE_PERIOD[period] ?? 'budget';
+    // "this week than last week" names both sides: neither is the thing asked about.
+    for (const p of pack.periods) rest = rest.replace(new RegExp(p.re.source, `${p.re.flags.replace('g', '')}g`), ' ');
+  }
+  if (affordLead || compare || top) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
   rest = stripAll(rest, pack.strip);
-  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && !remaining ? { days } : null) };
+  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && ask === 'spent' ? { days } : null), ...(price != null ? { price } : null) };
   if (!rest) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
 
   const key = rest.replace(/\s+/g, ' ').toLowerCase();

@@ -127,6 +127,11 @@ export const en = {
     toastGoalSet: (amount: string, name: string, by: string | null) => `Goal set: ${amount} for ${name}${by ? ` by ${by}` : ''}.`,
     toastAdded: (amount: string, goal: string) => `Added ${amount} to ${goal}.`,
     toastLogged: (amount: string, isIncome: boolean, category: string) => `Logged ${amount} ${isIncome ? 'in' : 'out'} · ${category}.`,
+    toastUpdated: (amount: string, category: string): string => `Changed to ${amount} · ${category}.`,
+    correctionOnCard: 'Change it on the card, then save.',
+    correctionCancelled: 'Cancelled. Nothing was saved.',
+    correctionNothing: "There's nothing to change yet.",
+    correctionRemoved: (amount: string, what: string | null): string => (what ? `Removed ${what}, ${amount}. Undo puts it back.` : `Removed ${amount}. Undo puts it back.`),
     // several entries in one go
     multiTitle: (n: number) => `${n} entries`,
     multiIntro: 'Check each one, then save them together. Tap a category to change it.',
@@ -468,6 +473,17 @@ export const en = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Nothing came in${what ? ` from ${what}` : ''} ${period}.` : `Nothing logged${what ? ` for ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `No entry mentions ${target}, so this is the ${category} total.`,
+    answerCompare: (period: string, amount: string, what: string | null, direction: 'less' | 'more' | 'same' | 'first', diff: string, prev: string): string => {
+      const base = `${period.charAt(0).toUpperCase() + period.slice(1)} you've spent ${amount}${what ? ` on ${what}` : ''}`;
+      if (direction === 'first') return `${base}. There's nothing from ${prev} to compare with yet.`;
+      if (direction === 'same') return `${base}, about the same as by this point ${prev}.`;
+      return `${base}, ${diff} ${direction} than by this point ${prev}.`;
+    },
+    comparePrev: { week: 'last week', month: 'last month', year: 'last year', budget: 'last pay period' } as Record<string, string>,
+    answerTop: (period: string, category: string, amount: string, total: string): string => `${period.charAt(0).toUpperCase() + period.slice(1)} the most went to ${category}: ${amount} of ${total}.`,
+    answerAffordFits: (price: string, left: string, what: string | null, until: string): string => (what ? `After ${price} you'd still have ${left} of the ${what} plan, until ${until}.` : `After ${price} you'd still have ${left}, until ${until}.`),
+    answerAffordShort: (price: string, short: string, what: string | null, until: string): string => (what ? `${price} is ${short} more than what's left of the ${what} plan until ${until}.` : `${price} is ${short} more than what's left until ${until}.`),
+    answerAffordUnknown: (price: string): string => `There's no plan or income for this period yet, so there's nothing to weigh ${price} against.`,
     answerLeft: (left: string, plan: string, what: string | null, until: string): string => (what ? `You have ${left} left of your ${plan} plan for ${what}, until ${until}.` : `You have ${left} left of your ${plan} plan, until ${until}.`),
     answerPast: (over: string, plan: string, what: string | null): string => (what ? `You've spent ${over} more than the ${plan} plan for ${what} this period.` : `You've spent ${over} more than the ${plan} plan this period.`),
     answerIncomeLeft: (left: string, until: string, billsDue: boolean): string => (billsDue ? `After the bills still due, you have ${left} to spend until ${until}.` : `You have ${left} to spend until ${until}.`),

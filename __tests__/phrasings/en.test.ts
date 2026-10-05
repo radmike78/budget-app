@@ -252,3 +252,72 @@ const STAY_ENTRIES: Case[] = [
 
 describe('English phrasings', () => runCases('en', CASES));
 describe('English entries stay entries', () => runCases('en', STAY_ENTRIES));
+
+/** Fixing the last entry by voice. Only the new value may follow the lead; anything else is a new entry. */
+const CORRECTIONS: Case[] = [
+  ['actually it was 14', { kind: 'correction', correction: { remove: false, amount: 14 } }],
+  ['make that 14', { kind: 'correction', correction: { amount: 14 } }],
+  ['no, 14', { kind: 'correction', correction: { amount: 14 } }],
+  ['oops, 14.50', { kind: 'correction', correction: { amount: 14.5 } }],
+  ['sorry, make it 14 dollars', { kind: 'correction', correction: { amount: 14 } }],
+  ['that should be 20', { kind: 'correction', correction: { amount: 20 } }],
+  ['i meant 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['actually 14', { kind: 'correction', correction: { amount: 14 } }],
+  ['change that to dining', { kind: 'correction', correction: { categoryId: 'dining', amount: null } }],
+  ['change it to groceries', { kind: 'correction', correction: { categoryId: 'groceries' } }],
+  ['put that under shopping', { kind: 'correction', correction: { categoryId: 'shopping' } }],
+  ['move it to transportation', { kind: 'correction', correction: { categoryId: 'transport' } }],
+  ['make that coffee', { kind: 'correction', correction: { categoryId: 'dining' } }],
+  ['that was yesterday', { kind: 'correction', correction: { date: '2026-09-15', amount: null } }],
+  ['actually it was yesterday', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['change that to 14 and groceries', { kind: 'correction', correction: { amount: 14, categoryId: 'groceries' } }],
+  ['delete that', { kind: 'correction', correction: { remove: true } }],
+  ['scratch that', { kind: 'correction', correction: { remove: true } }],
+  ['remove the last one', { kind: 'correction', correction: { remove: true } }],
+  ['delete my last entry', { kind: 'correction', correction: { remove: true } }],
+  ['never mind', { kind: 'correction', correction: { remove: true } }],
+  ['oops, delete that', { kind: 'correction', correction: { remove: true } }],
+];
+
+/** Sentences that sound a little like a correction but are new entries. */
+const NOT_CORRECTIONS: Case[] = [
+  ['it was 12 for lunch', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  ['that was 40 for gas', { kind: 'transaction', amount: 40 }],
+  ['make that the Japan trip', { kind: 'transaction' }],
+  ['remove 20 from savings', { kind: 'transaction', amount: 20 }],
+  ['cancel Netflix 15.99', { kind: 'transaction', amount: 15.99 }],
+  ['actually spent 14 on lunch', { kind: 'transaction', amount: 14, categoryId: 'dining' }],
+];
+
+describe('English corrections', () => runCases('en', CORRECTIONS));
+describe('English sentences that are not corrections', () => runCases('en', NOT_CORRECTIONS));
+
+/** Comparing with last time, where most went, and whether something fits. */
+const INSIGHTS: Case[] = [
+  ['did I spend more than last month', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['am I spending more on dining than last month', { kind: 'question', question: { ask: 'compare', period: 'month', categoryId: 'dining' } }],
+  ['how does this month compare to last month', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['how am I doing compared to last week', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['is my spending up this month', { kind: 'question', question: { ask: 'compare', period: 'month' } }],
+  ['how much more did I spend this week than last week', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['did I spend less on groceries than last month', { kind: 'question', question: { ask: 'compare', categoryId: 'groceries' } }],
+  ['what did I spend the most on', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['where did most of my money go this month', { kind: 'question', question: { ask: 'top', period: 'month' } }],
+  ["what's my biggest expense", { kind: 'question', question: { ask: 'top' } }],
+  ['where did my money go last month', { kind: 'question', question: { ask: 'top', period: 'lastMonth' } }],
+  ['what am I spending the most on', { kind: 'question', question: { ask: 'top' } }],
+  ['can I afford a $200 jacket', { kind: 'question', question: { ask: 'afford', price: 200, target: 'Jacket', fallbackCategoryId: 'shopping' } }],
+  ['can I afford 200 for shoes', { kind: 'question', question: { ask: 'afford', price: 200 } }],
+  ['is 80 ok for dinner', { kind: 'question', question: { ask: 'afford', price: 80, fallbackCategoryId: 'dining' } }],
+  ['can I spend 80 on dinner tonight', { kind: 'question', question: { ask: 'afford', price: 80 } }],
+  ['do I have enough for a 1200 laptop', { kind: 'question', question: { ask: 'afford', price: 1200, target: 'Laptop' } }],
+  ['would 50 be ok for groceries', { kind: 'question', question: { ask: 'afford', price: 50, categoryId: 'groceries' } }],
+  ['can I afford to eat out', { kind: 'question', question: { ask: 'left' } }],
+];
+const INSIGHTS_STAY_ENTRIES: Case[] = [
+  ['spent 200 on a jacket', { kind: 'transaction', amount: 200 }],
+  ['bought the most expensive coffee 7', { kind: 'transaction', amount: 7 }],
+  ['more coffee 4', { kind: 'transaction', amount: 4 }],
+];
+describe('English: comparing, the most, affording', () => runCases('en', INSIGHTS));
+describe('English: entries near those words stay entries', () => runCases('en', INSIGHTS_STAY_ENTRIES));
