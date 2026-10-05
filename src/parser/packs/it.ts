@@ -145,6 +145,7 @@ export const it: LanguagePack = {
     lead: /(?<![\p{L}])(?:quanto|quanti soldi|cosa|che cosa) (?:ho|abbiamo|avevo) (?:speso|pagato|spesi|sborsato)|(?<![\p{L}])quanto (?:ho|abbiamo) (?:messo|dato)|(?<![\p{L}])quanto (?:spendo|spendiamo|mi è costato|mi e costato|mi costa)|(?<![\p{L}])quanto (?:soldi )?(?:per|in|da|a|al|alla|alle|ai|con|su|di|nel|nella)(?![\p{L}])|(?<![\p{L}])(?:le mie |le |il totale delle )?spese (?:totali|in totale|complessive)|(?<![\p{L}])quanto se ne è andato/u,
     incomeLead: /(?<![\p{L}])(?:quanto|quanti soldi) (?:ho|abbiamo) (?:guadagnato|incassato|ricevuto|preso|guadagnati)|(?<![\p{L}])quanto (?:è entrato|e entrato|mi è entrato|mi e entrato|guadagno)|(?<![\p{L}])(?:le mie |le )?entrate (?:totali|in totale)|(?<![\p{L}])(?:il mio )?reddito (?:totale|in totale)/u,
     periods: [
+      periodWords(['questo periodo di paga', 'periodo di paga', 'dallo stipendio', "dall'ultimo stipendio", 'dall ultimo stipendio', 'da quando ho preso lo stipendio', 'da quando mi hanno pagato', 'questo periodo'], 'budget'),
       periodWords(['oggi', 'stamattina', 'questo pomeriggio', 'stasera'], 'today'),
       periodWords(['ieri'], 'yesterday'),
       periodWords(['la settimana scorsa', 'settimana scorsa', 'la scorsa settimana', 'la settimana passata'], 'lastWeek'),
@@ -159,6 +160,11 @@ export const it: LanguagePack = {
       /^(?:(?:per|in|da|a|al|alla|alle|ai|agli|con|su|di|del|della|dei|delle|nel|nella|il|lo|la|i|gli|le|mio|mia|miei|mie|e|soldi|ho|abbiamo|già|gia|speso|pagato)\s+)+/u,
       /(?:\s+(?:in totale|finora|per favore|grazie|soldi|già|gia|speso|pagato|il|la|mio|mia))+$/u,
       /(?<![\p{L}])(?:soldi|euro|euri|dollari)(?![\p{L}])/gu,
+    ],
+    remainingLead: /(?<![\p{L}])(?:quanto (?:mi |ci )?(?:resta|rimane|avanza)|quanti soldi (?:mi |ci )?(?:restano|rimangono|avanzano)|quanto (?:posso|possiamo) (?:ancora )?spendere|(?:qual è|qual e|quale è|quale e|com'è|com e) (?:il mio|il nostro|il) budget|(?:il mio |il )?budget (?:rimanente|residuo|restante)|cosa (?:mi |ci )?(?:resta|rimane))(?![\p{L}])/u,
+    remainingWords: /(?<![\p{L}])(?:budget|piano|piani|rimanente|residuo|restante|disponibile|ancora|da spendere|soldi|resta|rimane)(?![\p{L}])/gu,
+    groups: [
+      { words: ['cibo', 'mangiare', 'pasti', 'cibo e bevande', 'da mangiare'], ids: ['groceries', 'dining'] },
     ],
   },
   contextualStrings: ['euro', 'spesa', 'affitto', 'stipendio', 'obiettivo', 'Netflix', 'Uber', 'pranzo'],

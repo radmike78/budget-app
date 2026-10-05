@@ -151,6 +151,7 @@ export const de: LanguagePack = {
     lead: /(?<![\p{L}])(?:(?:wie ?viel|wieviel|was) (?:geld )?(?:habe ich|hab ich|hab' ich|haben wir|hatte ich|hatten wir)(?=[^?]*(?<![\p{L}])(?:ausgegeben|bezahlt|gezahlt|verbraten|ausgeben|verpulvert|gelassen)(?![\p{L}]))|(?:wie ?viel|wieviel) (?:geld )?(?:ging|ist|geht) (?:für|an|in|bei|drauf|weg)|(?:wie ?viel|wieviel) (?:geld )?(?:für|bei|an|in|im|beim|auf)(?![\p{L}])|(?:meine |die |gesamte )?ausgaben (?:insgesamt|gesamt|in summe|bisher)|was (?:kostet|kosten|kostete|hat) mich)/u,
     incomeLead: /(?<![\p{L}])(?:(?:wie ?viel|wieviel|was) (?:geld )?(?:habe ich|hab ich|hab' ich|haben wir|hatte ich)(?=[^?]*(?<![\p{L}])(?:verdient|eingenommen|bekommen|erhalten|reinbekommen|kassiert)(?![\p{L}]))|(?:wie ?viel|wieviel) (?:geld )?(?:kam|ist|kommt) (?:rein|herein|eingegangen)|(?:meine |die )?einnahmen (?:insgesamt|gesamt|in summe|bisher)|(?:mein |das )?einkommen (?:insgesamt|gesamt|bisher))/u,
     periods: [
+      periodWords(['diese gehaltsperiode', 'gehaltsperiode', 'diese abrechnungsperiode', 'abrechnungsperiode', 'seit dem zahltag', 'seit zahltag', 'seit dem letzten gehalt', 'seit dem gehalt', 'seit ich bezahlt wurde', 'diese periode', 'in dieser periode', 'diesen zeitraum'], 'budget'),
       periodWords(['heute', 'heute morgen', 'heute nachmittag', 'heute abend'], 'today'),
       periodWords(['gestern'], 'yesterday'),
       periodWords(['letzte woche', 'in der letzten woche', 'vergangene woche', 'in der vergangenen woche', 'vorige woche'], 'lastWeek'),
@@ -162,10 +163,15 @@ export const de: LanguagePack = {
       periodWords(['insgesamt', 'in summe', 'bisher', 'bis jetzt', 'überhaupt', 'ueberhaupt', 'seit anfang', 'alles zusammen', 'gesamt'], 'all'),
     ],
     strip: [
-      /(?<![\p{L}])(?:ausgegeben|bezahlt|gezahlt|verbraten|ausgeben|verpulvert|gelassen|verdient|eingenommen|bekommen|erhalten|reinbekommen|kassiert)(?![\p{L}])/gu,
+      /(?<![\p{L}])(?:ausgegeben|bezahlt|gezahlt|verbraten|ausgeben|verpulvert|gelassen|draufgegangen|weggegangen|verdient|eingenommen|bekommen|erhalten|reinbekommen|kassiert)(?![\p{L}])/gu,
       /^(?:(?:für|fuer|bei|an|in|im|beim|auf|mit|zu|zum|zur|den|die|das|der|dem|meine|meinen|mein|und|geld|habe|hab|ich|wir|schon|bereits|eigentlich|denn|so|jetzt)\s+)+/u,
       /(?:\s+(?:insgesamt|bisher|bitte|danke|geld|schon|bereits|eigentlich|denn|so|jetzt|dieser|diese|dieses|den|die|das))+$/u,
       /(?<![\p{L}])(?:geld|euro|euros|dollar)(?![\p{L}])/gu,
+    ],
+    remainingLead: /(?<![\p{L}])(?:(?:wie ?viel|wieviel) (?:geld )?(?:habe ich|hab ich|haben wir|ist|sind) (?:mir |uns )?(?:noch )?(?:übrig|uebrig|frei|verfügbar|verfuegbar)|(?:wie ?viel|wieviel) (?:geld )?(?:habe ich|hab ich|haben wir) noch|(?:wie ?viel|wieviel) (?:geld )?(?:bleibt|bleiben) (?:mir |uns )?(?:noch)?|(?:wie ?viel|wieviel) (?:geld )?ist (?:mir |uns )?noch|(?:wie ?viel|wieviel) (?:geld )?(?:kann|darf|können|koennen|dürfen|duerfen) (?:ich|wir) (?:noch )?ausgeben|was (?:ist|bleibt) (?:mir |uns )?(?:noch )?(?:übrig|uebrig)|(?:was ist|wie hoch ist|wie viel ist) (?:mein|das|unser) (?:rest)?budget|(?:mein |das )?restbudget|(?:mein |das )?(?:verbleibende|übrige|uebrige) budget)(?![\p{L}])/u,
+    remainingWords: /(?<![\p{L}])(?:budgets?|restbudget|plans?|übrig|uebrig|frei|verfügbar|verfuegbar|noch|rest|ausgeben|geld|verbleibende|verbleibendes)(?![\p{L}])/gu,
+    groups: [
+      { words: ['essen', 'nahrung', 'ernährung', 'ernaehrung', 'essen und trinken', 'verpflegung'], ids: ['groceries', 'dining'] },
     ],
   },
   contextualStrings: ['Euro', 'Einkauf', 'Miete', 'Gehalt', 'Ziel', 'Netflix', 'Uber', 'Mittagessen'],

@@ -440,7 +440,7 @@ export const es: LocaleDef = {
     askCarryTiny: (amount: string, name: string) => `El periodo pasado gastaste ${amount} menos que tu presupuesto de ${name}. ¿Qué quieres hacer con ese dinero?`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `Salieron ${total}, sobre todo en ${top}.` : `Salieron ${total}.`; if (compare === 'less') return `${lead} Son ${diff} menos que la semana anterior.`; if (compare === 'more') return `${lead} Son ${diff} más que la semana anterior.`; if (compare === 'same') return `${lead} Más o menos igual que la semana anterior.`; return lead; },
     readAloud: 'Leer en voz alta',
-    periodNames: { today: 'hoy', yesterday: 'ayer', week: 'esta semana', lastWeek: 'la semana pasada', month: 'este mes', lastMonth: 'el mes pasado', year: 'este año', lastYear: 'el año pasado', all: 'en total' } as Record<string, string>,
+    periodNames: { today: 'hoy', yesterday: 'ayer', week: 'esta semana', lastWeek: 'la semana pasada', month: 'este mes', lastMonth: 'el mes pasado', year: 'este año', lastYear: 'el año pasado', all: 'en total', budget: 'este periodo de pago' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entrada' : 'entradas'}`;
@@ -448,6 +448,14 @@ export const es: LocaleDef = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `No ha entrado nada${what ? ` de ${what}` : ''} ${period}.` : `No hay nada registrado${what ? ` de ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `Ninguna entrada menciona ${target}, así que este es el total de ${category}.`,
+    answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Te quedan ${left} del plan de ${plan} para ${what}, hasta el ${until}.` : `Te quedan ${left} del plan de ${plan}, hasta el ${until}.`),
+    answerPast: (over: string, plan: string, what: string | null) => (what ? `Has gastado ${over} más que el plan de ${plan} para ${what} en este periodo.` : `Has gastado ${over} más que el plan de ${plan} en este periodo.`),
+    answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Después de las facturas pendientes, tienes ${left} para gastar hasta el ${until}.` : `Tienes ${left} para gastar hasta el ${until}.`),
+    answerIncomeShort: (short: string, billsDue: boolean) => (billsDue ? `Cuando se paguen las facturas pendientes, este periodo quedará ${short} corto.` : `En este periodo ha salido ${short} más de lo que entró.`),
+    answerPlansLeft: (left: string, plan: string, until: string) => `Sumando los planes de tus categorías, te quedan ${left} de ${plan}, hasta el ${until}.`,
+    answerNothingSet: (spent: string) => `Todavía no hay plan ni ingresos en este periodo, así que no hay nada que descontar. Por ahora han salido ${spent}.`,
+    answerNoPlanFor: (what: string, spent: string | null) => `${what} no tiene plan, así que no hay nada que descontar. ${spent ? `En este periodo han ido ${spent} ahí.` : 'En este periodo no ha ido nada ahí.'}`,
+    answerNoCategory: (target: string) => `Ninguna categoría coincide con ${target}.`,
     about: 'Acerca de',
     aboutApp: 'Acerca de OnlyBudget',
     aboutSub: 'Sin vincular bancos. Sin anuncios. Sin rastreo. Nunca.',
@@ -459,7 +467,7 @@ export const es: LocaleDef = {
       ['Añadir un movimiento', 'Toca el micrófono y di lo que pasó, o escríbelo: "gasté 12 en el almuerzo", "cobré 2400", "gasolina 40 ayer". Varios de una vez también funcionan: "9,87 en Starbucks y 58 en la barbacoa coreana". Una tarjeta muestra lo que se entendió; toca Guardar para conservarlo.'],
       ['Corregir un movimiento', 'En la tarjeta, toca el importe, la categoría o la fecha para cambiarlos antes de guardar. Después, toca cualquier movimiento en Recientes o Historial para editarlo. Cuando cambias una categoría, las palabras se recuerdan para que el siguiente caiga en su sitio.'],
       ['Eliminar un movimiento', 'Abre el movimiento y toca Eliminar movimiento. Desaparece al instante, y una barra de Deshacer se queda unos segundos por si no era tu intención.'],
-      ['Hacer una pregunta', 'Pregunta "¿cuánto he gastado esta semana en café?" o "¿cuánto gasté en supermercado el mes pasado?". La respuesta se muestra en pantalla o se lee en voz alta, según lo que elijas en Ajustes → Respuestas a preguntas. Las semanas empiezan en domingo.'],
+      ['Hacer una pregunta', 'Pregunta "¿cuánto he gastado esta semana en café?" o "¿cuánto gasté en supermercado el mes pasado?". La respuesta se muestra en pantalla o se lee en voz alta, según lo que elijas en Ajustes → Respuestas a preguntas. Las semanas empiezan en domingo. Pregunta "¿cuánto me queda?" o "¿cuánto me queda para comida?" para saber lo que queda de tu plan, o de tus ingresos tras las facturas pendientes. También sirven "este periodo de pago" y "desde que cobré"; "comida" suma supermercado y restaurantes.'],
       ['Metas', 'Di "meta: ahorrar 500 para un viaje para diciembre" o "quiero pagar la tarjeta de crédito en 6 meses". La tarjeta muestra el plan antes de guardarlo. Añade dinero con "añadí 50 al viaje".'],
       ['Recordatorios', 'Di "recuérdame pagar el alquiler el día 1 a las 9" o "recuérdame cada noche a las 8 apuntar los tickets". Los recordatorios son notificaciones del teléfono, así que el primero pide permiso. Están en Ajustes → Recordatorios.'],
       ['Movimientos recurrentes', 'Alquiler, nómina, suscripciones: configúralos una vez en Ajustes → Movimientos recurrentes y cada uno se registra por ti cuando toca. Puedes editar o eliminar cualquier movimiento registrado como siempre.'],

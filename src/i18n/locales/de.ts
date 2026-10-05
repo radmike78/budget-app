@@ -440,7 +440,7 @@ export const de: LocaleDef = {
     askCarryTiny: (amount: string, name: string) => `Du hast im letzten Zeitraum ${amount} weniger ausgegeben als dein Budget für ${name}. Was soll damit passieren?`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} sind rausgegangen, das meiste für ${top}.` : `${total} sind rausgegangen.`; if (compare === 'less') return `${lead} Das sind ${diff} weniger als in der Woche davor.`; if (compare === 'more') return `${lead} Das sind ${diff} mehr als in der Woche davor.`; if (compare === 'same') return `${lead} Ungefähr wie in der Woche davor.`; return lead; },
     readAloud: 'Vorlesen',
-    periodNames: { today: 'heute', yesterday: 'gestern', week: 'diese Woche', lastWeek: 'letzte Woche', month: 'diesen Monat', lastMonth: 'letzten Monat', year: 'dieses Jahr', lastYear: 'letztes Jahr', all: 'insgesamt' } as Record<string, string>,
+    periodNames: { today: 'heute', yesterday: 'gestern', week: 'diese Woche', lastWeek: 'letzte Woche', month: 'diesen Monat', lastMonth: 'letzten Monat', year: 'dieses Jahr', lastYear: 'letztes Jahr', all: 'insgesamt', budget: 'diese Gehaltsperiode' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'Eintrag' : 'Einträgen'}`;
@@ -448,6 +448,14 @@ export const de: LocaleDef = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` von ${what}` : ''} eingegangen.` : `${period.charAt(0).toUpperCase() + period.slice(1)} ist nichts${what ? ` für ${what}` : ''} eingetragen.`),
     answerFallback: (target: string, category: string) => `Kein Eintrag erwähnt ${target}, darum ist das die Summe für ${category}.`,
+    answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Du hast noch ${left} vom Plan über ${plan} für ${what}, bis ${until}.` : `Du hast noch ${left} vom Plan über ${plan}, bis ${until}.`),
+    answerPast: (over: string, plan: string, what: string | null) => (what ? `Du hast in diesem Zeitraum ${over} mehr als den Plan über ${plan} für ${what} ausgegeben.` : `Du hast in diesem Zeitraum ${over} mehr als den Plan über ${plan} ausgegeben.`),
+    answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Nach den noch fälligen Rechnungen hast du ${left} zum Ausgeben bis ${until}.` : `Du hast ${left} zum Ausgeben bis ${until}.`),
+    answerIncomeShort: (short: string, billsDue: boolean) => (billsDue ? `Wenn die noch fälligen Rechnungen bezahlt sind, fehlen in diesem Zeitraum ${short}.` : `In diesem Zeitraum ist ${short} mehr hinausgegangen als hereingekommen.`),
+    answerPlansLeft: (left: string, plan: string, until: string) => `Über alle Kategoriepläne hast du noch ${left} von ${plan}, bis ${until}.`,
+    answerNothingSet: (spent: string) => `Für diesen Zeitraum gibt es noch keinen Plan und kein Einkommen, also nichts zum Herunterzählen. Bisher sind ${spent} hinausgegangen.`,
+    answerNoPlanFor: (what: string, spent: string | null) => `${what} hat keinen Plan, also gibt es nichts zum Herunterzählen. ${spent ? `In diesem Zeitraum sind ${spent} dafür ausgegeben worden.` : 'In diesem Zeitraum ist nichts dafür ausgegeben worden.'}`,
+    answerNoCategory: (target: string) => `Keine Kategorie passt zu ${target}.`,
     about: 'Über',
     aboutApp: 'Über OnlyBudget',
     aboutSub: 'Keine Bankverbindung. Keine Werbung. Kein Tracking. Nie.',
@@ -459,7 +467,7 @@ export const de: LocaleDef = {
       ['Einen Eintrag hinzufügen', 'Tipp aufs Mikro und sag, was passiert ist, oder tipp es ein: „12 Euro für Mittagessen ausgegeben“, „Gehalt bekommen 2400“, „gestern 40 getankt“. Mehrere auf einmal gehen auch: „9,87 bei Starbucks und 58 beim Koreaner“. Eine Karte zeigt, was verstanden wurde; tipp auf Speichern, um es zu behalten.'],
       ['Einen Eintrag korrigieren', 'Tipp auf der Karte auf Betrag, Kategorie oder Datum, um sie vor dem Speichern zu ändern. Später tippst du unter Zuletzt oder Verlauf auf einen Eintrag, um ihn zu bearbeiten. Wenn du eine Kategorie änderst, merkt sich die App die Wörter, damit der nächste Eintrag richtig landet.'],
       ['Einen Eintrag entfernen', 'Öffne den Eintrag und tipp auf Eintrag entfernen. Er ist sofort weg, und eine Rückgängig-Leiste bleibt ein paar Sekunden, falls du es nicht so gemeint hast.'],
-      ['Eine Frage stellen', 'Frag „Wie viel habe ich diese Woche für Kaffee ausgegeben?“ oder „Wie viel habe ich letzten Monat für Lebensmittel ausgegeben?“. Die Antwort erscheint auf dem Bildschirm oder wird vorgelesen, je nach Einstellungen → Antworten auf Fragen. Wochen beginnen am Sonntag.'],
+      ['Eine Frage stellen', 'Frag „Wie viel habe ich diese Woche für Kaffee ausgegeben?“ oder „Wie viel habe ich letzten Monat für Lebensmittel ausgegeben?“. Die Antwort erscheint auf dem Bildschirm oder wird vorgelesen, je nach Einstellungen → Antworten auf Fragen. Wochen beginnen am Sonntag. Frag „Wie viel habe ich noch?“ oder „Wie viel habe ich noch für Lebensmittel?“, um zu hören, was vom Plan übrig ist, oder vom Einkommen nach den noch fälligen Rechnungen. „Diese Gehaltsperiode“ und „seit dem Zahltag“ gehen auch, und „Essen“ zählt Lebensmittel und Restaurants zusammen.'],
       ['Ziele', 'Sag „Ziel: 500 für eine Reise bis Dezember sparen“ oder „ich will meine Kreditkarte in 6 Monaten abbezahlen“. Die Karte zeigt den Plan, bevor du ihn speicherst. Geld legst du dazu mit „50 zur Reise hinzugefügt“.'],
       ['Erinnerungen', 'Sag „erinnere mich am 1. um 9 Uhr an die Miete“ oder „erinnere mich jeden Abend um 8 an die Belege“. Erinnerungen sind Benachrichtigungen des Handys, deshalb fragt die erste nach Erlaubnis. Du findest sie unter Einstellungen → Erinnerungen.'],
       ['Wiederkehrende Einträge', 'Miete, Gehalt, Abos: einmal unter Einstellungen → Wiederkehrende Einträge anlegen, und jeder wird für dich eingetragen, wenn er fällig ist. Eingetragene Einträge kannst du wie gewohnt bearbeiten oder entfernen.'],

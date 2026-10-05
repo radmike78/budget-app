@@ -177,6 +177,7 @@ export const en: LanguagePack = {
     lead: /\b(?:how much (?:money |cash )?(?:(?:have|did|do|had) (?:i|we) |i've |i have |we've |we |i )?(?:spent|spend|paid|pay|used|blown|blew)|what (?:(?:have|did|do) (?:i|we) |i've |i |we )(?:spent|spend|paid|pay)|how much (?:money )?(?:has|have|had) (?:gone|went) (?:to|on|into|for)|how much (?:money )?(?:went|goes) (?:to|on|into|for)|(?:my |the )?(?:total|overall) spending|how much (?:money |cash )?(?:on|at|for)|(?:what|how much) (?:is|was|are) my (?:spending|spend|expenses)|(?:what|how much) (?:did|do) i owe|how much (?:i|we) (?:spent|spend))\b/u,
     incomeLead: /\b(?:how much (?:money )?(?:(?:have|did|do|had) (?:i|we) |i've |i have |we've |i |we )?(?:earned|earn|made|make|received|receive|brought in|bring in|got paid|been paid|taken in)|what (?:(?:have|did) (?:i|we) |i've |i )(?:earned|made|received|brought in)|how much (?:money )?(?:came|has come|had come|comes) in|(?:my |the )?(?:total|overall) income|what (?:is|was|are) my (?:income|earnings)|how much (?:income|money in))\b/u,
     periods: [
+      periodWords(['this pay period', 'pay period', 'this pay cycle', 'pay cycle', 'this paycheck', 'since payday', 'since my last payday', 'since i got paid', 'since i was paid', 'since my last paycheck', 'since my paycheck', 'this budget period', 'budget period', 'this period'], 'budget'),
       periodWords(['today', 'so far today', 'tonight', 'this morning', 'this afternoon', 'this evening'], 'today'),
       periodWords(['yesterday'], 'yesterday'),
       periodWords(['last week', 'the past week', 'past week', 'previous week', 'the previous week'], 'lastWeek'),
@@ -191,6 +192,11 @@ export const en: LanguagePack = {
       /^(?:(?:on|at|for|in|with|to|from|about|towards|toward|the|my|our|some|any|of|and|then|so|please|money|cash|did|do|i|we|have|has)\s+)+/u,
       /(?:\s+(?:so far|in total|altogether|overall|please|thanks|thank you|again|now|money|cash|then|today|this|the|my))+$/u,
       /\b(?:money|cash|dollars|bucks)\b/gu,
+    ],
+    remainingLead: /\b(?:what(?:'s| is| s)? (?:my |the |our )?(?:remaining|leftover) (?:budget|money|plan|cash)|(?:my |the )?remaining budget|how much (?:money |cash )?(?:do (?:i|we) (?:still )?have|have (?:i|we) got|(?:i|we) (?:still )?have|is there|is|are) (?:still )?left|how much (?:money |cash )?(?:is )?(?:still )?left|how much (?:more )?(?:money |cash )?(?:can|could) (?:i|we) (?:still )?spend|how much (?:more )?(?:money |cash )?(?:do (?:i|we) have|have (?:i|we) got) (?:left )?to spend|what(?:'s| is| s) (?:still )?left|what (?:do|have) (?:i|we) (?:got |still )?(?:got )?left|how much budget (?:do (?:i|we) have |is |have (?:i|we) got )?(?:still )?left|what(?:'s| is| s) (?:my|our|the)(?= (?:[\p{L} ]{1,30} )?(?:budget|plan)\b))\b/u,
+    remainingWords: /\b(?:budgets?|plans?|left|remaining|leftover|to spend|spend|available|still|money|cash)\b/gu,
+    groups: [
+      { words: ['food', 'food and drink', 'food and drinks', 'eating', 'meals', 'groceries and eating out', 'groceries and dining', 'groceries and restaurants'], ids: ['groceries', 'dining'] },
     ],
   },
   contextualStrings: ['dollars', 'bucks', 'groceries', 'rent', 'paycheck', 'goal', 'Netflix', 'Uber', 'how much have I spent'],
