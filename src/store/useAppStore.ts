@@ -203,10 +203,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     const stats = await repo.periodStats(db, period);
     const carry = await computeCarry(db, settings, rules, categories, carryovers, period);
     const todayStr = today();
-    const recap = isRecapDay(todayStr) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
+    // Looking back only makes sense once the app was in use before what it looks back on: on a new phone,
+    // entries dated earlier (rent the setup logged for the 1st) are not a week or a period someone lived with it.
+    const firstSaved = await repo.firstSavedAt(db);
+    const usedBefore = (date: string) => firstSaved != null && firstSaved.slice(0, 10) < date;
+    const recap = isRecapDay(todayStr) && usedBefore(weekRange(todayStr, 0).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
     const current = periodContaining(settings.budgetPeriod, rules, todayStr);
     let review: PeriodReview | null = null;
-    if (isReviewTime(current, todayStr)) {
+    if (isReviewTime(current, todayStr) && usedBefore(current.start)) {
       const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
       const before = shiftPeriod(settings.budgetPeriod, rules, last, -1);
       const [lastStats, beforeStats] = await Promise.all([repo.periodStats(db, last), repo.periodStats(db, before)]);
