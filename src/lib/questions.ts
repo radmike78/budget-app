@@ -17,7 +17,7 @@ export interface DateRange { from: string; to: string }
  * `budget` is the current budget period (`current`, from periodContaining) up to today;
  * without one it is the month.
  */
-export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period): DateRange {
+export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7): DateRange {
   const d = fromDateString(todayStr);
   const dow = d.getDay(); // Sunday = 0
   switch (period) {
@@ -27,6 +27,14 @@ export function periodRange(period: QuestionPeriod, todayStr: string, current?: 
     case 'lastWeek': { const sunday = addDays(todayStr, -dow - 7); return { from: sunday, to: addDays(sunday, 6) }; }
     case 'budget': if (current) return { from: current.start, to: todayStr < current.end ? todayStr : current.end }; return { from: monthRange(monthKey(todayStr)).start, to: todayStr };
     case 'month': return { from: monthRange(monthKey(todayStr)).start, to: todayStr };
+    // The most recent Saturday and Sunday: this one while it is under way, else the one just gone.
+    case 'weekend': {
+      if (dow === 6) return { from: todayStr, to: todayStr };
+      if (dow === 0) return { from: addDays(todayStr, -1), to: todayStr };
+      const saturday = addDays(todayStr, -(dow + 1));
+      return { from: saturday, to: addDays(saturday, 1) };
+    }
+    case 'recentDays': return { from: addDays(todayStr, -(Math.max(1, Math.min(366, Math.round(days))) - 1)), to: todayStr };
     case 'lastMonth': { const r = monthRange(shiftMonthKey(monthKey(todayStr), -1)); return { from: r.start, to: r.end }; }
     case 'year': return { from: `${d.getFullYear()}-01-01`, to: todayStr };
     case 'lastYear': return { from: `${d.getFullYear() - 1}-01-01`, to: `${d.getFullYear() - 1}-12-31` };

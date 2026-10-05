@@ -74,11 +74,11 @@ export function useEntryFlow() {
       }
     } else {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current);
+      const range = periodRange(period, todayStr, current, q.days);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
       const a = answerQuestion(q, rows, range, categories);
-      const periodName = period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
+      const periodName = period === 'recentDays' ? t.periodLastDays(q.days ?? 7) : period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
       const cat = a.categoryId ? categories.find((c) => c.id === a.categoryId) : null;
       const what = a.categoryIds ? a.target : cat && !a.usedFallback ? categoryName(cat, t) : a.target;
       text = a.count > 0 ? t.answerTotal(periodName, money(a.total), what, a.count, q.type === 'income') : t.answerNone(periodName, what, q.type === 'income');

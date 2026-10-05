@@ -120,6 +120,12 @@ function compile(pack: LanguagePack): Compiled {
       const w = pack.tokenizer === 'cjk' ? raw.replace(/\s+/g, '') : raw;
       if (!keywordIndex.has(w)) keywordIndex.set(w, { categoryId, kind });
       maxPhraseWords = Math.max(maxPhraseWords, w.split(' ').length);
+      // Text is tokenised before lookup ("m'a" becomes "m a"), so a keyword written with an
+      // apostrophe is also indexed the same way, or it could never match.
+      if (pack.tokenizer !== 'cjk') {
+        const t = tokenize(raw).join(' ');
+        if (t && t !== w && !keywordIndex.has(t)) keywordIndex.set(t, { categoryId, kind });
+      }
     }
   }
   const c: Compiled = {
@@ -180,7 +186,7 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
       if (/\d[.\-/:]$/.test(before)) continue;
       if (/^[.\-/]\d/.test(after)) continue;
       if (/^\s?(people|persons|items?|tickets?|days?|weeks?|months?|years?|hours?|minutes?|miles?|km|kg|lbs?|oz|packs?|personas|personnes|persone|personen|个人|名|人|명)\b/iu.test(after)) continue;
-      if (/^\s?(?:份|杯|个|個|顿|頓|件|张|張|瓶|册|冊|つ|本|枚|台|回|次|개|잔|번|병|명|그릇|장)/u.test(after)) continue;
+      if (/^\s?(?:份|杯|个|個|顿|頓|件|张|張|瓶|册|冊|つ|本|枚|台|回|次|箱|袋|盒|公斤|斤|双|雙|条|條|罐|碗|串|개|잔|번|병|명|그릇|장|권|켤레|벌|대|마리|송이|박)/u.test(after)) continue;
       // "2 of them" is a count; "5000 of debt" is money.
       if (/^\s?of\b/iu.test(after) && Number(m[2]) < 100) continue;
     }
@@ -296,6 +302,8 @@ export function detectCategory(text: string, ctx: ParseContext, pack: LanguagePa
     for (let i = 0; i + len <= tokens.length; i += 1) {
       const phrase = tokens.slice(i, i + len).join(' ');
       const variants = len === 1 && pack.singularForms ? [phrase, ...pack.singularForms(phrase)] : [phrase];
+      // "öffi-jahreskarte", "tram-billett": the parts are words of their own.
+      if (len === 1 && phrase.includes('-')) for (const part of phrase.split('-')) if (part.length > 2) variants.push(part, ...(pack.singularForms?.(part) ?? []));
       for (const v of variants) {
         const r = lookup(v, len);
         if (r) return r;
@@ -356,20 +364,35 @@ export function restoreCase(note: string | null, raw: string): string | null {
 }
 
 function findGoal(name: string, goals: Goal[], c: Compiled): Goal | null {
-  const needle = name.toLowerCase().replace(/\s+/g, c.pack.tokenizer === 'cjk' ? '' : ' ').trim();
+  const cjk = c.pack.tokenizer === 'cjk';
+  // Space-separated languages compare without accents ("Japon" is "Japón") and read a hyphen as a space ("Japan-Kasse").
+  // Stopwords and goal nouns are checked on the words as said, before folding ("für" is a stopword, "fur" is not).
+  const fold = (s: string) => (cjk ? s : s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC'));
+  const spaced = (s: string) => s.toLowerCase().replace(cjk ? /\s+/g : /(?<=\p{L})-(?=\p{L})|\s+/gu, cjk ? '' : ' ').trim();
+  const said = spaced(name);
+  const needle = fold(said);
   if (!needle) return null;
   const open = goals.filter((g) => !g.completed);
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, c.pack.tokenizer === 'cjk' ? '' : ' ').trim();
+  const norm = (s: string) => fold(spaced(s));
   const exact = open.find((g) => norm(g.name) === needle);
   if (exact) return exact;
   const contains = open.find((g) => needle.includes(norm(g.name)) || norm(g.name).includes(needle));
   if (contains) return contains;
-  if (c.pack.tokenizer === 'cjk') return null;
-  const needleWords = new Set(tokenize(needle).filter((w) => !c.stopwords.has(w)));
+  if (cjk) return null;
+  // "the Japan fund" or "my Japan savings": once the generic words are gone, what is left must name the goal.
+  const nouns = c.pack.goalNouns;
+  if (nouns) {
+    const core = fold(tokenize(said).filter((w) => !c.stopwords.has(w) && !nouns.test(w)).join(' '));
+    if (core && core !== needle) {
+      const hits = open.filter((g) => ` ${norm(g.name)} `.includes(` ${core} `));
+      if (hits.length === 1) return hits[0];
+    }
+  }
+  const needleWords = new Set(tokenize(said).filter((w) => !c.stopwords.has(w)).map(fold));
   let best: { goal: Goal; score: number } | null = null;
   for (const g of open) {
-    const words = tokenize(g.name.toLowerCase()).filter((w) => !c.stopwords.has(w));
-    const overlap = words.filter((w) => needleWords.has(w) || (c.pack.singularForms?.(w) ?? []).some((f) => needleWords.has(f))).length;
+    const words = tokenize(spaced(g.name)).filter((w) => !c.stopwords.has(w));
+    const overlap = words.filter((w) => needleWords.has(fold(w)) || (c.pack.singularForms?.(w) ?? []).some((f) => needleWords.has(fold(f)))).length;
     // One shared word is not a match for a multi-word goal ("emergency room" vs "Emergency fund").
     const needed = words.length >= 2 ? Math.max(2, Math.ceil(words.length / 2)) : 1;
     if (overlap >= needed && (!best || overlap > best.score)) best = { goal: g, score: overlap };
@@ -708,8 +731,18 @@ export function splitSentences(raw: string, ordinalDots = false): string[] {
     }
   }
   if (buf.trim()) parts.push(buf);
-  return parts.map((p) => p.trim()).filter(Boolean);
+  // "Payday! 2400" or "給料日！25万円": a bare amount belongs to the words before it.
+  const out: string[] = [];
+  for (const p of parts.map((x) => x.trim()).filter(Boolean)) {
+    const prev = out[out.length - 1];
+    if (prev !== undefined && !/\d/.test(prev) && BARE_AMOUNT.test(p)) out[out.length - 1] = `${prev} ${p}`;
+    else out.push(p);
+  }
+  return out;
 }
+
+/** A sentence that is only an amount, with at most a currency word or sign. */
+const BARE_AMOUNT = /^[^\p{L}\p{N}]*\d[\d.,\s]*(?:\s?(?:k|万|萬|千|円|元|块|塊|원|만|천|euros?|eur|dollars?|bucks|usd|€|\$|£|¥|₩))*[^\p{L}\p{N}]*$/iu;
 
 /**
  * Parses free text that may describe several entries, in one sentence or
