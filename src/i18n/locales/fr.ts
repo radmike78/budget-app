@@ -440,7 +440,7 @@ export const fr: LocaleDef = {
     askCarryTiny: (amount: string, name: string) => `Vous avez dépensé ${amount} de moins que votre budget ${name} la période dernière. Que voulez-vous en faire ?`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} sont sortis, surtout en ${top}.` : `${total} sont sortis.`; if (compare === 'less') return `${lead} C’est ${diff} de moins que la semaine précédente.`; if (compare === 'more') return `${lead} C’est ${diff} de plus que la semaine précédente.`; if (compare === 'same') return `${lead} À peu près comme la semaine précédente.`; return lead; },
     readAloud: 'Lire à voix haute',
-    periodNames: { today: 'aujourd\'hui', yesterday: 'hier', week: 'cette semaine', lastWeek: 'la semaine dernière', month: 'ce mois-ci', lastMonth: 'le mois dernier', year: 'cette année', lastYear: 'l\'année dernière', all: 'au total' } as Record<string, string>,
+    periodNames: { today: 'aujourd\'hui', yesterday: 'hier', week: 'cette semaine', lastWeek: 'la semaine dernière', month: 'ce mois-ci', lastMonth: 'le mois dernier', year: 'cette année', lastYear: 'l\'année dernière', all: 'au total', budget: 'cette période de paie' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entrée' : 'entrées'}`;
@@ -448,6 +448,14 @@ export const fr: LocaleDef = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Rien n\'est rentré${what ? ` de ${what}` : ''} ${period}.` : `Rien n\'a été noté${what ? ` pour ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `Aucune entrée ne mentionne ${target}, donc voici le total de ${category}.`,
+    answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Il te reste ${left} sur le plan de ${plan} pour ${what}, jusqu’au ${until}.` : `Il te reste ${left} sur le plan de ${plan}, jusqu’au ${until}.`),
+    answerPast: (over: string, plan: string, what: string | null) => (what ? `Tu as dépensé ${over} de plus que le plan de ${plan} pour ${what} sur cette période.` : `Tu as dépensé ${over} de plus que le plan de ${plan} sur cette période.`),
+    answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Après les factures encore à venir, tu as ${left} à dépenser jusqu’au ${until}.` : `Tu as ${left} à dépenser jusqu’au ${until}.`),
+    answerIncomeShort: (short: string, billsDue: boolean) => (billsDue ? `Une fois les factures à venir payées, il manquera ${short} sur cette période.` : `Sur cette période, ${short} de plus est sorti que ce qui est rentré.`),
+    answerPlansLeft: (left: string, plan: string, until: string) => `En additionnant les plans de tes catégories, il te reste ${left} sur ${plan}, jusqu’au ${until}.`,
+    answerNothingSet: (spent: string) => `Il n’y a encore ni plan ni revenu sur cette période, donc rien à décompter. Pour l’instant, ${spent} sont sortis.`,
+    answerNoPlanFor: (what: string, spent: string | null) => `${what} n’a pas de plan, donc rien à décompter. ${spent ? `${spent} y sont allés sur cette période.` : 'Rien n’y est allé sur cette période.'}`,
+    answerNoCategory: (target: string) => `Aucune catégorie ne correspond à ${target}.`,
     about: 'À propos',
     aboutApp: 'À propos d’OnlyBudget',
     aboutSub: 'Pas de banque liée. Pas de pub. Pas de pistage. Jamais.',
@@ -459,7 +467,7 @@ export const fr: LocaleDef = {
       ['Ajouter une opération', 'Touchez le micro et dites ce qui s’est passé, ou tapez-le : « dépensé 12 pour le déjeuner », « reçu 2400 de salaire », « essence 40 hier ». Plusieurs d’un coup marchent aussi : « 9,87 chez Starbucks et 58 au restaurant coréen ». Une carte montre ce qui a été compris ; touchez Enregistrer pour le garder.'],
       ['Corriger une opération', 'Sur la carte, touchez le montant, la catégorie ou la date pour les changer avant d’enregistrer. Plus tard, touchez n’importe quelle opération dans Récent ou Historique pour la modifier. Quand vous changez une catégorie, les mots sont retenus pour que la prochaine tombe juste.'],
       ['Supprimer une opération', 'Ouvrez l’opération et touchez Supprimer l’opération. Elle disparaît aussitôt, et une barre Annuler reste quelques secondes au cas où ce n’était pas voulu.'],
-      ['Poser une question', 'Demandez « combien j’ai dépensé cette semaine en café ? » ou « combien j’ai dépensé en courses le mois dernier ? ». La réponse s’affiche à l’écran ou est lue à voix haute, selon Réglages → Réponses aux questions. Les semaines commencent le dimanche.'],
+      ['Poser une question', 'Demandez « combien j’ai dépensé cette semaine en café ? » ou « combien j’ai dépensé en courses le mois dernier ? ». La réponse s’affiche à l’écran ou est lue à voix haute, selon Réglages → Réponses aux questions. Les semaines commencent le dimanche. Demandez « combien il me reste ? » ou « combien il me reste pour les courses ? » pour savoir ce qui reste du plan, ou des revenus une fois les factures à venir payées. « Cette période de paie » et « depuis la paie » marchent aussi, et « nourriture » réunit courses et restaurants.'],
       ['Objectifs', 'Dites « objectif : économiser 500 pour un voyage avant décembre » ou « je veux rembourser ma carte de crédit dans 6 mois ». La carte montre le plan avant que vous l’enregistriez. Ajoutez de l’argent avec « ajouté 50 au voyage ».'],
       ['Rappels', 'Dites « rappelle-moi de payer le loyer le 1er à 9h » ou « rappelle-moi chaque soir à 20h de noter mes tickets ». Les rappels sont des notifications du téléphone, donc le premier demande une autorisation. Ils se trouvent dans Réglages → Rappels.'],
       ['Opérations récurrentes', 'Loyer, salaire, abonnements : réglez-les une fois dans Réglages → Opérations récurrentes et chacune est enregistrée pour vous à son échéance. Vous pouvez modifier ou supprimer toute opération enregistrée comme d’habitude.'],

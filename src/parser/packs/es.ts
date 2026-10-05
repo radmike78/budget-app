@@ -132,6 +132,7 @@ export const es: LanguagePack = {
     lead: /(?<![\p{L}])(?:cuánto|cuanto|qué|que) (?:dinero )?(?:he|hemos|llevo|llevamos|había|habia) (?:gastado|pagado)|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:gasté|gaste|gastamos|pagué|pague|pagamos|me gasté|me gaste|llevo gastado|llevo gastando|se (?:me )?(?:fue|ha ido))|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:en|para|con|de|por)(?![\p{L}])|(?<![\p{L}])(?:mis |el |mi )?gastos? (?:totales?|en total)|(?<![\p{L}])(?:cuánto|cuanto) es mi gasto/u,
     incomeLead: /(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:he|hemos) (?:ganado|ingresado|recibido|cobrado)|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:gané|gane|ganamos|ingresé|ingrese|recibí|recibi|cobré|cobre|me (?:entró|entro|ha entrado))|(?<![\p{L}])(?:cuánto|cuanto) (?:dinero )?(?:entró|entro|ha entrado)|(?<![\p{L}])(?:mis |el |mi )?ingresos? (?:totales?|en total)/u,
     periods: [
+      periodWords(['este periodo de pago', 'este período de pago', 'periodo de pago', 'período de pago', 'desde el día de pago', 'desde el dia de pago', 'desde que cobré', 'desde que cobre', 'desde la última nómina', 'desde la ultima nomina', 'desde el último sueldo', 'desde el ultimo sueldo', 'esta quincena', 'este periodo', 'este período'], 'budget'),
       periodWords(['hoy', 'esta mañana', 'esta tarde', 'esta noche'], 'today'),
       periodWords(['ayer'], 'yesterday'),
       periodWords(['la semana pasada', 'semana pasada', 'la última semana', 'la ultima semana'], 'lastWeek'),
@@ -146,6 +147,11 @@ export const es: LanguagePack = {
       /^(?:(?:en|para|con|de|del|por|a|al|la|el|los|las|mi|mis|y|dinero|he|hemos|ya|me|se|lo|que)\s+)+/u,
       /(?:\s+(?:en total|hasta ahora|por favor|gracias|ya|dinero|hoy|el|la|mi))+$/u,
       /(?<![\p{L}])(?:dinero|euros|pesos|dólares|dolares)(?![\p{L}])/gu,
+    ],
+    remainingLead: /(?<![\p{L}])(?:(?:cuánto|cuanto) (?:dinero )?(?:me |nos |le )?(?:queda|quedan|sobra|resta)|(?:cuánto|cuanto) (?:más |mas )?(?:dinero )?(?:puedo|podemos) (?:todavía |todavia |aún |aun )?gastar|(?:cuál|cual|qué|que) es (?:mi|el|nuestro) presupuesto|(?:mi |el )?presupuesto restante|(?:qué|que) (?:me|nos) queda)(?![\p{L}])/u,
+    remainingWords: /(?<![\p{L}])(?:presupuestos?|planes|plan|restantes?|disponibles?|todavía|todavia|aún|aun|para gastar|dinero|queda|quedan)(?![\p{L}])/gu,
+    groups: [
+      { words: ['comida', 'comidas', 'alimentación', 'alimentacion', 'comer', 'comida y bebida'], ids: ['groceries', 'dining'] },
     ],
   },
   contextualStrings: ['euros', 'dólares', 'pesos', 'supermercado', 'alquiler', 'nómina', 'meta', 'Netflix', 'Uber'],

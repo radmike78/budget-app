@@ -459,7 +459,7 @@ export const en = {
     askCarryTiny: (amount: string, name: string) => `You spent ${amount} less than your ${name} budget last period. What would you like to do with it?`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} went out, most of it on ${top}.` : `${total} went out.`; if (compare === 'less') return `${lead} That is ${diff} less than the week before.`; if (compare === 'more') return `${lead} That is ${diff} more than the week before.`; if (compare === 'same') return `${lead} About the same as the week before.`; return lead; },
     readAloud: 'Read aloud',
-    periodNames: { today: 'today', yesterday: 'yesterday', week: 'this week', lastWeek: 'last week', month: 'this month', lastMonth: 'last month', year: 'this year', lastYear: 'last year', all: 'in total' } as Record<string, string>,
+    periodNames: { today: 'today', yesterday: 'yesterday', week: 'this week', lastWeek: 'last week', month: 'this month', lastMonth: 'last month', year: 'this year', lastYear: 'last year', all: 'in total', budget: 'this pay period' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entry' : 'entries'}`;
@@ -467,6 +467,14 @@ export const en = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Nothing came in${what ? ` from ${what}` : ''} ${period}.` : `Nothing logged${what ? ` for ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `No entry mentions ${target}, so this is the ${category} total.`,
+    answerLeft: (left: string, plan: string, what: string | null, until: string): string => (what ? `You have ${left} left of your ${plan} plan for ${what}, until ${until}.` : `You have ${left} left of your ${plan} plan, until ${until}.`),
+    answerPast: (over: string, plan: string, what: string | null): string => (what ? `You've spent ${over} more than the ${plan} plan for ${what} this period.` : `You've spent ${over} more than the ${plan} plan this period.`),
+    answerIncomeLeft: (left: string, until: string, billsDue: boolean): string => (billsDue ? `After the bills still due, you have ${left} to spend until ${until}.` : `You have ${left} to spend until ${until}.`),
+    answerIncomeShort: (short: string, billsDue: boolean): string => (billsDue ? `Once the bills still due are paid, this period comes out ${short} short.` : `This period, ${short} more has gone out than came in.`),
+    answerPlansLeft: (left: string, plan: string, until: string): string => `Across your category plans, you have ${left} left of ${plan}, until ${until}.`,
+    answerNothingSet: (spent: string): string => `There's no plan or income for this period yet, so there's nothing to count down from. So far ${spent} has gone out.`,
+    answerNoPlanFor: (what: string, spent: string | null): string => `${what} has no plan, so there's nothing to count down from. ${spent ? `${spent} has gone to it this period.` : 'Nothing has gone to it this period.'}`,
+    answerNoCategory: (target: string): string => `No category matches ${target}.`,
     about: 'About',
     aboutApp: 'About OnlyBudget',
     aboutSub: 'No bank linking. No ads. No tracking. Ever.',
@@ -479,7 +487,7 @@ export const en = {
       ['Adding an entry', 'Tap the mic and say what happened, or type it: "spent 12 on lunch", "got paid 2400", "gas 40 yesterday". Several in one breath work too: "9.87 at Starbucks and 58 at Korean BBQ". A card shows what was understood; tap Save to keep it.'],
       ['Fixing an entry', 'On the card, tap the amount, category or date to change it before saving. Later, tap any entry under Recent or History to edit it. When you change a category, the words are remembered so the next one lands right.'],
       ['Removing an entry', 'Open the entry and tap Remove entry. It goes at once, and an Undo bar stays for a few seconds in case you did not mean it.'],
-      ['Asking a question', 'Ask "how much have I spent this week on coffee?" or "how much did I spend on groceries last month?". The answer is shown on screen or read aloud, as set under Settings → Answers to questions. Weeks start on Sunday.'],
+      ['Asking a question', 'Ask "how much have I spent this week on coffee?" or "how much did I spend on groceries last month?". The answer is shown on screen or read aloud, as set under Settings → Answers to questions. Weeks start on Sunday. Ask "what\'s my remaining budget?" or "how much do I have left for groceries?" to hear what is left of your plan, or of your income once the bills still due are paid. "This pay period" and "since payday" work too, and "food" counts groceries and eating out together.'],
       ['Goals', 'Say "goal: save 500 for a trip by December" or "pay off my credit card in 6 months". The card shows the plan before you save it. Add money with "add 50 to the trip goal".'],
       ['Reminders', 'Say "remind me to pay rent on the 1st at 9am" or "remind me to log receipts every evening at 8". Reminders are phone notifications, so the first one asks for permission. They live under Settings → Reminders.'],
       ['Repeating entries', 'Rent, salary, subscriptions: set them once under Settings → Repeating entries and each one is logged for you when it is due. You can edit or remove any logged entry like normal.'],

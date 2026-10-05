@@ -1,16 +1,17 @@
 import { useCallback, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { today } from '@/lib/dates';
+import { longDate, monthKey, monthRange, today } from '@/lib/dates';
+import { periodContaining } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
 import { parseEntries, type ParseResult } from '@/parser';
 import { llmParse } from '@/parser/llmFallback';
-import { categoryName, resolveLanguage, useMoney, useT } from '@/i18n';
+import { categoryName, resolveLanguage, useDateFormat, useMoney, useT } from '@/i18n';
 import { HINT } from '@/parser';
 import { cleanEntry } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { queryTransactions } from '@/db/repositories';
-import { answerQuestion, periodRange } from '@/lib/questions';
+import { answerQuestion, answerRemaining, periodRange } from '@/lib/questions';
 import { speak } from '@/lib/speak';
 import { greeting } from '@/lib/personas';
 import type { EntrySource } from './EntryBar';
@@ -29,6 +30,7 @@ export interface SpokenAnswer {
 export function useEntryFlow() {
   const t = useT();
   const money = useMoney();
+  const fmt = useDateFormat();
   const [pending, setPending] = useState<ParseResult | null>(null);
   const [pendingMany, setPendingMany] = useState<ParseResult[] | null>(null);
   const [answer, setAnswer] = useState<SpokenAnswer | null>(null);
@@ -40,21 +42,53 @@ export function useEntryFlow() {
   const answerFor = useCallback(async (result: ParseResult, source: EntrySource, language: string) => {
     const q = result.question;
     if (!q) return;
-    const { categories, settings } = useAppStore.getState();
-    const range = periodRange(q.period, today());
-    const db = await getDb();
-    const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
-    const a = answerQuestion(q, rows, range, categories);
-    const period = t.periodNames[q.period] ?? q.period;
-    const cat = a.categoryId ? categories.find((c) => c.id === a.categoryId) : null;
-    const what = cat && !a.usedFallback ? categoryName(cat, t) : a.target;
-    let text = a.count > 0 ? t.answerTotal(period, money(a.total), what, a.count, q.type === 'income') : t.answerNone(period, what, q.type === 'income');
-    if (a.usedFallback && cat && a.count > 0) text = `${text} ${t.answerFallback(a.target ?? '', categoryName(cat, t))}`;
+    const { categories, settings, rules } = useAppStore.getState();
+    const todayStr = today();
+    // The budget period: payday to payday in pay mode, else the month. With no period said, a question means this one.
+    const current = periodContaining(settings?.budgetPeriod ?? 'month', rules, todayStr);
+    const month = monthRange(monthKey(todayStr));
+    const isPayPeriod = current.start !== month.start || current.end !== month.end;
+    const nameOf = (id: string) => { const c = categories.find((x) => x.id === id); return c ? categoryName(c, t) : id; };
+    let text: string;
+
+    if (q.ask === 'left') {
+      // What is left is always about now, so the screens move to the current period with the answer.
+      await useAppStore.getState().goToCurrentPeriod();
+      const { stats, carry } = useAppStore.getState();
+      if (!stats) return;
+      const r = answerRemaining(q, { stats, categories, carry, overallLimit: settings?.overallLimit ?? null, rules, today: todayStr });
+      const until = longDate(stats.period.end, todayStr, fmt);
+      const m = (n: number) => money(Math.abs(n));
+      switch (r.kind) {
+        case 'overall': text = r.left >= 0 ? t.answerLeft(m(r.left), m(r.plan), null, until) : t.answerPast(m(r.left), m(r.plan), null); break;
+        case 'income': text = r.left >= 0 ? t.answerIncomeLeft(m(r.left), until, r.billsDue > 0) : t.answerIncomeShort(m(r.left), r.billsDue > 0); break;
+        case 'plans': text = r.left >= 0 ? t.answerPlansLeft(m(r.left), m(r.plan), until) : t.answerPast(m(r.left), m(r.plan), null); break;
+        case 'nothing': text = t.answerNothingSet(m(r.spent)); break;
+        case 'category': {
+          const what = r.ids.length === 1 ? nameOf(r.ids[0]) : (q.target ?? r.ids.map(nameOf).join(', '));
+          text = r.left >= 0 ? t.answerLeft(m(r.left), m(r.plan), what, until) : t.answerPast(m(r.left), m(r.plan), what);
+          break;
+        }
+        case 'categoryNoPlan': text = t.answerNoPlanFor(r.ids.length === 1 ? nameOf(r.ids[0]) : (q.target ?? r.ids.map(nameOf).join(', ')), r.spent > 0 ? m(r.spent) : null); break;
+        case 'unknown': default: text = t.answerNoCategory(q.target ?? ''); break;
+      }
+    } else {
+      const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
+      const range = periodRange(period, todayStr, current);
+      const db = await getDb();
+      const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
+      const a = answerQuestion(q, rows, range, categories);
+      const periodName = period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
+      const cat = a.categoryId ? categories.find((c) => c.id === a.categoryId) : null;
+      const what = a.categoryIds ? a.target : cat && !a.usedFallback ? categoryName(cat, t) : a.target;
+      text = a.count > 0 ? t.answerTotal(periodName, money(a.total), what, a.count, q.type === 'income') : t.answerNone(periodName, what, q.type === 'income');
+      if (a.usedFallback && cat && a.count > 0) text = `${text} ${t.answerFallback(a.target ?? '', categoryName(cat, t))}`;
+    }
     const mode = settings?.answerMode ?? 'auto';
     const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
     setAnswer({ text, spoken });
     if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
-  }, [t, money]);
+  }, [t, money, fmt]);
 
   const submitInner = useCallback(async (raw: string, source: EntrySource = 'typed') => {
     const text = cleanEntry(raw);

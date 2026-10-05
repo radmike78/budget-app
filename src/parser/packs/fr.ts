@@ -144,6 +144,7 @@ export const fr: LanguagePack = {
     lead: /(?<![\p{L}])(?:combien|qu'est-ce que|qu est-ce que|ce que) (?:d'argent )?(?:j'ai|j ai|ai[- ]je|on a|a[- ]t[- ]on|nous avons|avons[- ]nous) (?:dépensé|depense|dépensés|payé|paye|mis|claqué)|(?<![\p{L}])combien (?:d'argent )?(?:je dépense|est-ce que j'ai dépensé|est-ce que j'ai payé)|(?<![\p{L}])combien (?:d'argent )?(?:en|pour|chez|au|aux|à|a|dans|sur|de)(?![\p{L}])|(?<![\p{L}])(?:mes |le |mon |total des )?dépenses? (?:totales?|en tout|au total)|(?<![\p{L}])combien (?:ça|ca) m'a (?:coûté|coute)/u,
     incomeLead: /(?<![\p{L}])combien (?:d'argent )?(?:j'ai|j ai|ai[- ]je|on a|nous avons) (?:gagné|gagne|reçu|recu|touché|touche|encaissé|encaisse)|(?<![\p{L}])combien (?:d'argent )?(?:est rentré|est entré|est rentre|est entre|je gagne)|(?<![\p{L}])(?:mes |le |mon )?(?:revenus?|gains?|entrées?) (?:totaux|total|en tout|au total)/u,
     periods: [
+      periodWords(['cette période de paie', 'cette periode de paie', 'période de paie', 'periode de paie', 'depuis la paie', 'depuis ma paie', 'depuis le jour de paie', 'depuis le dernier salaire', 'depuis mon dernier salaire', "depuis que j'ai été payé", "depuis que j'ai ete paye", 'cette période', 'cette periode'], 'budget'),
       periodWords(["aujourd'hui", 'aujourd hui', 'ce matin', 'cet après-midi', 'cet après midi', 'cet apres-midi', 'cet apres midi', 'ce soir'], 'today'),
       periodWords(['hier'], 'yesterday'),
       periodWords(['la semaine dernière', 'la semaine derniere', 'semaine dernière', 'semaine derniere', 'la semaine passée', 'la semaine passee'], 'lastWeek'),
@@ -158,6 +159,11 @@ export const fr: LanguagePack = {
       /^(?:(?:en|pour|chez|au|aux|à|a|dans|sur|de|du|des|le|la|les|l'|mon|ma|mes|et|argent|j'ai|ai|on|je|d'|d)\s+)+/u,
       /(?:\s+(?:en tout|au total|s'il te plaît|s'il vous plaît|merci|argent|le|la|mon|ma|déjà|deja))+$/u,
       /(?<![\p{L}])(?:argent|euros|dollars)(?![\p{L}])/gu,
+    ],
+    remainingLead: /(?<![\p{L}])(?:combien (?:d'argent )?(?:il )?(?:me |nous )?reste(?:-t-il| t il)?|combien (?:est-ce qu'il|est ce qu'il) (?:me |nous )?reste|(?:il )?(?:me |nous )?reste combien|combien (?:je peux|puis-je|puis je|on peut|peut-on|peut on) (?:encore )?(?:dépenser|depenser)|(?:quel est|c'est quoi) (?:mon|le|notre) budget|(?:mon |le )?budget restant|qu'est-ce qu'il (?:me |nous )?reste|qu est ce qu il (?:me |nous )?reste|que (?:me |nous )?reste-t-il)(?![\p{L}])/u,
+    remainingWords: /(?<![\p{L}])(?:budgets?|plans?|prévu|prevu|restants?|restantes?|disponibles?|encore|à dépenser|a depenser|argent|reste)(?![\p{L}])/gu,
+    groups: [
+      { words: ['nourriture', 'bouffe', 'alimentation', 'manger', 'repas', 'à manger', 'a manger'], ids: ['groceries', 'dining'] },
     ],
   },
   contextualStrings: ['euros', 'courses', 'loyer', 'salaire', 'objectif', 'Netflix', 'Uber', 'resto'],

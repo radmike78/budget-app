@@ -440,7 +440,7 @@ export const it: LocaleDef = {
     askCarryTiny: (amount: string, name: string) => `Nel periodo scorso hai speso ${amount} in meno del tuo budget per ${name}. Cosa vuoi farne?`,
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `Sono usciti ${total}, soprattutto per ${top}.` : `Sono usciti ${total}.`; if (compare === 'less') return `${lead} Sono ${diff} in meno rispetto alla settimana prima.`; if (compare === 'more') return `${lead} Sono ${diff} in più rispetto alla settimana prima.`; if (compare === 'same') return `${lead} Più o meno come la settimana prima.`; return lead; },
     readAloud: 'Leggi ad alta voce',
-    periodNames: { today: 'oggi', yesterday: 'ieri', week: 'questa settimana', lastWeek: 'la settimana scorsa', month: 'questo mese', lastMonth: 'il mese scorso', year: 'quest\'anno', lastYear: 'l\'anno scorso', all: 'in totale' } as Record<string, string>,
+    periodNames: { today: 'oggi', yesterday: 'ieri', week: 'questa settimana', lastWeek: 'la settimana scorsa', month: 'questo mese', lastMonth: 'il mese scorso', year: 'quest\'anno', lastYear: 'l\'anno scorso', all: 'in totale', budget: 'questo periodo di paga' } as Record<string, string>,
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'voce' : 'voci'}`;
@@ -448,6 +448,14 @@ export const it: LocaleDef = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Non è entrato nulla${what ? ` da ${what}` : ''} ${period}.` : `Nessuna voce${what ? ` per ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `Nessuna voce menziona ${target}, quindi questo è il totale di ${category}.`,
+    answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Ti restano ${left} del piano di ${plan} per ${what}, fino al ${until}.` : `Ti restano ${left} del piano di ${plan}, fino al ${until}.`),
+    answerPast: (over: string, plan: string, what: string | null) => (what ? `Hai speso ${over} più del piano di ${plan} per ${what} in questo periodo.` : `Hai speso ${over} più del piano di ${plan} in questo periodo.`),
+    answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Dopo le bollette ancora da pagare, hai ${left} da spendere fino al ${until}.` : `Hai ${left} da spendere fino al ${until}.`),
+    answerIncomeShort: (short: string, billsDue: boolean) => (billsDue ? `Pagate le bollette ancora in arrivo, in questo periodo mancheranno ${short}.` : `In questo periodo sono usciti ${short} più di quanto è entrato.`),
+    answerPlansLeft: (left: string, plan: string, until: string) => `Sommando i piani delle categorie, ti restano ${left} su ${plan}, fino al ${until}.`,
+    answerNothingSet: (spent: string) => `Per questo periodo non c'è ancora né un piano né un'entrata, quindi non c'è niente da scalare. Finora sono usciti ${spent}.`,
+    answerNoPlanFor: (what: string, spent: string | null) => `${what} non ha un piano, quindi non c'è niente da scalare. ${spent ? `In questo periodo ci sono andati ${spent}.` : 'In questo periodo non ci è andato nulla.'}`,
+    answerNoCategory: (target: string) => `Nessuna categoria corrisponde a ${target}.`,
     about: 'Informazioni',
     aboutApp: 'Informazioni su OnlyBudget',
     aboutSub: 'Nessuna banca collegata. Niente pubblicità. Nessun tracciamento. Mai.',
@@ -459,7 +467,7 @@ export const it: LocaleDef = {
       ['Aggiungere una voce', 'Tocca il microfono e di’ cos’è successo, oppure scrivilo: "speso 12 per il pranzo", "ricevuto lo stipendio 2400", "benzina 40 ieri". Funzionano anche più voci in una volta: "9,87 da Starbucks e 58 al ristorante coreano". Una scheda mostra cosa è stato capito; tocca Salva per tenerla.'],
       ['Correggere una voce', 'Sulla scheda, tocca l’importo, la categoria o la data per cambiarli prima di salvare. Più tardi, tocca una voce qualsiasi in Recenti o Storico per modificarla. Quando cambi una categoria, le parole vengono ricordate così la prossima finisce al posto giusto.'],
       ['Rimuovere una voce', 'Apri la voce e tocca Rimuovi voce. Sparisce subito, e una barra Annulla resta qualche secondo nel caso non volessi.'],
-      ['Fare una domanda', 'Chiedi «quanto ho speso questa settimana in caffè?» o «quanto ho speso per la spesa il mese scorso?». La risposta compare sullo schermo o viene letta ad alta voce, come impostato in Impostazioni → Risposte alle domande. Le settimane iniziano di domenica.'],
+      ['Fare una domanda', 'Chiedi «quanto ho speso questa settimana in caffè?» o «quanto ho speso per la spesa il mese scorso?». La risposta compare sullo schermo o viene letta ad alta voce, come impostato in Impostazioni → Risposte alle domande. Le settimane iniziano di domenica. Chiedi «quanto mi resta?» o «quanto mi resta per la spesa?» per sapere cosa resta del piano, o delle entrate dopo le bollette ancora da pagare. Funzionano anche «questo periodo di paga» e «dallo stipendio», e «cibo» somma spesa e ristoranti.'],
       ['Obiettivi', 'Di’ "obiettivo: risparmiare 500 per un viaggio entro dicembre" o "voglio estinguere la carta di credito in 6 mesi". La scheda mostra il piano prima che tu lo salvi. Aggiungi soldi con "aggiunto 50 al viaggio".'],
       ['Promemoria', 'Di’ "ricordami di pagare l’affitto il primo alle 9" o "ricordami ogni sera alle 8 di segnare gli scontrini". I promemoria sono notifiche del telefono, quindi il primo chiede il permesso. Li trovi in Impostazioni → Promemoria.'],
       ['Voci ricorrenti', 'Affitto, stipendio, abbonamenti: impostali una volta in Impostazioni → Voci ricorrenti e ognuno viene registrato per te alla scadenza. Puoi modificare o rimuovere qualsiasi voce registrata come al solito.'],

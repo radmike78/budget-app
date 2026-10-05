@@ -141,6 +141,19 @@ await step('question about a category and about nothing', async () => {
   await expectText('Nothing logged for Zizzle today');
   await button(/^Done$/).click();
 });
+await step('what is left, and food as one word', async () => {
+  // Income is in and no plan is set, so what is left comes from income.
+  await entry("what's my remaining budget?");
+  await expectText('to spend until');
+  await shot('answer-remaining');
+  await button(/^Done$/).click();
+  await entry('how much do I have left for groceries');
+  await expectText('Groceries has no plan');
+  await button(/^Done$/).click();
+  await entry('how much have I spent on food this month');
+  await expectText('on Food');
+  await button(/^Done$/).click();
+});
 await step('goal, then contribution', async () => {
   await entry('goal: save 3000 for a trip to Japan by June');
   await button(/Set goal/).click(); await page.waitForTimeout(600);
@@ -367,6 +380,9 @@ await step('overall plan on the budget and today screens', async () => {
   await shot('budget-overall-plan');
   await goto('/');
   await expectText('of $1,500 plan');
+  await entry('how much do I have left');
+  await expectText('left of your $1,500.00 plan');
+  await button(/^Done$/).click();
 });
 await step('pay-period budgeting needs a repeating income, then follows paydays', async () => {
   await goto('/settings');
