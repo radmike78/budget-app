@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { personaLineForTransaction } from '@/components/persona';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, nowIso, today } from '@/lib/dates';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { newId } from '@/lib/ids';
 import { categoryName, hintText, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
 import { HINT, type ParseResult } from '@/parser';
@@ -34,12 +34,12 @@ interface Draft {
   hints: string[];
 }
 
-function toDraft(r: ParseResult, i: number): Draft {
+function toDraft(r: ParseResult, i: number, decimalComma: boolean): Draft {
   return {
     key: `${i}-${r.raw}`,
     kind: r.kind === 'unknown' || r.kind === 'question' || r.kind === 'command' ? 'transaction' : r.kind,
     raw: r.raw,
-    amountText: r.amount != null ? String(r.amount) : '',
+    amountText: r.amount != null ? moneyInputText(r.amount, decimalComma) : '',
     type: r.type,
     categoryId: r.categoryId,
     originalCategoryId: r.categoryId,
@@ -85,7 +85,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
 
   useEffect(() => {
     if (!results) return;
-    setDrafts(results.map(toDraft));
+    setDrafts(results.map((r, i) => toDraft(r, i, locale.format.decimal === ',')));
     setError(null);
   }, [results]);
 

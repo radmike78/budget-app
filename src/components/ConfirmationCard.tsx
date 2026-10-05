@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { personaLineForContribution, personaLineForTransaction } from '@/components/persona';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, nowIso, today } from '@/lib/dates';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { goalPlanSentence } from '@/lib/plain';
 import { newId } from '@/lib/ids';
 import { categoryName, hintText, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
@@ -56,7 +56,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
 
   useEffect(() => {
     if (!result) return;
-    setAmountText(result.amount != null ? String(result.amount) : '');
+    setAmountText(result.amount != null ? moneyInputText(result.amount, locale.format.decimal === ',') : '');
     setType(result.type);
     setCategoryId(result.categoryId);
     setNote(result.note ?? '');

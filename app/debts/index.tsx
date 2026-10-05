@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
 import { nowIso } from '@/lib/dates';
 import { newId } from '@/lib/ids';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { confirmDialog } from '@/lib/dialogs';
 import { useLocale, useMoney, useT } from '@/i18n';
 import { planPayoff, recommendStrategy, type DebtInput, type Strategy } from '@/statements';
@@ -46,8 +46,8 @@ export default function DebtsScreen() {
   const [aprText, setAprText] = useState('');
   const openEditor = (d?: Debt) => {
     startEdit(d);
-    setBalanceText(d ? String(d.balance) : '');
-    setMinText(d?.monthlyPayment != null ? String(d.monthlyPayment) : '');
+    setBalanceText(d ? moneyInputText(d.balance, decimalComma) : '');
+    setMinText(d?.monthlyPayment != null ? moneyInputText(d.monthlyPayment, decimalComma) : '');
     setAprText(d?.apr != null ? String(d.apr) : '');
   };
   const [saving, setSaving] = useState(false);

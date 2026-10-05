@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { friendlyDate, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useT } from '@/i18n';
 import { confirmDialog, notify } from '@/lib/dialogs';
 import { CategoryPicker, DatePicker } from '@/components/pickers';
@@ -28,7 +28,7 @@ export default function RecurringEditor() {
   const existing = rules.find((r) => r.id === id);
   const isNew = !existing;
 
-  const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
+  const [amount, setAmount] = useState(existing ? moneyInputText(existing.amount, locale.format.decimal === ',') : '');
   const [type, setType] = useState<TxType>(existing?.type ?? 'expense');
   // 'rent' when it still exists, otherwise the first expense category the user has kept.
   const defaultCategoryId = (categories.find((c) => c.id === 'rent' && c.kind === 'expense' && !c.archived) ?? categories.find((c) => c.kind === 'expense' && !c.archived))?.id ?? null;

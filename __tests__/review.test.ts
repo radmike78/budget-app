@@ -3,7 +3,7 @@
  * shipped, and the test is what keeps it from coming back.
  */
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, moneyInputText, parseMoneyInput } from '@/lib/money';
 import { genderOf, pickVoice } from '@/lib/voices';
 import { parseInput } from '@/parser';
 import { en } from '@/i18n/locales/en';
@@ -69,5 +69,31 @@ describe('the home card never calls income a plan', () => {
   });
   it('and past a real plan the label names the plan, not the amount over it', () => {
     expect(en.s.pastPlanLabel('$1,200')).toBe('past the $1,200 plan');
+  });
+});
+
+describe('an amount in an edit field reads as money', () => {
+  it('shows cents as two digits, and whole amounts bare', () => {
+    expect(moneyInputText(14.2)).toBe('14.20');
+    expect(moneyInputText(14.25)).toBe('14.25');
+    expect(moneyInputText(1200)).toBe('1200');
+    expect(moneyInputText(0.5)).toBe('0.50');
+  });
+  it('uses the locale\'s decimal mark, and reads back to the same number', () => {
+    expect(moneyInputText(14.2, true)).toBe('14,20');
+    for (const n of [14.2, 0.05, 1234.5, 99]) {
+      expect(parseMoneyInput(moneyInputText(n))).toBe(n);
+      expect(parseMoneyInput(moneyInputText(n, true), true)).toBe(n);
+    }
+  });
+});
+
+describe('a place keeps the capitals it was said with', () => {
+  it('even when the amount sits between the words', () => {
+    expect(parseInput('coffee 6.50 at Blue Bottle', ctx).note).toBe('Coffee at Blue Bottle');
+    expect(parseInput('dinner 48 at the Thai place', ctx).note).toMatch(/Thai/);
+  });
+  it('and still when the words were said together', () => {
+    expect(parseInput("spent 40 at Fleming's Steakhouse", ctx).note).toBe("Fleming's Steakhouse");
   });
 });

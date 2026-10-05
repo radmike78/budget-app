@@ -10,7 +10,7 @@ import { periodLabel } from '@/lib/periods';
 import { effectivePlan } from '@/lib/rollover';
 import { tierTotals } from '@/lib/tiers';
 import { monthlyEquivalent } from '@/lib/recurring';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useMoney, useT } from '@/i18n';
 import { Sheet } from '@/components/pickers';
 import { CarryQuestions } from '@/components/CarryQuestions';
@@ -56,7 +56,7 @@ export default function BudgetScreen() {
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
   const tierNames = { needs: t.tierNeeds, obligations: t.tierObligations, wants: t.tierWants };
 
-  const openOverall = () => { setOverallText(overall != null ? String(overall) : ''); setShowOverall(true); };
+  const openOverall = () => { setOverallText(overall != null ? moneyInputText(overall, locale.format.decimal === ',') : ''); setShowOverall(true); };
   const saveOverall = async () => {
     const value = overallText.trim() ? parseMoneyInput(overallText, locale.format.decimal === ',') : null;
     await updateSettings({ overallLimit: value != null && value > 0 ? value : null });

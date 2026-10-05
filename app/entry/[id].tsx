@@ -7,7 +7,7 @@ import { getTransaction } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { friendlyDate, today } from '@/lib/dates';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { categoryName, useDateFormat, useLocale, useT } from '@/i18n';
 import { CategoryPicker, DatePicker } from '@/components/pickers';
 import { Button, Field, Row, Screen, Segmented, Text } from '@/components/ui';
@@ -40,7 +40,7 @@ export default function EditEntry() {
       const found = await getTransaction(db, id);
       // Opened from a stale link there may be nothing to go back to.
       if (!found) { if (router.canGoBack()) router.back(); else router.replace('/'); return; }
-      setTx(found); setAmount(String(found.amount)); setType(found.type); setCategoryId(found.categoryId); setNote(found.note ?? ''); setDate(found.occurredAt);
+      setTx(found); setAmount(moneyInputText(found.amount, locale.format.decimal === ',')); setType(found.type); setCategoryId(found.categoryId); setNote(found.note ?? ''); setDate(found.occurredAt);
     })();
   }, [id, router]);
 

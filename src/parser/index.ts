@@ -340,9 +340,19 @@ export function restoreCase(note: string | null, raw: string): string | null {
   if (!note) return note;
   const source = raw.replace(/’/g, "'").replace(/[“”"]/g, '').replace(/\s+/g, ' ');
   const idx = source.toLowerCase().indexOf(note.toLowerCase());
-  if (idx < 0) return note;
-  const found = source.slice(idx, idx + note.length);
-  return found.charAt(0).toUpperCase() + found.slice(1);
+  if (idx >= 0) {
+    const found = source.slice(idx, idx + note.length);
+    return found.charAt(0).toUpperCase() + found.slice(1);
+  }
+  // The note's words were not said together ("coffee 6.50 at Blue Bottle" has the amount in
+  // between), so each word takes the casing it was said with. Plain string lookups only.
+  const said = new Map<string, string>();
+  for (const token of source.split(' ')) {
+    const word = token.replace(/[.,;:!?]+$/, '');
+    if (word && !said.has(word.toLowerCase())) said.set(word.toLowerCase(), word);
+  }
+  const rebuilt = note.split(' ').map((w) => said.get(w.toLowerCase()) ?? w).join(' ');
+  return rebuilt.charAt(0).toUpperCase() + rebuilt.slice(1);
 }
 
 function findGoal(name: string, goals: Goal[], c: Compiled): Goal | null {
