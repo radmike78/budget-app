@@ -145,8 +145,10 @@ export const it: LanguagePack = {
   question: {
     lead: /(?<![\p{L}])(?:quanto|quanti soldi|cosa|che cosa) (?:ho|abbiamo|avevo) (?:speso|pagato|spesi|sborsato)|(?<![\p{L}])quanto (?:ho|abbiamo) (?:messo|dato)|(?<![\p{L}])quanto (?:spendo|spendiamo|(?:mi |ci )?(?:è|e) costat[oaie]|(?:mi |ci )?sono costat[ie]|(?:mi |ci )costa(?:no)?)|(?<![\p{L}])quanto (?:se n'|se ne |ne )?(?:è|e|sono) andat[oaie]|(?<![\p{L}])quanto (?:soldi )?(?:per|in|da|a|al|alla|alle|ai|con|su|di|nel|nella)(?![\p{L}])|(?<![\p{L}])(?:le mie |le |il totale delle )?spese (?:totali|in totale|complessive)|(?<![\p{L}])quanto se ne è andato/u,
     incomeLead: /(?<![\p{L}])(?:quanto|quanti soldi) (?:ho|abbiamo) (?:guadagnato|incassato|ricevuto|preso|guadagnati)|(?<![\p{L}])quanto (?:mi|ci) hanno (?:pagato|dato|versato)|(?<![\p{L}])quante entrate(?: (?:ho|abbiamo) avuto)?|(?<![\p{L}])(?:quali sono |a quanto ammontano )(?:le mie |le nostre |le )?entrate|(?<![\p{L}])quanto (?:è entrato|e entrato|mi è entrato|mi e entrato|guadagno)|(?<![\p{L}])(?:le mie |le )?entrate (?:totali|in totale)|(?<![\p{L}])(?:il mio )?reddito (?:totale|in totale)/u,
+    recentDays: /(?<![\p{L}])(?:(?:negli|nei|gli|i) )?(?:ultimi|scorsi) (\d{1,3}) giorni|(?<![\p{L}])(?:(?:negli|nei) )?(\d{1,3}) giorni (?:scorsi|passati)/u,
     periods: [
       periodWords(['in questo periodo di paga', 'questo periodo di paga', 'periodo di paga', 'fino allo stipendio', 'fino al prossimo stipendio', 'prima dello stipendio', 'dallo stipendio', "dall'ultimo stipendio", 'dall ultimo stipendio', 'da quando ho preso lo stipendio', 'da quando mi hanno pagato', 'questo periodo'], 'budget'),
+      periodWords(['lo scorso weekend', 'questo weekend', 'nel weekend', 'il weekend', 'questo fine settimana', 'nel fine settimana', 'il fine settimana', 'weekend'], 'weekend'),
       periodWords(['oggi', 'stamattina', 'questo pomeriggio', 'stasera'], 'today'),
       periodWords(['ieri'], 'yesterday'),
       periodWords(['la settimana scorsa', 'settimana scorsa', 'la scorsa settimana', 'la settimana passata'], 'lastWeek'),

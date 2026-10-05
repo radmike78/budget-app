@@ -3,6 +3,11 @@
  * collecting the phrasings: each was a real sentence the app misread.
  */
 import type { Goal } from '@/types';
+import { periodRange } from '@/lib/questions';
+import { en } from '@/i18n/locales/en';
+import { es } from '@/i18n/locales/es';
+import { de } from '@/i18n/locales/de';
+import { ja } from '@/i18n/locales/ja';
 import { parseOne } from './harness';
 
 const goal = (name: string) => [{ id: 'g1', name, kind: 'saving', targetAmount: 3000, savedAmount: 0, targetDate: null, completed: false, createdAt: '2026-01-01' }] as unknown as Goal[];
@@ -67,5 +72,62 @@ describe('a count before a counter word is not the price', () => {
     const r = parseOne(text, lang);
     expect(r).toHaveLength(1);
     expect(r[0].amount).toBe(amount);
+  });
+});
+
+describe('the weekend and the last few days are periods', () => {
+  it.each([
+    ['how much did I spend over the weekend', 'en'],
+    ['¿cuánto gasté el fin de semana?', 'es'],
+    ["combien j'ai dépensé ce week-end", 'fr'],
+    ['Wie viel habe ich am Wochenende ausgegeben?', 'de'],
+    ['quanto ho speso nel weekend', 'it'],
+    ['週末いくら使った？', 'ja'],
+    ['주말에 얼마 썼어?', 'ko'],
+    ['周末花了多少钱', 'zh'],
+  ])('%s', (text, lang) => {
+    expect(parseOne(text, lang)[0]).toMatchObject({ kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } });
+  });
+  it.each([
+    ['how much have I spent in the last 7 days', 'en', 7],
+    ['how much on coffee over the past 30 days', 'en', 30],
+    ['¿cuánto gasté en los últimos 10 días?', 'es', 10],
+    ["combien j'ai dépensé ces 14 derniers jours", 'fr', 14],
+    ['Wie viel habe ich in den letzten 7 Tagen ausgegeben?', 'de', 7],
+    ['quanto ho speso negli ultimi 5 giorni', 'it', 5],
+    ['過去7日間でいくら使った？', 'ja', 7],
+    ['최근 7일 동안 얼마 썼어?', 'ko', 7],
+    ['最近7天花了多少钱', 'zh', 7],
+  ])('%s', (text, lang, days) => {
+    expect(parseOne(text, lang)[0]).toMatchObject({ kind: 'question', question: { ask: 'spent', period: 'recentDays', days } });
+  });
+  it('a target still comes through: "on coffee over the past 30 days"', () => {
+    expect(parseOne('how much on coffee over the past 30 days', 'en')[0].question).toMatchObject({ target: 'Coffee', fallbackCategoryId: 'dining' });
+  });
+});
+
+describe('ranges for the new periods', () => {
+  // TODAY in the harness is Wednesday 2026-09-16.
+  it('the weekend is the Saturday and Sunday just gone, or this one while it is under way', () => {
+    expect(periodRange('weekend', '2026-09-16')).toEqual({ from: '2026-09-12', to: '2026-09-13' });
+    expect(periodRange('weekend', '2026-09-19')).toEqual({ from: '2026-09-19', to: '2026-09-19' });
+    expect(periodRange('weekend', '2026-09-20')).toEqual({ from: '2026-09-19', to: '2026-09-20' });
+  });
+  it('the last 7 days are today and the six before it', () => {
+    expect(periodRange('recentDays', '2026-09-16', undefined, 7)).toEqual({ from: '2026-09-10', to: '2026-09-16' });
+    expect(periodRange('recentDays', '2026-09-16', undefined, 1)).toEqual({ from: '2026-09-16', to: '2026-09-16' });
+  });
+  it('the answer names them in every language', () => {
+    for (const t of [en.s, es.s, de.s, ja.s]) {
+      expect(t.periodNames.weekend).toBeTruthy();
+      expect(t.periodLastDays(7)).toContain('7');
+    }
+    expect(en.s.answerTotal(en.s.periodLastDays(7), '$40.00', null, 3, false)).toBe("In the last 7 days you've spent $40.00, across 3 entries.");
+  });
+});
+
+describe('"what is left" with an amount in it is an entry', () => {
+  it('"left 5 for the tip" is not a question', () => {
+    expect(parseOne('how much is left 5 for the tip', 'en')[0].kind).toBe('transaction');
   });
 });
