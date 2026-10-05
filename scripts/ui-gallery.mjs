@@ -7,41 +7,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { playwright, restoreScenario, seed, serve } from './lib/shots.mjs';
+import { fullScenario as full, playwright, restoreScenario, serve } from './lib/shots.mjs';
 
 const dist = path.resolve(process.argv[2] || 'dist');
 const out = path.resolve(process.argv[3] || 'out/gallery');
 fs.mkdirSync(path.join(out, 'img'), { recursive: true });
 const { server, origin } = await serve(dist);
-
-const pad = (n) => String(n).padStart(2, '0');
-const dateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const daysFromToday = (n) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return dateStr(d); };
-
-const full = (base) => {
-  const s = seed(base);
-  return {
-    ...s,
-    goals: [
-      { id: 'goal-japan', name: 'Trip to Japan', kind: 'saving', targetAmount: 3000, currentAmount: 1150, targetDate: daysFromToday(280), createdAt: `${daysFromToday(-60)}T12:00:00.000Z`, completed: false },
-      { id: 'goal-card', name: 'Visa card', kind: 'debt', targetAmount: 1800, currentAmount: 600, targetDate: null, createdAt: `${daysFromToday(-30)}T12:00:00.000Z`, completed: false },
-      { id: 'goal-bike', name: 'New bike', kind: 'saving', targetAmount: 400, currentAmount: 400, targetDate: null, createdAt: `${daysFromToday(-120)}T12:00:00.000Z`, completed: true },
-    ],
-    reminders: [{ id: 'rem-rent', text: 'Pay rent', date: daysFromToday(3), time: '09:00', repeat: 'monthly', notificationId: null, createdAt: `${daysFromToday(-10)}T12:00:00.000Z` }],
-    debts: [
-      { id: 'debt-visa', creditor: 'Chase Visa', type: 'credit_card', balance: 1800, monthlyPayment: 60, creditLimit: 5000, apr: 24.99, source: 'manual', updatedAt: `${daysFromToday(-2)}T12:00:00.000Z` },
-      { id: 'debt-store', creditor: 'Store card', type: 'credit_card', balance: 640, monthlyPayment: 25, creditLimit: 1500, apr: 29.99, source: 'manual', updatedAt: `${daysFromToday(-2)}T12:00:00.000Z` },
-      { id: 'debt-car', creditor: 'Toyota Financial', type: 'auto_loan', balance: 9400, monthlyPayment: 310, creditLimit: null, apr: 6.5, source: 'manual', updatedAt: `${daysFromToday(-2)}T12:00:00.000Z` },
-    ],
-    keywords: [{ word: 'costco', categoryId: 'groceries' }, { word: 'joes', categoryId: 'dining' }],
-    recurringRules: [
-      ...s.recurringRules,
-      { id: 'rule-rent', amount: 1400, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: daysFromToday(6), anchorDay: null, note: 'Rent', active: true },
-      { id: 'rule-netflix', amount: 15.49, type: 'expense', categoryId: 'subscriptions', frequency: 'monthly', nextOccurrence: daysFromToday(12), anchorDay: null, note: 'Netflix', active: true },
-    ],
-    settings: { ...s.settings, voice: 'friend', attitude: 'playful' },
-  };
-};
 
 const PHONE = { viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' };
 const MAX_H = 2400;

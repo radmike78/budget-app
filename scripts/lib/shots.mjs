@@ -85,6 +85,33 @@ export function seed(base) {
 }
 
 
+
+/** The sample scenario plus goals, a reminder, debts, learned words and two more repeating bills. */
+export const fullScenario = (base) => {
+  const s = seed(base);
+  return {
+    ...s,
+    goals: [
+      { id: 'goal-japan', name: 'Trip to Japan', kind: 'saving', targetAmount: 3000, currentAmount: 1150, targetDate: daysFromToday(280), createdAt: `${daysFromToday(-60)}T12:00:00.000Z`, completed: false },
+      { id: 'goal-card', name: 'Visa card', kind: 'debt', targetAmount: 1800, currentAmount: 600, targetDate: null, createdAt: `${daysFromToday(-30)}T12:00:00.000Z`, completed: false },
+      { id: 'goal-bike', name: 'New bike', kind: 'saving', targetAmount: 400, currentAmount: 400, targetDate: null, createdAt: `${daysFromToday(-120)}T12:00:00.000Z`, completed: true },
+    ],
+    reminders: [{ id: 'rem-rent', text: 'Pay rent', date: daysFromToday(3), time: '09:00', repeat: 'monthly', notificationId: null, createdAt: `${daysFromToday(-10)}T12:00:00.000Z` }],
+    debts: [
+      { id: 'debt-visa', creditor: 'Chase Visa', type: 'credit_card', balance: 1800, monthlyPayment: 60, creditLimit: 5000, apr: 24.99, source: 'manual', updatedAt: `${daysFromToday(-2)}T12:00:00.000Z` },
+      { id: 'debt-store', creditor: 'Store card', type: 'credit_card', balance: 640, monthlyPayment: 25, creditLimit: 1500, apr: 29.99, source: 'manual', updatedAt: `${daysFromToday(-2)}T12:00:00.000Z` },
+      { id: 'debt-car', creditor: 'Toyota Financial', type: 'auto_loan', balance: 9400, monthlyPayment: 310, creditLimit: null, apr: 6.5, source: 'manual', updatedAt: `${daysFromToday(-2)}T12:00:00.000Z` },
+    ],
+    keywords: [{ word: 'costco', categoryId: 'groceries' }, { word: 'joes', categoryId: 'dining' }],
+    recurringRules: [
+      ...s.recurringRules,
+      { id: 'rule-rent', amount: 1400, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: daysFromToday(6), anchorDay: null, note: 'Rent', active: true },
+      { id: 'rule-netflix', amount: 15.49, type: 'expense', categoryId: 'subscriptions', frequency: 'monthly', nextOccurrence: daysFromToday(12), anchorDay: null, note: 'Netflix', active: true },
+    ],
+    settings: { ...s.settings, voice: 'friend', attitude: 'playful' },
+  };
+};
+
 /**
  * Runs onboarding without a voice (unless `onboarded`), exports the app's own empty backup, layers the
  * scenario on top and restores it, so the session has exactly what a real history produces.

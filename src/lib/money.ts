@@ -79,6 +79,17 @@ export function formatMoney(amount: number, code: string, opts: { compact?: bool
   return `${sign}${info.symbol}${numberText}`;
 }
 
+/**
+ * An amount as it should sit in an editable field: "12" for whole numbers, otherwise
+ * always two decimals ("14.20", never "14.2"), with the locale's decimal mark so that
+ * what is shown is also what `parseMoneyInput` reads back.
+ */
+export function moneyInputText(amount: number, decimalComma = false): string {
+  if (!Number.isFinite(amount)) return '';
+  const text = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+  return decimalComma ? text.replace('.', ',') : text;
+}
+
 /** Parses user-typed money ("1,234.50", "$12", "12", "12,50") into a number or null. */
 export function parseMoneyInput(text: string, decimalComma = false): number | null {
   let cleaned = text.trim();

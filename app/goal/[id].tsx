@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { longDate, nowIso, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { goalPlanSentence, goalProgress } from '@/lib/plain';
 import type { GoalKind } from '@/types';
 import { useDateFormat, useLocale, useMoney, useT } from '@/i18n';
@@ -32,8 +32,8 @@ export default function GoalEditor() {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [kind, setKind] = useState<GoalKind>(existing?.kind ?? 'saving');
-  const [target, setTarget] = useState(existing ? String(existing.targetAmount) : '');
-  const [current, setCurrent] = useState(existing ? String(existing.currentAmount) : '0');
+  const [target, setTarget] = useState(existing ? moneyInputText(existing.targetAmount, locale.format.decimal === ',') : '');
+  const [current, setCurrent] = useState(existing ? moneyInputText(existing.currentAmount, locale.format.decimal === ',') : '0');
   const [targetDate, setTargetDate] = useState<string | null>(existing?.targetDate ?? null);
   const [showDate, setShowDate] = useState(false);
   const [addAmount, setAddAmount] = useState('');
@@ -69,7 +69,7 @@ export default function GoalEditor() {
     try {
       await contribute(existing.id, a, { logTransfer, occurredAt: today() });
       setAddAmount('');
-      setCurrent(String(existing.currentAmount + a));
+      setCurrent(moneyInputText(Math.round((existing.currentAmount + a) * 100) / 100, decimalComma));
     } catch (e) {
       setError(t.didntWork((e as Error).message));
     } finally {

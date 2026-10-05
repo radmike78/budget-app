@@ -7,7 +7,7 @@ import { countTransactionsInCategory } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { newId } from '@/lib/ids';
-import { parseMoneyInput } from '@/lib/money';
+import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { categoryName, useLocale, useT } from '@/i18n';
 import { confirmDialog } from '@/lib/dialogs';
 import { EmojiPicker } from '@/components/pickers';
@@ -31,7 +31,7 @@ export default function CategoryEditor() {
   const [name, setName] = useState(existing ? categoryName(existing, t) : '');
   const [icon, setIcon] = useState(existing?.icon ?? '🧾');
   const [kind, setKind] = useState<TxType>(existing?.kind ?? (kindParam === 'income' ? 'income' : 'expense'));
-  const [limit, setLimit] = useState(existing?.monthlyLimit != null ? String(existing.monthlyLimit) : '');
+  const [limit, setLimit] = useState(existing?.monthlyLimit != null ? moneyInputText(existing.monthlyLimit, locale.format.decimal === ',') : '');
   const [rollover, setRollover] = useState<Rollover>(existing?.rollover ?? 'reset');
   // A new category follows its name ("Daycare" starts on Needs) until the control is touched.
   const [tier, setTier] = useState<Tier | null>(existing ? tierOf(existing) : null);
