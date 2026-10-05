@@ -270,7 +270,7 @@ export function relativeFutureRules(w: RelativeFutureWords): DateRule[] {
 
 /** "by december", "para diciembre", "bis dezember": last day of the named month, next year if already past. */
 export function byMonthRule(months: MonthWords, pre: string[]): DateRule {
-  const re = new RegExp(`${WB_START}(?:${alt(pre)})\\s+(${alt(Object.keys(months.names))})${WB_END}(?:\\s+(\\d{4}))?`, 'iu');
+  const re = new RegExp(`${WB_START}(?:${alt(pre)})\\s+(${alt(Object.keys(months.names))})${WB_END}(?:\\s+(20\\d{2})(?!\\d|[.,]\\d|\\s*(?:€|\\$|£|¥|₩|euros?|eur|dollars?|bucks|usd|pounds?|quid|yen|pesos?|won|원|円|元|块)))?`, 'iu');
   return {
     re,
     resolve: (m, t) => {
