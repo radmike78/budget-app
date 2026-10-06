@@ -819,9 +819,7 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   const lead = rules.lead.exec(text);
   if (!lead || lead.index !== 0) return null;
   let rest = text.slice(lead[0].length).trim();
-  // "actually spent 14 on lunch" says what happened: a new entry, not a fix.
   const c = compile(pack);
-  if (c.expenseRe.test(rest) || c.incomeRe.test(rest)) return null;
   const dated = applyRules(pack.pastDateRules, rest, ctx.today);
   rest = dated.text;
   const amt = extractAmount(rest, pack);
@@ -831,7 +829,11 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   let leftover = rest;
   const words = deriveNote(rest, pack);
   if (words) {
-    const cat = categoryFromWords(words, ctx, pack);
+    // The words as said are tried too: tidying a note can take a verb off the front of a category word
+    // ("买菜", groceries, would be read as "菜"), and the longer match is the one meant.
+    const tidy = categoryFromWords(words, ctx, pack);
+    const said = categoryFromWords(rest.trim(), ctx, pack);
+    const cat = tidy && said ? (said.matched.length > tidy.matched.length ? said : tidy) : tidy ?? said;
     if (!cat) return null;
     categoryId = cat.categoryId;
     const at = leftover.toLowerCase().indexOf(cat.matched.toLowerCase());
@@ -839,6 +841,9 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
     // Anything said besides the new value means this was not a correction after all.
     if (deriveNote(leftover, pack)) return null;
   }
+  // "actually spent 14 on lunch" says what happened: a new entry, not a fix. The verb is looked for outside the
+  // category's own words, so "改成买菜" (groceries, which holds 买 "buy") is still a fix.
+  if (c.expenseRe.test(leftover) || c.incomeRe.test(leftover)) return null;
   if (amt.amount == null && dated.date == null && categoryId == null) return null;
   return {
     ...base,
