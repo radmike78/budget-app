@@ -71,6 +71,18 @@ export interface LanguagePack {
   reminder: ReminderPack;
   /** Spoken questions about spending: lead phrases, period words, leftovers to strip. */
   question: QuestionPack;
+  /** Fixing the last entry by voice: "actually it was 14", "make that dining", "delete that". */
+  correction?: CorrectionPack;
+}
+
+export interface CorrectionPack {
+  /** The whole utterance removes the last entry ("delete that", "scratch that", "never mind"). Anchored. */
+  remove: RegExp;
+  /**
+   * The start of an utterance that changes the last entry ("actually it was", "make that", "change it to").
+   * Must match at the start. What follows may only be a new amount, category or date, with filler words.
+   */
+  lead: RegExp;
 }
 
 export type KeywordEntry = { categoryId: string; kind: TxType };

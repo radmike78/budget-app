@@ -160,3 +160,75 @@ export function answerRemaining(q: ParsedQuestion, ctx: RemainingContext): Remai
   if (plan > 0) return { kind: 'plans', left: round2(plan - spent), plan: round2(plan) };
   return { kind: 'nothing', spent: round2(ctx.stats.expenses) };
 }
+
+export interface CompareRanges {
+  now: DateRange;
+  before: DateRange;
+}
+
+/**
+ * "Did I spend more than last month?" is fair only at the same point: the month so far against last month up to
+ * the same day, the week so far against last week to the same weekday, the pay period so far against the same
+ * number of days into the one before (`previous`, from shiftPeriod).
+ */
+export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period): CompareRanges {
+  const d = fromDateString(todayStr);
+  const clamp = (from: string, to: string, end: string): DateRange => ({ from, to: to > end ? end : to });
+  if (period === 'week') {
+    const now = periodRange('week', todayStr);
+    return { now, before: { from: addDays(now.from, -7), to: addDays(todayStr, -7) } };
+  }
+  if (period === 'year') {
+    const y = d.getFullYear();
+    const sameDay = `${y - 1}-${todayStr.slice(5)}`;
+    return { now: { from: `${y}-01-01`, to: todayStr }, before: clamp(`${y - 1}-01-01`, sameDay === `${y - 1}-02-29` ? `${y - 1}-02-28` : sameDay, `${y - 1}-12-31`) };
+  }
+  if (period === 'budget' && current && previous) {
+    const elapsed = Math.round((fromDateString(todayStr).getTime() - fromDateString(current.start).getTime()) / 86400000);
+    return { now: { from: current.start, to: todayStr }, before: clamp(previous.start, addDays(previous.start, elapsed), previous.end) };
+  }
+  const month = monthRange(monthKey(todayStr));
+  const last = monthRange(shiftMonthKey(monthKey(todayStr), -1));
+  const elapsed = d.getDate() - 1;
+  return { now: { from: month.start, to: todayStr }, before: clamp(last.start, addDays(last.start, elapsed), last.end) };
+}
+
+export interface TopAnswer {
+  categoryId: string | null;
+  amount: number;
+  total: number;
+}
+
+/** Where most of the money went in a range: the biggest category and the total it is part of. */
+export function answerTop(transactions: Transaction[], range: DateRange): TopAnswer | null {
+  const byCat = new Map<string | null, number>();
+  let total = 0;
+  for (const tx of transactions) {
+    if (tx.type !== 'expense' || tx.occurredAt < range.from || tx.occurredAt > range.to) continue;
+    byCat.set(tx.categoryId, (byCat.get(tx.categoryId) ?? 0) + tx.amount);
+    total += tx.amount;
+  }
+  if (total <= 0) return null;
+  let best: { id: string | null; amount: number } = { id: null, amount: -1 };
+  for (const [id, amount] of byCat) if (amount > best.amount) best = { id, amount };
+  return { categoryId: best.id, amount: round2(best.amount), total: round2(total) };
+}
+
+export type AffordAnswer =
+  /** `left` is what remains now; `after` is what would remain once `price` went out (negative when short). */
+  | { kind: 'measured'; left: number; after: number; categoryIds: string[] | null }
+  | { kind: 'unknown' };
+
+/**
+ * "Can I afford a $200 jacket?" Weighed against the plan of the category it belongs to when that has one,
+ * else against what is left overall (the same number as the Today card). Never a yes or no: the numbers.
+ */
+export function answerAfford(q: ParsedQuestion, ctx: RemainingContext): AffordAnswer {
+  const price = q.price ?? 0;
+  const own = q.target ? answerRemaining(q, ctx) : null;
+  const r = own && own.kind === 'category' ? own : answerRemaining({ ...q, target: null, categoryId: null, categoryIds: null, fallbackCategoryId: null }, ctx);
+  if (r.kind === 'overall' || r.kind === 'income' || r.kind === 'plans' || r.kind === 'category') {
+    return { kind: 'measured', left: r.left, after: round2(r.left - price), categoryIds: r.kind === 'category' ? r.ids : null };
+  }
+  return { kind: 'unknown' };
+}

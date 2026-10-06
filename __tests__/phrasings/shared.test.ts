@@ -8,6 +8,7 @@ import { en } from '@/i18n/locales/en';
 import { es } from '@/i18n/locales/es';
 import { de } from '@/i18n/locales/de';
 import { ja } from '@/i18n/locales/ja';
+import { zh } from '@/i18n/locales/zh';
 import { parseOne } from './harness';
 
 const goal = (name: string) => [{ id: 'g1', name, kind: 'saving', targetAmount: 3000, savedAmount: 0, targetDate: null, completed: false, createdAt: '2026-01-01' }] as unknown as Goal[];
@@ -129,5 +130,15 @@ describe('ranges for the new periods', () => {
 describe('"what is left" with an amount in it is an entry', () => {
   it('"left 5 for the tip" is not a question', () => {
     expect(parseOne('how much is left 5 for the tip', 'en')[0].kind).toBe('transaction');
+  });
+});
+
+describe('a category word that holds a verb is still a fix', () => {
+  // 买菜 (groceries) holds 买 (buy), 打车 (taxi) holds 打; the verb check only looks outside the category's words.
+  it.each([['改成买菜', 'groceries'], ['放到买菜里', 'groceries'], ['把它改成买菜', 'groceries'], ['改成交通', 'transport']])('%s', (text, id) => {
+    expect(parseOne(text, 'zh', zh.s.categoryNames)[0]).toMatchObject({ kind: 'correction', correction: { categoryId: id } });
+  });
+  it('while a verb outside them still makes a new entry', () => {
+    expect(parseOne('其实午饭花了14', 'zh', zh.s.categoryNames)[0].kind).toBe('transaction');
   });
 });

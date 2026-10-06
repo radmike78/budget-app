@@ -37,7 +37,7 @@ interface Draft {
 function toDraft(r: ParseResult, i: number, decimalComma: boolean): Draft {
   return {
     key: `${i}-${r.raw}`,
-    kind: r.kind === 'unknown' || r.kind === 'question' || r.kind === 'command' ? 'transaction' : r.kind,
+    kind: r.kind === 'unknown' || r.kind === 'question' || r.kind === 'command' || r.kind === 'correction' ? 'transaction' : r.kind,
     raw: r.raw,
     amountText: r.amount != null ? moneyInputText(r.amount, decimalComma) : '',
     type: r.type,

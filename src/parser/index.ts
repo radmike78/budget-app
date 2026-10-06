@@ -1,4 +1,4 @@
-import type { Category, Goal, GoalKind, ReminderRepeat, TxType } from '@/types';
+import type { Category, Goal, GoalKind, ReminderRepeat, Transaction, TxType } from '@/types';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/lib/defaultCategories';
 import { applyRules } from './dateRules';
 import { nextMonthDay, nextWeekday, pad2 } from './reminderRules';
@@ -11,7 +11,17 @@ import type { LanguagePack } from './types';
 export type { VoiceCommand } from './commandRules';
 export type { ParsedQuestion, QuestionPeriod };
 
-export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'command' | 'unknown';
+export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'command' | 'correction' | 'unknown';
+
+/** A change to the last entry, said rather than tapped. Nothing is changed until the card is saved. */
+export interface Correction {
+  /** "delete that": the entry is removed (and the undo bar can put it back). */
+  remove: boolean;
+  amount: number | null;
+  categoryId: string | null;
+  /** YYYY-MM-DD */
+  date: string | null;
+}
 
 export interface ParseResult {
   kind: ParseKind;
@@ -39,6 +49,10 @@ export interface ParseResult {
   question: ParsedQuestion | null;
   /** A spoken settings change ("switch to the coach", "female voice"). Applied at once, never saved as an entry. */
   command: VoiceCommand | null;
+  /** Fixing the last entry ("actually it was 14", "make that dining", "delete that"). */
+  correction: Correction | null;
+  /** Set when the card edits an entry that is already saved rather than adding a new one. */
+  editOf?: Transaction | null;
   /** 0..1 overall confidence in the parse */
   confidence: number;
   /** True when the app should ask the user to check the result more carefully (or escalate to Tier 2). */
@@ -418,7 +432,7 @@ function baseResult(raw: string, today: string): ParseResult {
   return {
     kind: 'unknown', raw, amount: null, type: 'expense', typeConfidence: 0, categoryId: null, categoryConfidence: 0,
     note: null, occurredAt: today, dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
-    reminderText: null, reminderTime: null, reminderRepeat: 'none', command: null, question: null,
+    reminderText: null, reminderTime: null, reminderRepeat: 'none', command: null, correction: null, question: null,
     confidence: 0, needsReview: true, hints: [],
   };
 }
@@ -765,15 +779,87 @@ function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): 
     categoryLabels: ctx.categoryLabels,
     detect: (t) => { const m = detectCategory(t, ctx, pack); return m ? { categoryId: m.categoryId, matched: m.matched } : null; },
     restoreCase: (fragment) => restoreCase(fragment, raw) ?? fragment,
+    amount: (t) => { const a = extractAmount(t, pack); return { amount: a.multiple ? null : a.amount, text: a.text }; },
   });
   if (!q) return null;
   return { ...baseResult(raw, ctx.today), kind: 'question', type: q.type, question: q, confidence: 0.9, needsReview: false };
+}
+
+const MAX_CORRECTION_LENGTH = 100;
+
+/** A category named by the words: its name or label, a word that starts it ("dining" is "Dining out"), then the dictionary. */
+function categoryFromWords(words: string, ctx: ParseContext, pack: LanguagePack): { categoryId: string; matched: string } | null {
+  const key = words.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!key) return null;
+  const compact = key.replace(/\s+/g, '');
+  const forms = [key, ...(pack.tokenizer === 'space' && pack.singularForms ? pack.singularForms(key) : [])];
+  const active = ctx.categories.filter((cat) => !cat.archived);
+  const namesOf = (cat: Category) => [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => !!n).map((n) => n.toLowerCase().trim());
+  for (const cat of active) if (namesOf(cat).some((n) => forms.includes(n) || n.replace(/\s+/g, '') === compact)) return { categoryId: cat.id, matched: words };
+  if (pack.tokenizer === 'space') {
+    for (const cat of active) {
+      const parts = namesOf(cat).flatMap((n) => n.split(/\s*[/&,]\s*/u)).map((x) => x.trim()).filter(Boolean);
+      if (parts.some((x) => forms.includes(x) || forms.includes(x.split(/\s+/u)[0]))) return { categoryId: cat.id, matched: words };
+    }
+  }
+  const m = detectCategory(key, ctx, pack);
+  return m && m.matched ? { categoryId: m.categoryId, matched: m.matched } : null;
+}
+
+/** "actually it was 14", "make that dining", "that was yesterday", "delete that": a change to the last entry, or null. */
+function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack): ParseResult | null {
+  const rules = pack.correction;
+  if (!rules || raw.length > MAX_CORRECTION_LENGTH) return null;
+  const text = prepare(raw, pack).replace(/[.。]+$/u, '').trim();
+  if (!text) return null;
+  const base = baseResult(raw, ctx.today);
+  if (rules.remove.test(text)) {
+    return { ...base, kind: 'correction', correction: { remove: true, amount: null, categoryId: null, date: null }, confidence: 0.9, needsReview: false };
+  }
+  const lead = rules.lead.exec(text);
+  if (!lead || lead.index !== 0) return null;
+  let rest = text.slice(lead[0].length).trim();
+  const c = compile(pack);
+  const dated = applyRules(pack.pastDateRules, rest, ctx.today);
+  rest = dated.text;
+  const amt = extractAmount(rest, pack);
+  if (amt.multiple) return null;
+  rest = amt.text;
+  let categoryId: string | null = null;
+  let leftover = rest;
+  const words = deriveNote(rest, pack);
+  if (words) {
+    // The words as said are tried too: tidying a note can take a verb off the front of a category word
+    // ("买菜", groceries, would be read as "菜"), and the longer match is the one meant.
+    const tidy = categoryFromWords(words, ctx, pack);
+    const said = categoryFromWords(rest.trim(), ctx, pack);
+    const cat = tidy && said ? (said.matched.length > tidy.matched.length ? said : tidy) : tidy ?? said;
+    if (!cat) return null;
+    categoryId = cat.categoryId;
+    const at = leftover.toLowerCase().indexOf(cat.matched.toLowerCase());
+    leftover = at >= 0 ? `${leftover.slice(0, at)} ${leftover.slice(at + cat.matched.length)}` : '';
+    // Anything said besides the new value means this was not a correction after all.
+    if (deriveNote(leftover, pack)) return null;
+  }
+  // "actually spent 14 on lunch" says what happened: a new entry, not a fix. The verb is looked for outside the
+  // category's own words, so "改成买菜" (groceries, which holds 买 "buy") is still a fix.
+  if (c.expenseRe.test(leftover) || c.incomeRe.test(leftover)) return null;
+  if (amt.amount == null && dated.date == null && categoryId == null) return null;
+  return {
+    ...base,
+    kind: 'correction',
+    correction: { remove: false, amount: amt.amount, categoryId, date: dated.date },
+    confidence: 0.9,
+    needsReview: false,
+  };
 }
 
 export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
   const pack = getPack(ctx.language);
   const raw = input.trim();
   if (!raw) return [baseResult(raw, ctx.today)];
+  const correction = parseCorrectionText(raw, ctx, pack);
+  if (correction) return [correction];
   const question = parseQuestionText(raw, ctx, pack);
   if (question) return [question];
   const command = ctx.language === 'en' && raw.length <= MAX_QUESTION_LENGTH ? parseVoiceCommand(raw) : null;

@@ -29,6 +29,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   const categories = useAppStore((s) => s.categories);
   const goals = useAppStore((s) => s.goals);
   const addTransaction = useAppStore((s) => s.addTransaction);
+  const updateTransaction = useAppStore((s) => s.updateTransaction);
   const saveGoal = useAppStore((s) => s.saveGoal);
   const contributeToGoal = useAppStore((s) => s.contributeToGoal);
   const currency = useAppStore((s) => s.settings?.currency ?? 'USD');
@@ -115,6 +116,10 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
       } else if (result.kind === 'contribution' && goal) {
         await contributeToGoal(goal.id, amount, { logTransfer, occurredAt: date, rawInput: result.raw });
         onDone(t.toastAdded(money(amount, { compact: true }), goal.name), await personaLineForContribution(amount, goal.id));
+      } else if (result.editOf) {
+        // A spoken correction ("make that 14") changes the saved entry; what was first said stays its source.
+        await updateTransaction({ ...result.editOf, amount, type, categoryId, note: note.trim() || null, occurredAt: date });
+        onDone(t.toastUpdated(money(amount, { compact: true }), categoryName(category, t)));
       } else {
         await addTransaction({ amount, type, categoryId, note: note.trim() || null, rawInput: result.raw, occurredAt: date });
         if (categoryId && categoryId !== result.categoryId && result.raw) await learnCategory(result.raw, categoryId);
@@ -129,7 +134,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   };
 
   if (!result) return null;
-  const title = result.kind === 'reminder' ? t.newReminder : result.kind === 'goal' ? t.newGoal : result.kind === 'contribution' ? t.addTo(goal?.name ?? '') : type === 'income' ? t.moneyIn : t.moneyOut;
+  const title = result.editOf ? t.editEntry : result.kind === 'reminder' ? t.newReminder : result.kind === 'goal' ? t.newGoal : result.kind === 'contribution' ? t.addTo(goal?.name ?? '') : type === 'income' ? t.moneyIn : t.moneyOut;
   const catLabel = category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.pickCategory;
 
   return (
@@ -218,7 +223,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
       )}
 
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
-      <Button title={result.kind === 'reminder' ? t.setReminder : result.kind === 'goal' ? t.setGoal : t.save} onPress={save} loading={saving} />
+      <Button title={result.editOf ? t.saveChanges : result.kind === 'reminder' ? t.setReminder : result.kind === 'goal' ? t.setGoal : t.save} onPress={save} loading={saving} />
     </Sheet>
   );
 }

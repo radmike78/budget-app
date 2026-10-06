@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { longDate, monthKey, monthRange, today } from '@/lib/dates';
-import { periodContaining } from '@/lib/periods';
+import { periodContaining, shiftPeriod } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
 import { parseEntries, type ParseResult } from '@/parser';
 import { llmParse } from '@/parser/llmFallback';
@@ -10,8 +10,9 @@ import { HINT } from '@/parser';
 import { cleanEntry } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
-import { queryTransactions } from '@/db/repositories';
-import { answerQuestion, answerRemaining, periodRange } from '@/lib/questions';
+import { getTransaction, latestSavedTransaction, queryTransactions } from '@/db/repositories';
+import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange } from '@/lib/questions';
+import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
 import { greeting } from '@/lib/personas';
 import type { EntrySource } from './EntryBar';
@@ -33,6 +34,11 @@ export function useEntryFlow() {
   const fmt = useDateFormat();
   const [pending, setPending] = useState<ParseResult | null>(null);
   const [pendingMany, setPendingMany] = useState<ParseResult[] | null>(null);
+  // The callbacks below outlive a render, so they read the open card through refs.
+  const pendingRef = useRef<ParseResult | null>(null);
+  const pendingManyRef = useRef<ParseResult[] | null>(null);
+  useEffect(() => { pendingRef.current = pending; }, [pending]);
+  useEffect(() => { pendingManyRef.current = pendingMany; }, [pendingMany]);
   const [answer, setAnswer] = useState<SpokenAnswer | null>(null);
   const [busy, setBusy] = useState(false);
   /** How the entry on the card came in, so a spoken entry can get a spoken reply. */
@@ -51,7 +57,42 @@ export function useEntryFlow() {
     const nameOf = (id: string) => { const c = categories.find((x) => x.id === id); return c ? categoryName(c, t) : id; };
     let text: string;
 
-    if (q.ask === 'left') {
+    if (q.ask === 'compare') {
+      // The period so far against the same point in the one before, so half a month never meets a whole one.
+      const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
+      const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);
+      const r = compareRanges(kind, todayStr, current, previous);
+      const db = await getDb();
+      const rows = await queryTransactions(db, { type: 'expense', from: r.before.from, to: r.now.to, limit: 100000 });
+      const spentQ = { ...q, ask: 'spent' as const };
+      const now = answerQuestion(spentQ, rows, r.now, categories);
+      const before = answerQuestion(spentQ, rows, r.before, categories);
+      const cat = now.categoryId ? categories.find((c) => c.id === now.categoryId) : null;
+      const what = now.categoryIds ? now.target : cat && !now.usedFallback ? categoryName(cat, t) : now.target;
+      const periodName = t.periodNames[kind] ?? kind;
+      const prev = t.comparePrev[kind] ?? kind;
+      text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev);
+    } else if (q.ask === 'top') {
+      const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
+      const range = periodRange(period, todayStr, current, q.days);
+      const db = await getDb();
+      const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
+      const periodName = period === 'recentDays' ? t.periodLastDays(q.days ?? 7) : period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
+      const top = answerTop(rows, range);
+      text = top ? t.answerTop(periodName, top.categoryId ? nameOf(top.categoryId) : t.otherSpending, money(top.amount), money(top.total)) : t.answerNone(periodName, null, false);
+    } else if (q.ask === 'afford') {
+      await useAppStore.getState().goToCurrentPeriod();
+      const { stats, carry } = useAppStore.getState();
+      if (!stats) return;
+      const a = answerAfford(q, { stats, categories, carry, overallLimit: settings?.overallLimit ?? null, rules, today: todayStr });
+      const until = longDate(stats.period.end, todayStr, fmt);
+      const price = money(q.price ?? 0);
+      if (a.kind === 'unknown') text = t.answerAffordUnknown(price);
+      else {
+        const what = a.categoryIds ? (a.categoryIds.length === 1 ? nameOf(a.categoryIds[0]) : q.target) : null;
+        text = a.after >= 0 ? t.answerAffordFits(price, money(a.after), what, until) : t.answerAffordShort(price, money(-a.after), what, until);
+      }
+    } else if (q.ask === 'left') {
       // What is left is always about now, so the screens move to the current period with the answer.
       await useAppStore.getState().goToCurrentPeriod();
       const { stats, carry } = useAppStore.getState();
@@ -90,6 +131,79 @@ export function useEntryFlow() {
     if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
   }, [t, money, fmt]);
 
+  /** Shows a short spoken-style reply under the bar, read aloud under the same rule as answers. */
+  const reply = useCallback(async (text: string, source: EntrySource, language: string) => {
+    const settings = useAppStore.getState().settings;
+    const mode = settings?.answerMode ?? 'auto';
+    const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
+    setAnswer({ text, spoken });
+    if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
+  }, []);
+
+  /**
+   * "actually it was 14", "make that dining", "delete that". With a card open, the card
+   * changes and nothing is saved until Save. Otherwise the entry saved last opens in a card
+   * with the change made, so it is still the person who saves it; "delete that" removes it at
+   * once and the undo bar can put it back, like removing any entry.
+   */
+  const applyCorrection = useCallback(async (result: ParseResult, source: EntrySource, language: string) => {
+    const fix = result.correction!;
+    const open = pendingRef.current;
+    const { categories } = useAppStore.getState();
+    const catKind = fix.categoryId ? categories.find((c) => c.id === fix.categoryId)?.kind ?? null : null;
+    if (pendingManyRef.current) { await reply(t.correctionOnCard, source, language); return; }
+    if (open && (open.kind === 'transaction' || open.kind === 'unknown')) {
+      setAnswer(null);
+      if (fix.remove) { setPending(null); await reply(t.correctionCancelled, source, language); return; }
+      setPending({
+        ...open,
+        raw: open.raw,
+        amount: fix.amount ?? open.amount,
+        categoryId: fix.categoryId ?? open.categoryId,
+        type: catKind ?? open.type,
+        occurredAt: fix.date ?? open.occurredAt,
+        dateExplicit: open.dateExplicit || fix.date != null,
+        hints: [],
+        needsReview: false,
+      });
+      return;
+    }
+    if (open) { setPending(null); if (fix.remove) { await reply(t.correctionCancelled, source, language); return; } }
+    const db = await getDb();
+    const lastId = useAppStore.getState().lastSavedId;
+    const tx = (lastId ? await getTransaction(db, lastId) : null) ?? await latestSavedTransaction(db);
+    if (!tx) { await reply(t.correctionNothing, source, language); return; }
+    const cat = categories.find((c) => c.id === tx.categoryId) ?? null;
+    const what = tx.note ?? (cat ? categoryName(cat, t) : null);
+    if (fix.remove) {
+      await useAppStore.getState().deleteTransaction(tx.id);
+      useAppStore.setState({ lastSavedId: null });
+      await reply(t.correctionRemoved(money(tx.amount), what), source, language);
+      return;
+    }
+    setAnswer(null);
+    setPendingMany(null);
+    setPending({
+      kind: 'transaction',
+      raw: result.raw,
+      amount: fix.amount ?? tx.amount,
+      type: catKind ?? tx.type,
+      typeConfidence: 1,
+      categoryId: fix.categoryId ?? tx.categoryId,
+      categoryConfidence: 1,
+      note: tx.note,
+      occurredAt: fix.date ?? tx.occurredAt,
+      dateExplicit: true,
+      goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
+      reminderText: null, reminderTime: null, reminderRepeat: 'none',
+      question: null, command: null, correction: null,
+      editOf: tx,
+      confidence: 1,
+      needsReview: false,
+      hints: [],
+    });
+  }, [t, money, reply]);
+
   const submitInner = useCallback(async (raw: string, source: EntrySource = 'typed') => {
     const text = cleanEntry(raw);
     if (!text) return;
@@ -100,6 +214,10 @@ export function useEntryFlow() {
     const language = resolveLanguage(settings?.language);
     const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames };
     const entries = parseEntries(text, ctx);
+    if (entries.length === 1 && entries[0].kind === 'correction' && entries[0].correction) {
+      await applyCorrection(entries[0], source, language);
+      return;
+    }
     if (entries.length === 1 && entries[0].kind === 'command' && entries[0].command) {
       // A settings change, never an entry: applied at once, then the chosen voice says hello.
       setPending(null);
@@ -161,7 +279,7 @@ export function useEntryFlow() {
     if (result.kind === 'unknown') result = { ...result, kind: 'transaction' };
     setPendingMany(null);
     setPending(result);
-  }, [answerFor, t]);
+  }, [answerFor, applyCorrection, t]);
 
   // The typed text is already gone from the bar, so a failure has to say so instead of vanishing.
   const submit = useCallback(async (raw: string, source: EntrySource = 'typed') => {
