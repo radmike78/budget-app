@@ -139,9 +139,12 @@ export default function Onboarding() {
           <Field label={t.rentDueDay} value={rentDayText} onChangeText={setRentDayText} keyboardType="number-pad" placeholder="1" />
           <Row>
             <Button tone="ghost" title={t.back} onPress={() => go(1)} />
-            <Button tone="ghost" title={t.skip} onPress={() => { setPayText(''); setRentText(''); go(3); }} />
             <Button title={t.next} onPress={() => go(3)} style={{ flex: 1 }} />
           </Row>
+          {/* On its own line: three buttons side by side do not fit in German on a small phone. */}
+          <View style={{ marginTop: spacing.sm, alignItems: 'center' }}>
+            <Button tone="ghost" small title={t.skip} onPress={() => { setPayText(''); setRentText(''); go(3); }} />
+          </View>
           <DatePicker visible={showPayday} onClose={() => setShowPayday(false)} value={lastPayday} onPick={setLastPayday} />
         </View>
         </ScrollView>
