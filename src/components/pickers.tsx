@@ -8,7 +8,12 @@ import { categoryName, useDateFormat, useT } from '@/i18n';
 import { Button, Chip, Field, Icon, ListItem, Row, Text } from './ui';
 
 /** Bottom sheet container used by all pickers. */
-export function Sheet({ visible, onClose, title, children, tall }: { visible: boolean; onClose: () => void; title?: string; children: React.ReactNode; tall?: boolean }) {
+/**
+ * `scroll` wraps the contents in a scroll view (for forms): on a small phone the keyboard can otherwise cover
+ * Save with no way to reach it, since the decimal pad has no return key. Sheets that hold a list of their
+ * own leave it off.
+ */
+export function Sheet({ visible, onClose, title, children, tall, scroll }: { visible: boolean; onClose: () => void; title?: string; children: React.ReactNode; tall?: boolean; scroll?: boolean }) {
   const { colors } = useTheme();
   const t = useT();
   const insets = useSafeAreaInsets();
@@ -21,11 +26,16 @@ export function Sheet({ visible, onClose, title, children, tall }: { visible: bo
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.close} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Padding on Android too: edge-to-edge (Android 15+) no longer shrinks the window for the keyboard. */}
+      <KeyboardAvoidingView behavior="padding" style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <View style={[styles.sheet, widthStyle, { backgroundColor: colors.bg, paddingBottom: insets.bottom + spacing.lg, maxHeight: tall ? '92%' : '80%' }]}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
           {title ? <Text variant="heading" style={{ marginBottom: spacing.md }}>{title}</Text> : null}
-          {children}
+          {scroll ? (
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} showsVerticalScrollIndicator={false} style={{ flexGrow: 0 }}>
+              {children}
+            </ScrollView>
+          ) : children}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -92,7 +102,7 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
   const tooEarly = forward && isValidDateString(custom) && custom < t;
   const valid = isValidDateString(custom) && !tooEarly;
   return (
-    <Sheet visible={visible} onClose={onClose} title={s.date}>
+    <Sheet visible={visible} onClose={onClose} title={s.date} scroll>
       <Row style={{ flexWrap: 'wrap' }}>
         {quick.map((q) => (
           <Chip key={q.date} label={q.label} selected={value === q.date} onPress={() => { onPick(q.date); onClose(); }} />
@@ -119,7 +129,7 @@ export function TimePicker({ visible, onClose, value, onPick }: { visible: boole
   const valid = TIME_RE.test(custom);
   const normalized = valid ? custom.padStart(5, '0') : custom;
   return (
-    <Sheet visible={visible} onClose={onClose} title={s.time}>
+    <Sheet visible={visible} onClose={onClose} title={s.time} scroll>
       <Row style={{ flexWrap: 'wrap' }}>
         {QUICK_TIMES.map((q) => (
           <Chip key={q} label={q} selected={value === q} onPress={() => { onPick(q); onClose(); }} />

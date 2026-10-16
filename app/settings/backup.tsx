@@ -168,7 +168,7 @@ export default function Backup() {
 
       {status ? <Text variant="body" color={status.error ? colors.danger : colors.text} style={{ marginTop: spacing.lg }}>{status.text}</Text> : null}
 
-      <Sheet visible={!!askPass} onClose={closePassphrase} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase}>
+      <Sheet visible={!!askPass} onClose={closePassphrase} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase} scroll>
         <Field label={t.passphrase} value={pass} onChangeText={setPass} secureTextEntry autoCapitalize="none" autoFocus />
         {askPass?.mode === 'encrypt' ? <Field label={t.repeatPassphrase} value={pass2} onChangeText={setPass2} secureTextEntry autoCapitalize="none" /> : null}
         <View>

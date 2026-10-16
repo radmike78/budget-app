@@ -168,9 +168,16 @@ export function useEntryFlow() {
       });
       return;
     }
-    if (open) { setPending(null); if (fix.remove) { await reply(t.correctionCancelled, source, language); return; } }
+    if (open) {
+      // A goal, contribution or reminder card is changed on the card; "never mind" still closes it.
+      if (fix.remove) { setPending(null); await reply(t.correctionCancelled, source, language); return; }
+      await reply(t.correctionOnCard, source, language);
+      return;
+    }
     const db = await getDb();
     const lastId = useAppStore.getState().lastSavedId;
+    // '' means the last thing saved was not an entry (a goal, a reminder, an import): nothing to reach back to.
+    if (lastId === '') { await reply(t.correctionNothing, source, language); return; }
     const tx = (lastId ? await getTransaction(db, lastId) : null) ?? await latestSavedTransaction(db);
     if (!tx) { await reply(t.correctionNothing, source, language); return; }
     const cat = categories.find((c) => c.id === tx.categoryId) ?? null;

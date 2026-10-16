@@ -436,7 +436,12 @@ await step('pay-period budgeting needs a repeating income, then follows paydays'
 await step('erase everything leaves the app as it was installed', async () => {
   await goto('/settings');
   await button(/^Erase everything$/).click(); await page.waitForTimeout(1200);
+  // As installed: onboarding again, so the currency and language are asked afresh.
   await goto('/');
+  await expectText('OnlyBudget');
+  if (!(await page.getByText('Next', { exact: true }).count())) throw new Error('expected onboarding after erase');
+  await text('Next').click(); await text('Next').click(); await text('Start').click(); await page.waitForTimeout(500);
+  await text('No thanks, keep it plain').click(); await page.waitForTimeout(1200);
   await expectText('Nothing here yet');
   await goto('/budget');
   await expectNoText('Trader Joe');

@@ -11,22 +11,9 @@ const REMINDER_ID = 'onlybudget-daily-reminder';
  */
 export async function scheduleDailyReminder(hour: number, text: { title: string; body: string; channelName: string }): Promise<boolean> {
   if (Platform.OS === 'web') return false;
-  const perm = await Notifications.getPermissionsAsync();
-  let granted = perm.granted;
-  if (!granted) {
-    const req = await Notifications.requestPermissionsAsync();
-    granted = req.granted;
-  }
-  if (!granted) return false;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('reminders', {
-      name: text.channelName,
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: undefined,
-      showBadge: false,
-    });
-  }
+  // The channel comes first: Android 13+ shows the permission prompt only once the app has a channel.
+  await ensureChannel(text.channelName);
+  if ((await ensureNotificationPermission()) !== 'granted') return false;
 
   await cancelDailyReminder();
   await Notifications.scheduleNotificationAsync({
@@ -44,6 +31,16 @@ export async function scheduleDailyReminder(hour: number, text: { title: string;
     },
   });
   return true;
+}
+
+/** True when the daily nudge is on the phone's schedule (it is not after moving to a new phone). */
+export async function isDailyReminderScheduled(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  try {
+    return (await Notifications.getAllScheduledNotificationsAsync()).some((n) => n.identifier === REMINDER_ID);
+  } catch {
+    return false;
+  }
 }
 
 export async function cancelDailyReminder(): Promise<void> {
@@ -147,36 +144,92 @@ const REMINDER_PREFIX = 'onlybudget-reminder-';
  */
 export async function scheduleReminderNotification(rem: Reminder, title: string, channelName: string): Promise<string | null> {
   if (Platform.OS === 'web') return null;
+  // The channel comes first: Android 13+ shows the permission prompt only once the app has a channel.
+  const channelId = await ensureChannel(channelName);
   const state = await ensureNotificationPermission();
   if (state !== 'granted') return null;
-  const channelId = await ensureChannel(channelName);
   const { hour, minute } = parseTime(rem.time);
   const content = { title, body: rem.text, sound: false as const };
   const identifier = `${REMINDER_PREFIX}${rem.id}`;
   await cancelReminderNotification(identifier);
+  const now = new Date();
+  const first = reminderDateTime(rem.date, rem.time);
+  const day = first.getDate();
 
-  if (rem.repeat === 'daily') {
+  // Repeating triggers start at once, so they are used only when the first date is not further off than one
+  // repeat; until then the next few dates are scheduled one by one, and each launch re-arms them.
+  if (rem.repeat === 'daily' && first.getTime() - now.getTime() <= 86_400_000) {
     await Notifications.scheduleNotificationAsync({ identifier, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId } });
     return identifier;
   }
-  if (rem.repeat === 'weekly') {
-    const weekday = reminderDateTime(rem.date, rem.time).getDay() + 1; // expo: 1 = Sunday
+  if (rem.repeat === 'weekly' && first.getTime() - now.getTime() <= 7 * 86_400_000) {
+    const weekday = first.getDay() + 1; // expo: 1 = Sunday
     await Notifications.scheduleNotificationAsync({ identifier, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday, hour, minute, channelId } });
     return identifier;
   }
-  // One-off and monthly both use a concrete date; monthly is re-armed on the next app launch.
-  const at = nextOccurrence(rem);
-  if (!at) return null;
-  await Notifications.scheduleNotificationAsync({ identifier, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId } });
+  // Monthly on a day every month has keeps firing without the app being opened.
+  if (rem.repeat === 'monthly' && day <= 28 && first.getTime() - now.getTime() <= 31 * 86_400_000) {
+    await Notifications.scheduleNotificationAsync({ identifier, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day, hour, minute, channelId } });
+    return identifier;
+  }
+  // A one-off, a monthly on the 29th–31st (the last day of shorter months), or a repeat that starts later:
+  // concrete dates. iOS keeps at most 64 pending notifications for an app, so a series stays short.
+  const dates = upcoming(rem, now, rem.repeat === 'none' ? 1 : SERIES_LENGTH);
+  if (dates.length === 0) return null;
+  for (let k = 0; k < dates.length; k += 1) {
+    await Notifications.scheduleNotificationAsync({ identifier: k === 0 ? identifier : `${identifier}${SERIES_MARK}${k}`, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: dates[k], channelId } });
+  }
   return identifier;
+}
+
+/** How many dated notifications a repeating reminder keeps ahead of it when it cannot use a repeating trigger. */
+const SERIES_LENGTH = 6;
+const SERIES_MARK = '~';
+
+/** The next `count` times a reminder fires after `now`. */
+export function upcoming(rem: Reminder, now: Date, count: number): Date[] {
+  const out: Date[] = [];
+  let after = now;
+  for (let k = 0; k < count; k += 1) {
+    const next = nextOccurrence(rem, after);
+    if (!next) break;
+    out.push(next);
+    if (rem.repeat === 'none') break;
+    after = next;
+  }
+  return out;
 }
 
 export async function cancelReminderNotification(notificationId: string | null | undefined): Promise<void> {
   if (Platform.OS === 'web' || !notificationId) return;
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
+    // A dated series carries the same id with a mark and a number.
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) if (n.identifier.startsWith(`${notificationId}${SERIES_MARK}`)) await Notifications.cancelScheduledNotificationAsync(n.identifier);
   } catch {
     // nothing scheduled
+  }
+}
+
+/**
+ * True when a reminder has to be scheduled again even though it is on the schedule: a dated series (a monthly
+ * on the 29th–31st, or a repeat not started yet) only covers the next few dates.
+ */
+export function needsRearm(rem: Reminder, now: Date = new Date()): boolean {
+  if (rem.repeat === 'none') return false;
+  const first = reminderDateTime(rem.date, rem.time);
+  if (rem.repeat === 'monthly') return first.getDate() > 28 || first.getTime() - now.getTime() > 31 * 86_400_000;
+  return first.getTime() > now.getTime();
+}
+
+/** Identifiers of every reminder notification on the phone's schedule. */
+export async function scheduledReminderIds(): Promise<Set<string>> {
+  if (Platform.OS === 'web') return new Set();
+  try {
+    return new Set((await Notifications.getAllScheduledNotificationsAsync()).map((n) => n.identifier));
+  } catch {
+    return new Set();
   }
 }
 

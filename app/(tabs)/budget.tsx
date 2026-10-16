@@ -144,7 +144,7 @@ export default function BudgetScreen() {
         </>
       ) : null}
 
-      <Sheet visible={showOverall} onClose={() => setShowOverall(false)} title={t.overallPlan}>
+      <Sheet visible={showOverall} onClose={() => setShowOverall(false)} title={t.overallPlan} scroll>
         <Field label={payPeriod ? t.thisPeriod : t.thisMonth} value={overallText} onChangeText={setOverallText} keyboardType="decimal-pad" placeholder={t.overallPlanPlaceholder} hint={t.overallPlanSub} autoFocus />
         <Button title={t.save} onPress={saveOverall} />
       </Sheet>

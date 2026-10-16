@@ -55,7 +55,7 @@ export default function GoalsScreen() {
 
       {done.length > 0 ? (
         <>
-          <SectionTitle>{t.done}</SectionTitle>
+          <SectionTitle>{t.doneGoals}</SectionTitle>
           {done.map((g) => (
             <Pressable key={g.id} accessibilityRole="button" onPress={() => router.push(`/goal/${g.id}`)}>
               <Card tone="alt" style={{ marginBottom: spacing.sm }}>

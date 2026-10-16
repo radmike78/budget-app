@@ -125,9 +125,12 @@ export async function firstSavedAt(db: DB): Promise<string | null> {
   return row?.first ?? null;
 }
 
-/** The entry saved most recently (by when it was saved, not the date it is for), for "make that 14". */
+/**
+ * The entry the person saved most recently (by when it was saved, not the date it is for), for "make that 14"
+ * after a restart. Entries a repeating rule or a statement import logged are not something they just said.
+ */
 export async function latestSavedTransaction(db: DB): Promise<Transaction | null> {
-  const row = await db.getFirstAsync<TxRow>('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1');
+  const row = await db.getFirstAsync<TxRow>('SELECT * FROM transactions WHERE is_recurring_instance = 0 AND import_id IS NULL ORDER BY created_at DESC LIMIT 1');
   return row ? toTx(row) : null;
 }
 

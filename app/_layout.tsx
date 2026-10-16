@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, Pressable, View } from 'react-native';
 import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -31,6 +31,12 @@ export default function RootLayout() {
 
   const start = React.useCallback(() => { setError(null); init().catch((e: Error) => setError(e.message)); }, [init]);
   useEffect(() => { start(); }, [start]);
+
+  // Back from the background (perhaps days later): log what fell due and move to today's period.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') useAppStore.getState().resume().catch(() => {}); });
+    return () => sub.remove();
+  }, []);
 
   // The splash also goes when opening fails, or the error screen would sit under it and the app look frozen.
   useEffect(() => {

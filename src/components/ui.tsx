@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -89,7 +91,7 @@ export function Screen({ children, scroll = true, padded = true, style, contentS
   if (!scroll) {
     return <View style={[base, pad, column, { paddingBottom: insets.bottom }, style]}>{children}</View>;
   }
-  return (
+  const body = (
     <ScrollView
       style={[base, style]}
       contentContainerStyle={[pad, column, { paddingBottom: insets.bottom + spacing.xxl, paddingTop: spacing.sm }, contentStyle]}
@@ -100,6 +102,9 @@ export function Screen({ children, scroll = true, padded = true, style, contentS
       {children}
     </ScrollView>
   );
+  // iOS insets the scroll view for the keyboard itself; Android 15+ draws edge-to-edge and no longer shrinks
+  // the window, so a form there makes room on its own.
+  return keyboard && Platform.OS === 'android' ? <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>{body}</KeyboardAvoidingView> : body;
 }
 
 export function Card({ children, style, tone = 'default' }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; tone?: 'default' | 'accent' | 'alt' }) {

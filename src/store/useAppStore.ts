@@ -14,7 +14,7 @@ import { learnableWords } from '@/parser';
 import { redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
-import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
+import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, isDailyReminderScheduled, needsRearm, nextOccurrence, notificationPermissionState, scheduleDailyReminder, scheduleReminderNotification, scheduledReminderIds, type PermissionState } from '@/lib/reminders';
 import { sweepExportCache } from '@/lib/files';
 import { getLocale, resolveLanguage } from '@/i18n';
 
@@ -44,7 +44,10 @@ interface AppState {
   carryovers: CarryDecision[];
   /** The entry removed most recently, kept so it can be put back. */
   lastDeleted: { tx: Transaction; at: number } | null;
-  /** The entry saved last in this session, so "make that 14" changes the one just said. */
+  /**
+   * The entry saved last in this session, so "make that 14" changes the one just said. '' when the last thing
+   * saved was not an entry (a goal, a reminder, an import): a fix by voice must not reach back past it.
+   */
   lastSavedId: string | null;
   /** Last week and the week before, for the recap card at the start of a week. */
   recap: WeekRecap | null;
@@ -88,6 +91,8 @@ interface AppState {
   saveRule: (r: RecurringRule) => Promise<void>;
   removeRule: (id: string) => Promise<void>;
   runRecurringCatchUp: () => Promise<number>;
+  /** Coming back to the app: what fell due meanwhile is logged and the screens move to today's period. */
+  resume: () => Promise<void>;
 
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   learnCategory: (rawInput: string, categoryId: string) => Promise<void>;
@@ -134,6 +139,39 @@ async function computeCarry(db: DB, settings: Settings, rules: RecurringRule[], 
 async function showPeriod(period: Period): Promise<void> {
   useAppStore.setState({ period });
   await useAppStore.getState().refresh();
+}
+
+/** Logs every repeating entry that has fallen due. Run through `runRecurringCatchUp`, never twice at once. */
+let catchUpRun: Promise<number> | null = null;
+async function catchUp(): Promise<number> {
+  const db = await getDb();
+  const rules = await repo.allRules(db);
+  const todayStr = today();
+  let created = 0;
+  for (const rule of rules) {
+    if (!rule.active) continue;
+    const { due, nextOccurrence } = dueOccurrences(rule, todayStr);
+    if (due.length === 0) continue;
+    await db.withTransactionAsync(async () => {
+      for (const date of due) {
+        await repo.insertTransaction(db, {
+          id: newId(),
+          amount: rule.amount,
+          type: rule.type,
+          categoryId: rule.categoryId,
+          note: rule.note,
+          rawInput: null,
+          occurredAt: date,
+          createdAt: nowIso(),
+          isRecurringInstance: true,
+          recurringRuleId: rule.id,
+        });
+        created += 1;
+      }
+      await repo.upsertRule(db, { ...rule, nextOccurrence });
+    });
+  }
+  return created;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -293,6 +331,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveGoal: async (g) => {
     const db = await getDb();
+    set({ lastSavedId: '' });
     // Money on a goal is never negative. A typed "-50" would otherwise be stored, and the
     // backup validator (rightly) refuses negative amounts, so every later restore would fail.
     const nonNegative = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
@@ -312,10 +351,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!goal) return;
     const current = Math.max(0, goal.currentAmount + amount);
     await repo.upsertGoal(db, { ...goal, currentAmount: current, completed: goal.completed || current >= goal.targetAmount });
+    // "delete that" right after means the transfer just logged, or (with none logged) nothing to change by voice.
+    let transferId = '';
     if (opts.logTransfer && amount > 0) {
       const savings = get().categories.find((c) => c.id === (goal.kind === 'debt' ? 'debt' : 'savings') && !c.archived);
+      transferId = newId();
       await repo.insertTransaction(db, {
-        id: newId(),
+        id: transferId,
         amount,
         type: 'expense',
         categoryId: savings?.id ?? null,
@@ -327,11 +369,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         recurringRuleId: null,
       });
     }
+    set({ lastSavedId: transferId });
     await get().refresh();
   },
 
   addReminder: async (input) => {
     const db = await getDb();
+    set({ lastSavedId: '' });
     const strings = getLocale(resolveLanguage(get().settings?.language)).s;
     const rem: Reminder = { ...input, text: redactSensitive(input.text) || input.text, id: newId(), createdAt: nowIso(), notificationId: null };
     // Saved first: a failure in the notification layer must not lose the reminder (rearmReminders retries later).
@@ -361,7 +405,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = await notificationPermissionState();
     set({ notifications: state });
     const strings = getLocale(resolveLanguage(get().settings?.language)).s;
+    const scheduled = await scheduledReminderIds();
     let changed = false;
+    // The evening nudge is lost with a move to a new phone too.
+    const settings = get().settings;
+    if (state === 'granted' && settings?.reminderEnabled && !(await isDailyReminderScheduled())) {
+      await scheduleDailyReminder(settings.reminderHour, { title: strings.reminderTitle, body: strings.reminderBody, channelName: strings.reminderChannelDaily }).catch(() => false);
+    }
     for (const rem of get().reminders) {
       if (rem.repeat === 'none' && !nextOccurrence(rem)) {
         await cancelReminderNotification(rem.notificationId);
@@ -370,7 +420,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         continue;
       }
       if (state !== 'granted') continue;
-      if (rem.notificationId && rem.repeat !== 'monthly') continue;
+      // Kept when it is still on the phone's schedule and needs no re-arming; anything else (a new phone,
+      // a dated series running out, a repeat whose start date has come) is scheduled again.
+      if (rem.notificationId && scheduled.has(rem.notificationId) && !needsRearm(rem)) continue;
       const id = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders);
       if (id !== rem.notificationId) { await repo.upsertReminder(db, { ...rem, notificationId: id }); changed = true; }
     }
@@ -379,6 +431,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   importStatement: async (lines, meta) => {
     const db = await getDb();
+    set({ lastSavedId: '' });
     const importId = newId();
     const known = get().fingerprints;
     let count = 0;
@@ -480,35 +533,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   /** Logs every due occurrence of every active rule. Returns how many entries were created. */
-  runRecurringCatchUp: async () => {
-    const db = await getDb();
-    const rules = await repo.allRules(db);
-    const todayStr = today();
-    let created = 0;
-    for (const rule of rules) {
-      if (!rule.active) continue;
-      const { due, nextOccurrence } = dueOccurrences(rule, todayStr);
-      if (due.length === 0) continue;
-      await db.withTransactionAsync(async () => {
-        for (const date of due) {
-          await repo.insertTransaction(db, {
-            id: newId(),
-            amount: rule.amount,
-            type: rule.type,
-            categoryId: rule.categoryId,
-            note: rule.note,
-            rawInput: null,
-            occurredAt: date,
-            createdAt: nowIso(),
-            isRecurringInstance: true,
-            recurringRuleId: rule.id,
-          });
-          created += 1;
-        }
-        await repo.upsertRule(db, { ...rule, nextOccurrence });
-      });
-    }
-    return created;
+  runRecurringCatchUp: () => {
+    // One run at a time: two overlapping runs (a launch and a save) would both log the same due dates.
+    if (!catchUpRun) catchUpRun = catchUp().finally(() => { catchUpRun = null; });
+    return catchUpRun;
+  },
+
+  resume: async () => {
+    if (!get().ready) return;
+    const created = await get().runRecurringCatchUp();
+    const { settings, rules, period } = get();
+    const current = periodContaining(settings?.budgetPeriod ?? 'month', rules, today());
+    if (!samePeriod(current, period)) await showPeriod(current);
+    else if (created > 0 || get().stats?.period.end !== period.end) await get().refresh();
+    get().rearmReminders().catch(() => {});
   },
 
   updateSettings: async (patch) => {
