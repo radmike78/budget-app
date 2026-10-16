@@ -7,12 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "onlybudget",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F7F6F3"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.onlybudget",
@@ -30,7 +24,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "allowBackup": false,
-      "usesCleartextTraffic": false,
       "blockedPermissions": []
     },
     "web": {
@@ -45,7 +38,7 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "OnlyBudget uses the microphone so you can speak an entry like \"spent 12 on lunch\". Audio is processed on your device.",
+          "microphonePermission": "OnlyBudget uses the microphone so you can speak an entry like \"spent 12 on lunch\". OnlyBudget never records or stores audio, and nothing is sent to us.",
           "speechRecognitionPermission": "OnlyBudget uses speech recognition to turn what you say into a budget entry. Nothing is sent to us."
         }
       ],
@@ -72,6 +65,17 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "OnlyBudget can use Face ID to unlock the app if you turn the app lock on."
+        }
+      ],
+      "expo-font",
+      "expo-localization",
+      "expo-sharing",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
         }
       ]
     ],
