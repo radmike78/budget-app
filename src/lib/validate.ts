@@ -256,6 +256,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       targetDate: optDay(raw.targetDate, 'goal'),
       createdAt: stamp(raw.createdAt, now),
       completed: bool(raw.completed),
+      startingAmount: raw.startingAmount == null ? null : money(raw.startingAmount, 'goal start'),
     });
   }
 

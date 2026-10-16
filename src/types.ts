@@ -122,6 +122,8 @@ export interface Goal {
   targetDate: string | null;
   createdAt: string;
   completed: boolean;
+  /** What was already there when the goal was made; pace counts only money added since. Null on goals from before v15. */
+  startingAmount?: number | null;
 }
 
 export interface Settings {

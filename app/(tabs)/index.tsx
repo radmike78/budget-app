@@ -138,7 +138,7 @@ export default function HomeScreen() {
               <Card key={g.id} style={{ marginBottom: spacing.sm }}>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text variant="body" style={{ fontWeight: '600', flex: 1 }} numberOfLines={1}>{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
-                  <Text variant="small">{{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone, no_date: '' }[p.status]}</Text>
+                  <Text variant="small">{{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone, no_date: '', no_pace: '' }[p.status]}</Text>
                 </Row>
                 <Text variant="muted" style={{ marginTop: 2 }}>{t.goalShort(money(g.currentAmount, { compact: true }), money(g.targetAmount, { compact: true }), money(p.remaining, { compact: true }))}</Text>
                 <View style={{ marginTop: spacing.sm }}><ProgressBar fraction={p.fraction} /></View>

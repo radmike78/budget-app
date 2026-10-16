@@ -166,6 +166,8 @@ const MIGRATIONS: string[] = [
   // and none of them needs a sentence of explanation. "Other" is protected rather than called negotiable.
   `UPDATE categories SET tier = 'needs' WHERE tier = 'comforts' AND id = 'other_expense';
   UPDATE categories SET tier = 'wants' WHERE tier = 'comforts';`,
+  // v15: what a goal started with, so money already saved before it was made is not read as a fast pace.
+  `ALTER TABLE goals ADD COLUMN starting_amount REAL;`,
 ];
 
 async function migrate(db: DB): Promise<void> {

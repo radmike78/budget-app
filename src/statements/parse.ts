@@ -6,9 +6,9 @@
 import type { Category } from '@/types';
 import { detectCategory, type ParseContext } from '@/parser';
 import { addDays, daysBetween, daysInMonth } from '@/lib/dates';
-import { findDates, findPeriod, monthOf, resolveDate, type DateHit } from './dates';
+import { defaultDateOrder, findDates, findPeriod, monthOf, numericDateOrder, resolveDate, type DateHit } from './dates';
 import { findMoney, findPercent, type MoneyToken } from './money';
-import { cleanDescription, guessKind, lookupMerchant } from './merchants';
+import { cleanDescription, guessKind, looksLikeCardCredit, lookupMerchant } from './merchants';
 import type { MonthSummary, ParseOptions, ParsedStatement, Row, StatementKind, StatementLine, StatementPeriod, Tradeline } from './types';
 
 const CARD_WORDS = /\b(minimum payment due|minimum payment|payment due date|credit limit|available credit|new balance|previous balance|purchases|cash advances|apr|annual percentage rate|interest charged|cardmember|card member|rewards|statement balance|total credit line|credit line)\b/i;
@@ -199,6 +199,8 @@ function decideAmount(c: Candidate, kind: StatementKind, section: 'in' | 'out' |
     const hint = lookupMerchant(c.descText.toLowerCase());
     if (hint && INCOME_HINT.has(hint.categoryId)) direction = 'in';
   }
+  // A card statement that prints payments and refunds unsigned: "PAYMENT THANK YOU 250.00" never adds spending.
+  if (!direction && kind === 'card' && looksLikeCardCredit(c.descText)) direction = 'in';
   if (!direction) direction = 'out';
   return { amount: amountTok.value, direction, balance, sure };
 }
@@ -274,10 +276,12 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
   const warnings: string[] = [];
   const kind = detectKind(rows);
   if (kind === 'credit_report') return { kind, period: null, lines: [], tradelines: [], months: [], warnings: ['isCreditReport'] };
-  const period = findPeriod(rows, opts.language, opts.today);
+  // "03/04" follows what the statement itself shows ("15/03" anywhere means day first), else the phone's region.
+  const dateOrder = numericDateOrder(rows) ?? defaultDateOrder(opts.language, opts.region);
+  const period = findPeriod(rows, dateOrder, opts.today);
   if (!period) warnings.push('noPeriod');
   const cols = findColumns(rows);
-  const { candidates, consumed } = lineCandidates(rows, cols, opts.language);
+  const { candidates, consumed } = lineCandidates(rows, cols, dateOrder);
 
   const lines: StatementLine[] = [];
   let section: 'in' | 'out' | null = null;

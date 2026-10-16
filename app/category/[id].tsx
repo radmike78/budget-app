@@ -4,6 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Rollover, Tier, TxType } from '@/types';
 import { getDb } from '@/db/database';
 import { countTransactionsInCategory } from '@/db/repositories';
+import { today } from '@/lib/dates';
+import { periodContaining } from '@/lib/periods';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { newId } from '@/lib/ids';
@@ -23,7 +25,7 @@ export default function CategoryEditor() {
   const categories = useAppStore((s) => s.categories);
   const save = useAppStore((s) => s.saveCategory);
   const remove = useAppStore((s) => s.removeCategory);
-  const period = useAppStore((s) => s.period);
+  const rules = useAppStore((s) => s.rules);
   const payMode = useAppStore((s) => s.settings?.budgetPeriod === 'pay');
   const isNew = id === 'new';
   const existing = categories.find((c) => c.id === id);
@@ -59,7 +61,9 @@ export default function CategoryEditor() {
     const monthlyLimit = kind === 'expense' && limitValue && limitValue > 0 ? limitValue : null;
     const nextRollover: Rollover = monthlyLimit ? rollover : 'reset';
     // Carrying over starts with the period it was switched on in; earlier periods never add anything.
-    const rolloverSince = nextRollover === 'reset' ? null : (existing?.rollover ?? 'reset') !== 'reset' && existing?.rolloverSince ? existing.rolloverSince : period.start;
+    // (Today's period, even when an earlier one is on screen.)
+    const startedIn = periodContaining(payMode ? 'pay' : 'month', rules, today()).start;
+    const rolloverSince = nextRollover === 'reset' ? null : (existing?.rollover ?? 'reset') !== 'reset' && existing?.rolloverSince ? existing.rolloverSince : startedIn;
     await save({
       id: existing?.id ?? newCategoryId.current,
       name: renamed,

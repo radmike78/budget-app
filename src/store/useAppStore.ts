@@ -3,7 +3,7 @@ import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping,
 import type { StatementLine, Tradeline } from '@/statements';
 import { getDb, type DB } from '@/db/database';
 import * as repo from '@/db/repositories';
-import { addDays, nowIso, today } from '@/lib/dates';
+import { addDays, nowIso, toDateString, today } from '@/lib/dates';
 import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
 import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
 import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
@@ -241,15 +241,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const stats = await repo.periodStats(db, period);
     const carry = await computeCarry(db, settings, rules, categories, carryovers, period);
     const todayStr = today();
-    // Looking back only makes sense once the app was in use before what it looks back on: on a new phone,
-    // entries dated earlier (rent the setup logged for the 1st) are not a week or a period someone lived with it.
-    const firstSaved = await repo.firstSavedAt(db);
-    const usedBefore = (date: string) => firstSaved != null && firstSaved.slice(0, 10) < date;
-    const recap = isRecapDay(todayStr) && usedBefore(weekRange(todayStr, 0).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
+    // Looking back only makes sense once the app was in use from the start of what it looks back on: on a new
+    // phone, entries dated earlier (rent the setup logged for the 1st) are not a week or a period someone lived with it.
+    // (Saved times are UTC; the day they were saved on is the phone's own.)
+    const firstSavedIso = await repo.firstSavedAt(db);
+    const firstSaved = firstSavedIso && !Number.isNaN(Date.parse(firstSavedIso)) ? toDateString(new Date(firstSavedIso)) : null;
+    const usedSince = (date: string) => firstSaved != null && firstSaved <= date;
+    const recap = isRecapDay(todayStr) && usedSince(weekRange(todayStr, -1).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
     const current = periodContaining(settings.budgetPeriod, rules, todayStr);
     let review: PeriodReview | null = null;
-    if (isReviewTime(current, todayStr) && usedBefore(current.start)) {
-      const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
+    const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
+    if (isReviewTime(current, todayStr) && usedSince(last.start)) {
       const before = shiftPeriod(settings.budgetPeriod, rules, last, -1);
       const [lastStats, beforeStats] = await Promise.all([repo.periodStats(db, last), repo.periodStats(db, before)]);
       review = periodReview(lastStats, beforeStats.expenses > 0 || beforeStats.income > 0 ? beforeStats : null);
@@ -319,7 +321,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveCategory: async (c) => {
     const db = await getDb();
-    await repo.upsertCategory(db, c);
+    const { settings, rules, carryovers, categories } = get();
+    const before = categories.find((x) => x.id === c.id);
+    let next = c;
+    // A new plan on a carrying category keeps what has carried so far: it is saved for this period and carrying
+    // goes on from here with the new plan, rather than recounting every earlier period as if it had always applied.
+    if (settings && before && before.rollover === 'carry' && c.rollover === 'carry' && (before.monthlyLimit ?? 0) > 0 && before.monthlyLimit !== c.monthlyLimit) {
+      const current = periodContaining(settings.budgetPeriod, rules, today());
+      const carried = (await computeCarry(db, settings, rules, [before], carryovers, current))[before.id]?.amount ?? 0;
+      await repo.upsertCarryover(db, { categoryId: c.id, period: current.start, amount: carried });
+      next = { ...c, rolloverSince: current.start };
+    }
+    await repo.upsertCategory(db, next);
     await get().refresh();
   },
 
@@ -433,9 +446,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     set({ lastSavedId: '' });
     const importId = newId();
-    const known = get().fingerprints;
+    // A copy: if the import fails and rolls back, the lines must not be remembered as already imported.
+    const known = new Set(get().fingerprints);
     let count = 0;
     await db.withTransactionAsync(async () => {
+      count = 0;
       for (const l of lines) {
         if (!l.include || known.has(l.fingerprint)) continue;
         const type = l.direction === 'in' ? 'income' : 'expense';
@@ -577,9 +592,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreAll: async (data) => {
     const db = await getDb();
-    // Notifications scheduled for the reminders being replaced would otherwise keep firing.
-    await cancelAllReminderNotifications();
     await repo.replaceAllData(db, data);
+    // Only once the data is in (a failed restore keeps everything, alarms included): notifications for the
+    // reminders just replaced would otherwise keep firing, and the evening nudge follows the restored setting.
+    await cancelAllReminderNotifications().catch(() => {});
+    await cancelDailyReminder().catch(() => {});
+    // The undo bar and "make that 14" pointed at entries that are gone.
+    set({ lastDeleted: null, lastSavedId: null });
     await get().runRecurringCatchUp();
     await get().refresh();
     // Restored reminders carry no notification id; this schedules them on this phone.

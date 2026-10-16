@@ -18,8 +18,42 @@ const MONTHS: Record<string, number> = {
 };
 const MONTH_ALT = Object.keys(MONTHS).sort((a, b) => b.length - a.length).join('|');
 
-/** Locales that write day before month in numeric dates. */
-const DAY_FIRST = new Set(['es', 'fr', 'it', 'de', 'pt', 'en-gb', 'en-au', 'en-nz', 'en-ie', 'en-in']);
+/** Locales that write day before month in numeric dates ('dmy' / 'mdy' name the order outright). */
+const DAY_FIRST = new Set(['dmy', 'es', 'fr', 'it', 'de', 'pt', 'en-gb', 'en-au', 'en-nz', 'en-ie', 'en-in', 'en-za']);
+/** English-speaking regions that write the month first; everywhere else English dates are day first. */
+const MONTH_FIRST_REGIONS = new Set(['us', 'ca', 'ph']);
+
+/** The order a phone's language and region suggest for "03/04": 'dmy' or 'mdy'. */
+export function defaultDateOrder(language: string, region?: string | null): 'dmy' | 'mdy' {
+  const lang = language.toLowerCase();
+  const reg = (region ?? '').toLowerCase();
+  if (lang === 'en') return reg && !MONTH_FIRST_REGIONS.has(reg) ? 'dmy' : 'mdy';
+  return DAY_FIRST.has(lang) ? 'dmy' : 'mdy';
+}
+
+// Numeric dates that can only be dates (a slash, or day, month and year): "4.50" is an amount, not April 50th.
+const RE_ORDER_HINT = /(?<![\d/.-])(\d{1,2})(?:\/(\d{1,2})(?:\/\d{2,4})?|[.-](\d{1,2})[.-]\d{2,4})(?![\d/.-])/g;
+
+/**
+ * Reads the order from the statement itself: "15/03" can only be day first and "03/15" only month first.
+ * Null when every date fits both ways (then the phone's region decides).
+ */
+export function numericDateOrder(rows: Row[]): 'dmy' | 'mdy' | null {
+  let dmy = 0;
+  let mdy = 0;
+  for (const row of rows.slice(0, 600)) {
+    RE_ORDER_HINT.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = RE_ORDER_HINT.exec(row.text)) !== null) {
+      const a = Number(m[1]);
+      const b = Number(m[2] ?? m[3]);
+      if (a > 12 && a <= 31 && b >= 1 && b <= 12) dmy += 1;
+      else if (b > 12 && b <= 31 && a >= 1 && a <= 12) mdy += 1;
+    }
+  }
+  if (dmy === mdy) return null;
+  return dmy > mdy ? 'dmy' : 'mdy';
+}
 
 export interface DateHit {
   /** Month index 0..11 */

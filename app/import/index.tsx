@@ -6,7 +6,7 @@ import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, monthLabel, today } from '@/lib/dates';
 import { notify } from '@/lib/dialogs';
 import { pickPdf, PdfBlockedError, PdfEncryptedError, PdfTooLargeError } from '@/lib/pdfBytes';
-import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
+import { categoryName, deviceRegion, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { parseCreditReport, parseStatement, rowsFromItems, type ParsedStatement, type StatementLine, type Tradeline } from '@/statements';
 import { PdfExtractor, type PdfExtractorHandle } from '@/components/PdfExtractor';
 import { CategoryPicker } from '@/components/pickers';
@@ -69,7 +69,7 @@ export default function ImportScreen() {
       if (token !== readToken.current) return; // cancelled while reading
       const rows = rowsFromItems(items);
       const ctx = { categories, goals, keywordMap, today: today(), language };
-      const result = parseStatement(rows, ctx, { language, today: today(), knownFingerprints: fingerprints });
+      const result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints });
       if (result.kind === 'credit_report') {
         const tl = parseCreditReport(rows);
         setTradelines(tl);

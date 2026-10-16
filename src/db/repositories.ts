@@ -30,9 +30,10 @@ const toRule = (r: RuleRow): RecurringRule => ({
   id: r.id, amount: r.amount, type: r.type, categoryId: r.category_id, frequency: r.frequency, nextOccurrence: r.next_occurrence, note: r.note, active: r.active === 1, anchorDay: r.anchor_day ?? null,
 });
 
-type GoalRow = { id: string; name: string; kind: string | null; target_amount: number; current_amount: number; target_date: string | null; created_at: string; completed: number };
+type GoalRow = { id: string; name: string; kind: string | null; target_amount: number; current_amount: number; target_date: string | null; created_at: string; completed: number; starting_amount?: number | null };
 const toGoal = (r: GoalRow): Goal => ({
   id: r.id, name: r.name, kind: r.kind === 'debt' ? 'debt' : 'saving', targetAmount: r.target_amount, currentAmount: r.current_amount, targetDate: r.target_date, createdAt: r.created_at, completed: r.completed === 1,
+  startingAmount: typeof r.starting_amount === 'number' ? r.starting_amount : null,
 });
 
 type SettingsRow = { currency: string; theme: Settings['theme']; last_backup_at: string | null; starting_balance: number | null; onboarding_done: number; reminder_enabled: number; reminder_hour: number; smart_parse_enabled: number; language: string | null; app_lock: number | null; answer_mode: string | null; budget_period?: string | null; overall_limit?: number | null; voice?: string | null; attitude?: string | null; voice_gender?: string | null; accent?: string | null };
@@ -301,9 +302,10 @@ export async function allGoals(db: DB): Promise<Goal[]> {
 
 export async function upsertGoal(db: DB, g: Goal): Promise<void> {
   await db.runAsync(
-    `INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    // A new goal remembers what it started with; later saves never change that.
+    `INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed, starting_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, target_amount = excluded.target_amount, current_amount = excluded.current_amount, target_date = excluded.target_date, completed = excluded.completed`,
-    [g.id, g.name, g.kind ?? 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0],
+    [g.id, g.name, g.kind ?? 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0, g.startingAmount ?? g.currentAmount],
   );
 }
 
@@ -405,8 +407,8 @@ export async function replaceAllData(
         [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null]);
     }
     for (const g of data.goals) {
-      await db.runAsync('INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [g.id, g.name, g.kind === 'debt' ? 'debt' : 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0]);
+      await db.runAsync('INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed, starting_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [g.id, g.name, g.kind === 'debt' ? 'debt' : 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0, g.startingAmount ?? null]);
     }
     for (const k of data.keywords) {
       await db.runAsync('INSERT OR IGNORE INTO keyword_mappings (word, category_id) VALUES (?, ?)', [k.word, k.categoryId]);

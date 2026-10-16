@@ -38,6 +38,15 @@ export function deviceLanguage(): string {
   return 'en';
 }
 
+/** The phone's region ("GB", "US"), or null when it does not say. */
+export function deviceRegion(): string | null {
+  try {
+    return getLocales()[0]?.regionCode ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function resolveLanguage(setting: string | null | undefined): string {
   if (setting && setting !== 'system' && LOCALES[setting]) return setting;
   return deviceLanguage();
