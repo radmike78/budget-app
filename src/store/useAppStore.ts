@@ -9,7 +9,7 @@ import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
 import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
 import { isReviewTime, periodReview, type PeriodReview } from '@/lib/review';
 import { newId } from '@/lib/ids';
-import { dueOccurrences } from '@/lib/recurring';
+import { dueOccurrences, resumeFrom } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
 import { redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
@@ -458,8 +458,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     // The date the user picked is the anchor day, so a rule set for the 31st returns to the 31st after February.
     // Editing only the amount while the next date sits on the 28th must not move the anchor.
     const existing = get().rules.find((x) => x.id === r.id);
+    // Resuming a paused rule starts from the next date ahead: what fell due while it was paused was not paid.
+    const resumed = !!existing && !existing.active && r.active && existing.nextOccurrence === r.nextOccurrence && r.nextOccurrence < today();
+    if (resumed) r = { ...r, nextOccurrence: resumeFrom({ ...r, anchorDay: existing.anchorDay }, today()) };
     const dateChanged = !existing || existing.nextOccurrence !== r.nextOccurrence;
-    const anchorDay = dateChanged || existing.anchorDay == null ? Number(r.nextOccurrence.slice(8, 10)) || null : existing.anchorDay;
+    // A new rule may bring its own anchor (rent "on the 31st" first set in a 30-day month); otherwise the
+    // picked date's day is the anchor, and a resumed rule keeps the one it had.
+    const anchorDay = !existing && r.anchorDay != null ? r.anchorDay
+      : resumed && existing?.anchorDay != null ? existing.anchorDay
+      : dateChanged || existing?.anchorDay == null ? Number(r.nextOccurrence.slice(8, 10)) || null
+      : existing.anchorDay;
     await repo.upsertRule(db, { ...r, anchorDay });
     await get().runRecurringCatchUp();
     await get().refresh();

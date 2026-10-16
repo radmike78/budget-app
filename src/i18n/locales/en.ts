@@ -644,6 +644,8 @@ export const en = {
     no: 'no',
     // errors
     openError: 'Something went wrong opening your data.',
+    tryAgain: 'Try again',
+    screenError: 'This screen ran into a problem. Your entries are safe.',
     // default category names (by id)
     categoryNames: {
       salary: 'Salary', freelance: 'Freelance / Side income', gift_income: 'Gift', other_income: 'Other income',

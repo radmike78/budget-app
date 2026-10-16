@@ -616,6 +616,8 @@ export const fr: LocaleDef = {
     yes: 'oui',
     no: 'non',
     openError: 'Un problème est survenu à l’ouverture de vos données.',
+    tryAgain: 'Réessayer',
+    screenError: 'Cet écran a rencontré un problème. Vos dépenses sont en sécurité.',
     categoryNames: {
       salary: 'Salaire', freelance: 'Freelance / Revenus annexes', gift_income: 'Cadeau', other_income: 'Autres revenus',
       groceries: 'Courses', dining: 'Restaurants', rent: 'Loyer / Crédit immobilier', utilities: 'Factures', transport: 'Transports',

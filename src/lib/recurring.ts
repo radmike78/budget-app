@@ -62,3 +62,26 @@ export function monthlyEquivalent(rule: Pick<RecurringRule, 'amount' | 'frequenc
       return rule.amount / 12;
   }
 }
+
+/**
+ * The first date on or after `todayStr` for a rule that was paused: what fell due while it was paused was
+ * never paid, so it is skipped, not logged. A rule whose next date is still ahead keeps it.
+ */
+export function resumeFrom(rule: Pick<RecurringRule, 'nextOccurrence' | 'frequency'> & { anchorDay?: number | null }, todayStr: string): string {
+  const anchor = rule.anchorDay ?? Number(rule.nextOccurrence.slice(8, 10));
+  let d = rule.nextOccurrence;
+  for (let guard = 0; d < todayStr && guard < 5000; guard += 1) d = advance(d, rule.frequency, anchor);
+  return d;
+}
+
+/** The last date of the series that starts at `start` and falls on or before `todayStr` (`start` itself if none later). */
+export function latestOnOrBefore(start: string, frequency: Frequency, todayStr: string, anchorDay?: number): string {
+  const anchor = anchorDay ?? Number(start.slice(8, 10));
+  let d = start;
+  for (let guard = 0; guard < 5000; guard += 1) {
+    const next = advance(d, frequency, anchor);
+    if (next > todayStr) break;
+    d = next;
+  }
+  return d;
+}

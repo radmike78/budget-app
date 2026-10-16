@@ -13,6 +13,8 @@ export function getDb(): Promise<DB> {
       await migrate(db);
       return db;
     })();
+    // A failed open is not kept: "Try again" must really try again.
+    dbPromise.catch(() => { dbPromise = null; });
   }
   return dbPromise;
 }

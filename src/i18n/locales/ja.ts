@@ -612,6 +612,8 @@ export const ja: LocaleDef = {
     yes: 'はい',
     no: 'いいえ',
     openError: 'データを開くときに問題が起きました。',
+    tryAgain: 'もう一度',
+    screenError: 'この画面で問題が起きました。記録は無事です。',
     categoryNames: {
       salary: '給料', freelance: '副業 / フリーランス', gift_income: 'もらったお金', other_income: 'その他の収入',
       groceries: '食料品', dining: '外食', rent: '家賃 / ローン', utilities: '光熱費・通信費', transport: '交通',

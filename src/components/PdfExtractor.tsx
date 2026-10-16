@@ -29,6 +29,16 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
   const readyResolvers = useRef<ReadyWaiter[]>([]);
   const ready = useRef(false);
   const failed = useRef(false);
+  // A fresh WebView (new key) rather than reload(): a page loaded from a string can reload to an empty
+  // about:blank on iOS, and then "ready" never comes.
+  const [generation, setGeneration] = useState(0);
+  const restart = React.useCallback((reason: Error | null) => {
+    ready.current = false;
+    const p = pending.current;
+    pending.current = null;
+    if (p && reason) p.reject(reason);
+    setGeneration((g) => g + 1);
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -87,14 +97,11 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
       const p = pending.current;
       pending.current = null;
       if (p) p.reject(new Error('cancelled'));
-      // Reloading throws away the running pdf.js job and the base64 chunks with it; the page
-      // posts "ready" again when it is back, and extract() waits for that.
-      if (ready.current) {
-        ready.current = false;
-        web.current?.reload();
-      }
+      // A new page throws away the running pdf.js job and the base64 chunks with it; it
+      // posts "ready" when it is up, and extract() waits for that.
+      restart(null);
     },
-  }), [html]);
+  }), [html, restart]);
 
   const onMessage = (e: WebViewMessageEvent) => {
     let msg: { type: string; items?: TextItem[]; numPages?: number; message?: string; code?: string; reasons?: string[] };
@@ -123,7 +130,12 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
   return (
     <View style={{ width: 1, height: 1, opacity: 0, position: 'absolute' }} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <WebView
+        key={generation}
         ref={web}
+        // The system can kill a WebView's process (in the background, or out of memory on a big
+        // statement): the import in flight fails at once and a fresh page is started for the next.
+        onContentProcessDidTerminate={() => restart(new Error('extract failed'))}
+        onRenderProcessGone={() => restart(new Error('extract failed'))}
         source={{ html }}
         originWhitelist={['about:blank']}
         onMessage={onMessage}

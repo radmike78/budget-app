@@ -142,3 +142,20 @@ describe('a category word that holds a verb is still a fix', () => {
     expect(parseOne('其实午饭花了14', 'zh', zh.s.categoryNames)[0].kind).toBe('transaction');
   });
 });
+
+describe('amounts of a million and more, with separators, are one amount', () => {
+  it.each([
+    ['월급 3,000,000원', 'ko', 3000000],
+    ['給料 1,250,000円', 'ja', 1250000],
+    ['房租3,000,000', 'zh', 3000000],
+    ['salary 1,250,000', 'en', 1250000],
+    ['spent 2,400.50 on a laptop', 'en', 2400.5],
+    ['Miete 1.200.000 Euro', 'de', 1200000],
+    ['loyer 1 234 567 €', 'fr', 1234567],
+    ['Gehalt 2.400,50', 'de', 2400.5],
+  ])('%s', (text, lang, amount) => {
+    const r = parseOne(text, lang);
+    expect(r).toHaveLength(1);
+    expect(r[0].amount).toBe(amount);
+  });
+});

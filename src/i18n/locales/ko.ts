@@ -612,6 +612,8 @@ export const ko: LocaleDef = {
     yes: '예',
     no: '아니요',
     openError: '데이터를 여는 중 문제가 생겼어요.',
+    tryAgain: '다시 시도',
+    screenError: '이 화면에 문제가 생겼어요. 기록은 안전해요.',
     categoryNames: {
       salary: '월급', freelance: '부업 / 프리랜서', gift_income: '용돈·선물', other_income: '기타 수입',
       groceries: '장보기', dining: '외식', rent: '월세 / 대출', utilities: '공과금·통신비', transport: '교통',

@@ -28,7 +28,7 @@ const NOT_AMOUNTS = /(?:一共|一起|二手|统一|統一|一般|一定|一切|
 function numberWords(text: string): string {
   const kept: string[] = [];
   text = text.replace(NOT_AMOUNTS, (m) => { kept.push(m); return String.fromCharCode(0xe000 + kept.length - 1); });
-  let t = cjkNumeralsToDigits(expandK(text.replace(/(\d),(\d{3})(?!\d)/g, '$1$2')));
+  let t = cjkNumeralsToDigits(expandK(text.replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, ''))));
   // "12块5" / "十二块五毛" -> 12.5块
   t = t.replace(/(\d+)(块钱|塊錢|块|塊|元)(\d)(?:毛|角)?(?!\d)/g, '$1.$3$2');
   t = t.replace(/(\d+)\s?(块|元)\s?(\d)\s?(?:毛|角)/g, '$1.$3$2');

@@ -91,17 +91,32 @@ export function moneyInputText(amount: number, decimalComma = false): string {
 }
 
 /** Parses user-typed money ("1,234.50", "$12", "12", "12,50") into a number or null. */
+/** The largest amount anything accepts; above it a field reads as empty, and backups refuse it. */
+export const MAX_AMOUNT = 1_000_000_000_000;
+
+/**
+ * Reads an amount typed into a field. Spaces, symbols and grouping are ignored; the last "." or "," followed
+ * by one or two digits is the decimal mark, whatever the phone's locale ("1.234,56", "1,234.56", "1 234,50",
+ * "4,50"). Three digits after it are grouping ("2,400", "2.400"), except where the locale writes the decimal
+ * with that mark or the whole part is 0 ("0,005"). Null when nothing usable is there or it is past MAX_AMOUNT.
+ */
 export function parseMoneyInput(text: string, decimalComma = false): number | null {
-  let cleaned = text.trim();
-  if (decimalComma) {
-    cleaned = cleaned.replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
-  } else {
-    cleaned = cleaned.replace(/,(?=\d{3}\b)/g, '');
-    if (/^\d+,\d{1,2}$/.test(cleaned)) cleaned = cleaned.replace(',', '.');
+  const negative = /^\s*-/.test(text);
+  const cleaned = text.replace(/[^0-9.,]/g, '');
+  if (!/\d/.test(cleaned)) return null;
+  const last = Math.max(cleaned.lastIndexOf('.'), cleaned.lastIndexOf(','));
+  let intPart = cleaned;
+  let frac = '';
+  if (last >= 0) {
+    const after = cleaned.slice(last + 1);
+    const before = cleaned.slice(0, last).replace(/[.,]/g, '');
+    const mark = cleaned[last];
+    const isDecimal = after.length !== 3 || (decimalComma ? mark === ',' : mark === '.') && !/[.,]/.test(cleaned.slice(0, last)) || /^0*$/.test(before);
+    if (isDecimal && after.length > 0) { intPart = before; frac = after; } else intPart = cleaned.replace(/[.,]/g, '');
   }
-  cleaned = cleaned.replace(/[^0-9.\-]/g, '');
-  if (!cleaned || cleaned === '.' || cleaned === '-') return null;
-  const n = Number(cleaned);
+  const n = Number(`${intPart || '0'}${frac ? `.${frac}` : ''}`);
   if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100) / 100;
+  const value = Math.round(n * 100) / 100;
+  if (value > MAX_AMOUNT) return null;
+  return negative ? -value : value;
 }

@@ -612,6 +612,8 @@ export const zh: LocaleDef = {
     yes: '是',
     no: '否',
     openError: '打开数据时出了点问题。',
+    tryAgain: '重试',
+    screenError: '这个页面出了点问题。你的记录都还在。',
     categoryNames: {
       salary: '工资', freelance: '兼职 / 副业', gift_income: '红包礼金', other_income: '其他收入',
       groceries: '买菜购物', dining: '外出就餐', rent: '房租 / 房贷', utilities: '水电网费', transport: '交通',

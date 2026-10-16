@@ -616,6 +616,8 @@ export const de: LocaleDef = {
     yes: 'ja',
     no: 'nein',
     openError: 'Beim Öffnen deiner Daten ist etwas schiefgelaufen.',
+    tryAgain: 'Erneut versuchen',
+    screenError: 'Auf diesem Bildschirm ist ein Problem aufgetreten. Deine Einträge sind sicher.',
     categoryNames: {
       salary: 'Gehalt', freelance: 'Freelance / Nebenverdienst', gift_income: 'Geschenk', other_income: 'Sonstige Einnahmen',
       groceries: 'Lebensmittel', dining: 'Essen gehen', rent: 'Miete / Hypothek', utilities: 'Nebenkosten', transport: 'Verkehr',

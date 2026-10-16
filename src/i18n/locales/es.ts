@@ -616,6 +616,8 @@ export const es: LocaleDef = {
     yes: 'sí',
     no: 'no',
     openError: 'Algo salió mal al abrir tus datos.',
+    tryAgain: 'Reintentar',
+    screenError: 'Esta pantalla tuvo un problema. Tus movimientos están a salvo.',
     categoryNames: {
       salary: 'Nómina', freelance: 'Freelance / Ingresos extra', gift_income: 'Regalo', other_income: 'Otros ingresos',
       groceries: 'Supermercado', dining: 'Comer fuera', rent: 'Alquiler / Hipoteca', utilities: 'Suministros', transport: 'Transporte',

@@ -23,7 +23,8 @@
     "store:shots": "node scripts/store-shots.mjs dist out/store",
     "audit": "npm audit --omit=dev",
     "postinstall": "node scripts/build-pdf-extractor.js",
-    "check:pdf-security": "node --experimental-strip-types --no-warnings scripts/pdf-security-check.mjs"
+    "check:pdf-security": "node --experimental-strip-types --no-warnings scripts/pdf-security-check.mjs",
+    "check:pdf-extractor": "node scripts/check-pdf-extractor.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

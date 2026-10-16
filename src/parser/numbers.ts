@@ -6,10 +6,11 @@
 export function normalizeDecimalComma(text: string): string {
   return text
     // "1 800" is one number, but "el 3 100 euros" is the 3rd and 100 euros.
-    .replace(/(?<!\b(?:el|d[ií]a|le|il|am|den|vom|il giorno)\s)(\d)[\s  ](\d{3})\b/g, '$1$2')
+    // Every group goes at once: "1 234 567" is one number, not "1234 567".
+    .replace(/(?<!\b(?:el|d[ií]a|le|il|am|den|vom|il giorno)\s)(?<!\d)\d{1,3}(?:[\s\u00a0\u202f]\d{3})+\b/g, (m) => m.replace(/[\s\u00a0\u202f]/g, ''))
     // "1,234.56" written the other way round: the last separator is the decimal.
     .replace(/(\d{1,3}(?:,\d{3})+)\.(\d{1,2})(?!\d)/g, (_m, int: string, dec: string) => `${int.replace(/,/g, '')}.${dec}`)
-    .replace(/(\d)\.(\d{3})(?!\d)/g, '$1$2')
+    .replace(/(?<![\d.])\d{1,3}(?:\.\d{3})+(?![\d.])/g, (m) => m.replace(/\./g, ''))
     .replace(/(\d),(\d{1,2})(?!\d)/g, '$1.$2');
 }
 
@@ -18,7 +19,8 @@ export function normalizeDecimalPoint(text: string): string {
   return text
     // "1.234,56" written the European way: the last separator is the decimal.
     .replace(/(\d{1,3}(?:\.\d{3})+),(\d{1,2})(?!\d)/g, (_m, int: string, dec: string) => `${int.replace(/\./g, '')}.${dec}`)
-    .replace(/(\d),(\d{3})\b/g, '$1$2');
+    // "3,000,000": every separator goes, not only the first.
+    .replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, ''));
 }
 
 /** "2.4k" -> "2400". */

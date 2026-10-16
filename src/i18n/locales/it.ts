@@ -616,6 +616,8 @@ export const it: LocaleDef = {
     yes: 'sì',
     no: 'no',
     openError: 'Qualcosa è andato storto nell’aprire i tuoi dati.',
+    tryAgain: 'Riprova',
+    screenError: 'Questa schermata ha avuto un problema. Le tue voci sono al sicuro.',
     categoryNames: {
       salary: 'Stipendio', freelance: 'Freelance / Entrate extra', gift_income: 'Regalo', other_income: 'Altre entrate',
       groceries: 'Spesa', dining: 'Mangiare fuori', rent: 'Affitto / Mutuo', utilities: 'Bollette', transport: 'Trasporti',
