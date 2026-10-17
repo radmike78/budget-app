@@ -323,6 +323,15 @@ await step('backup export and restore', async () => {
   await goto('/history');
   await expectText('Starbucks');
 });
+await step('a statement import is taken back in one go', async () => {
+  await goto('/import');
+  await expectLabel('Earlier imports');
+  await button(/Remove these entries/).click(); await page.waitForTimeout(1000);
+  const b = await bodyText();
+  if (!/Removed \d+ entr/.test(b)) throw new Error('no confirmation that the import was removed');
+  if ((await bodyText()).toLowerCase().includes('earlier imports')) throw new Error('the import is still listed');
+  await shot('import-removed');
+});
 await step('encrypted backup with a short passphrase is refused', async () => {
   await goto('/settings/backup');
   await button(/Encrypted backup/).click(); await page.waitForTimeout(500);

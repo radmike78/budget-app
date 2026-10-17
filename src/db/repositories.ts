@@ -76,6 +76,17 @@ export async function allImports(db: DB): Promise<ImportRecord[]> {
   return rows.map(toImport);
 }
 
+/** Takes a statement import back: every entry it added and its record. Returns how many entries went. */
+export async function removeImport(db: DB, id: string): Promise<number> {
+  let removed = 0;
+  await db.withTransactionAsync(async () => {
+    const result = await db.runAsync('DELETE FROM transactions WHERE import_id = ?', [id]);
+    removed = result.changes;
+    await db.runAsync('DELETE FROM imports WHERE id = ?', [id]);
+  });
+  return removed;
+}
+
 export async function insertImport(db: DB, r: ImportRecord): Promise<void> {
   await db.runAsync('INSERT INTO imports (id, kind, file_name, period_start, period_end, count, imported_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [r.id, r.kind, r.fileName, r.periodStart, r.periodEnd, r.count, r.importedAt]);
 }

@@ -83,6 +83,8 @@ interface AppState {
 
   /** Saves the chosen lines from a statement as entries. Returns how many were added. */
   importStatement: (lines: StatementLine[], meta: { kind: 'bank' | 'card' | 'credit_report'; periodStart: string | null; periodEnd: string | null }) => Promise<number>;
+  /** Removes every entry a statement import added (the lines can be imported again afterwards). */
+  removeImport: (id: string) => Promise<number>;
   saveDebt: (d: Debt) => Promise<void>;
   removeDebt: (id: string) => Promise<void>;
   /** Adds or refreshes debts from a credit report or card statement (matched by creditor name). */
@@ -466,6 +468,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     await get().refresh();
     return count;
+  },
+
+  removeImport: async (id) => {
+    const db = await getDb();
+    const removed = await repo.removeImport(db, id);
+    // An entry from this import waiting on the Undo bar would otherwise come back on its own.
+    if (get().lastDeleted?.tx.importId === id) set({ lastDeleted: null });
+    await get().refresh();
+    return removed;
   },
 
   saveDebt: async (d) => {
