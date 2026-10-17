@@ -34,7 +34,7 @@ const head = `
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141412" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <style>html,body{background:#F7F6F3}@media(prefers-color-scheme:dark){html,body{background:#141412}}</style>
+    <style>html,body{background:#F7F6F3}@media(prefers-color-scheme:dark){html,body{background:#141412}}:focus{outline:none}:focus-visible{outline:2px solid #3D6B5E;outline-offset:2px}[tabindex="-1"]:focus-visible,[role="dialog"]:focus-visible{outline:none}</style>
     <script src="/sw-register.js" defer></script>
 `;
 

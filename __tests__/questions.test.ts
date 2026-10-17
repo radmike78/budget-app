@@ -1,6 +1,6 @@
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import { parseEntries, type ParseContext } from '@/parser';
-import { answerQuestion, periodRange } from '@/lib/questions';
+import { answerQuestion, compareRanges, periodRange } from '@/lib/questions';
 import type { Transaction } from '@/types';
 
 const TODAY = '2026-09-16'; // a Wednesday
@@ -134,5 +134,15 @@ describe('answerQuestion', () => {
     expect(answerQuestion(inc, rows, periodRange('month', TODAY), DEFAULT_CATEGORIES)).toMatchObject({ total: 2400, count: 1 });
     const none = ask('how much did I spend at Blorp this week').question!;
     expect(answerQuestion(none, rows, periodRange('week', TODAY), DEFAULT_CATEGORIES)).toMatchObject({ total: 0, count: 0, usedFallback: false });
+  });
+});
+
+describe('"this week" starts on Monday where the locale says so', () => {
+  it('week, last week and the comparison follow firstDay; the weekend stays Saturday and Sunday', () => {
+    expect(periodRange('week', '2026-09-16', undefined, 7, 1)).toEqual({ from: '2026-09-14', to: '2026-09-16' });
+    expect(periodRange('lastWeek', '2026-09-16', undefined, 7, 1)).toEqual({ from: '2026-09-07', to: '2026-09-13' });
+    expect(periodRange('week', '2026-09-13', undefined, 7, 1)).toEqual({ from: '2026-09-07', to: '2026-09-13' });
+    expect(periodRange('weekend', '2026-09-16', undefined, 7, 1)).toEqual({ from: '2026-09-12', to: '2026-09-13' });
+    expect(compareRanges('week', '2026-09-16', undefined, undefined, 1)).toEqual({ now: { from: '2026-09-14', to: '2026-09-16' }, before: { from: '2026-09-07', to: '2026-09-09' } });
   });
 });

@@ -159,7 +159,7 @@ export default function Onboarding() {
     if (key === 'money') {
       return (
         <View style={{ width, height: pageHeight || undefined }}>
-        <ScrollView contentContainerStyle={{ padding: spacing.xl, flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: spacing.xl, paddingBottom: spacing.xxl * 2, flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
           <Text variant="title">{t.moneySetupTitle}</Text>
           <Text variant="muted" style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>{t.moneySetupBody}</Text>

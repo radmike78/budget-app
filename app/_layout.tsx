@@ -5,7 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
+// Each weight from its own entry point: the package root requires all eighteen (1.4 MB) into the bundle.
+import { useFonts } from 'expo-font';
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces/600SemiBold';
+import { Fraunces_700Bold } from '@expo-google-fonts/fraunces/700Bold';
 import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme';
 import { configureNotificationHandler } from '@/lib/reminders';
@@ -14,6 +17,7 @@ import { Button, Text, useIsWide, useTypeScale } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+const START_TIMEOUT_MS = 20_000;
 configureNotificationHandler();
 
 export default function RootLayout() {
@@ -29,7 +33,12 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Fraunces_600SemiBold, Fraunces_700Bold });
   const fontsReady = fontsLoaded || !!fontError;
 
-  const start = React.useCallback(() => { setError(null); init().catch((e: Error) => setError(e.message)); }, [init]);
+  // A start that hangs (a database that never opens) shows the error screen with Try again rather than a spinner for ever.
+  const start = React.useCallback(() => {
+    setError(null);
+    const timer = setTimeout(() => { if (!useAppStore.getState().ready) setError(t.screenError); }, START_TIMEOUT_MS);
+    init().catch((e: Error) => setError(e.message)).finally(() => clearTimeout(timer));
+  }, [init, t.screenError]);
   useEffect(() => { start(); }, [start]);
 
   // Back from the background (perhaps days later): log what fell due and move to today's period.

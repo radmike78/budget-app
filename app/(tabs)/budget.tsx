@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { monthLabel, today } from '@/lib/dates';
@@ -32,6 +32,7 @@ export default function BudgetScreen() {
   const carry = useAppStore((s) => s.carry);
   const rules = useAppStore((s) => s.rules);
   const [showOverall, setShowOverall] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const [overallText, setOverallText] = useState('');
   const [overallError, setOverallError] = useState<string | null>(null);
 
@@ -50,6 +51,10 @@ export default function BudgetScreen() {
   const isCurrent = period.start <= todayStr && todayStr <= period.end;
   const payPeriod = settings.budgetPeriod === 'pay' && !isWholeMonth(period);
   const expenseCats = categories.filter((c) => c.kind === 'expense' && !c.archived).sort((a, b) => (totals.get(b.id) ?? 0) - (totals.get(a.id) ?? 0) || a.sortOrder - b.sortOrder);
+  // Once something has been spent, categories with nothing in them and no plan fold away; a new budget shows them all.
+  const active = stats.expenses > 0 && !showAllCategories ? expenseCats.filter((c) => (totals.get(c.id) ?? 0) > 0 || effectivePlan(c, carry[c.id])) : expenseCats;
+  const shownCats = active;
+  const hiddenCats = expenseCats.length - shownCats.length;
   const incomeCats = categories.filter((c) => c.kind === 'income' && !c.archived);
   const archived = categories.filter((c) => c.archived);
   const activeRules = rules.filter((r) => r.active);
@@ -69,7 +74,7 @@ export default function BudgetScreen() {
   return (
     <Screen>
       <Row style={{ justifyContent: 'space-between', marginTop: spacing.sm }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={payPeriod ? t.previousPeriod : t.previousMonth} onPress={() => shiftPeriod(-1)} hitSlop={12}><Ionicons name="chevron-back" size={24} color={colors.text} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={payPeriod ? t.previousPeriod : t.previousMonth} onPress={() => shiftPeriod(-1)} hitSlop={12} style={{ padding: 10 }}><Ionicons name="chevron-back" size={24} color={colors.text} /></Pressable>
         <Text variant="heading">{payPeriod ? periodLabel(period, todayStr, fmt) : monthLabel(stats.month, fmt)}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel={payPeriod ? t.nextPeriod : t.nextMonth} onPress={() => shiftPeriod(1)} hitSlop={12} disabled={isCurrent} style={{ opacity: isCurrent ? 0.3 : 1 }}><Ionicons name="chevron-forward" size={24} color={colors.text} /></Pressable>
       </Row>
@@ -83,7 +88,7 @@ export default function BudgetScreen() {
       <CarryQuestions />
 
       <SectionTitle right={<Button tone="ghost" small title={t.add} onPress={() => router.push('/category/new?kind=expense')} />}>{t.spending}</SectionTitle>
-      {expenseCats.map((c) => {
+      {shownCats.map((c) => {
         const spent = totals.get(c.id) ?? 0;
         const plan = effectivePlan(c, carry[c.id]);
         const carried = carry[c.id]?.amount ?? 0;
@@ -106,6 +111,12 @@ export default function BudgetScreen() {
           </Pressable>
         );
       })}
+
+      {hiddenCats > 0 || showAllCategories ? (
+        <View style={{ alignItems: 'flex-start', marginBottom: spacing.sm }}>
+          <Button tone="ghost" small title={showAllCategories ? t.fewerCategories : t.moreCategories(hiddenCats)} onPress={() => setShowAllCategories((v) => !v)} />
+        </View>
+      ) : null}
 
       {stats.expenses > 0 ? (
         <>

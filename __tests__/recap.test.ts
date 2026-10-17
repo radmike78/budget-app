@@ -65,3 +65,15 @@ describe('colour helpers', () => {
     expect(new Set(r).size).toBe(4);
   });
 });
+
+describe('weeks start on Monday where the locale says so', () => {
+  it('ranges, recap days and the first day of the week follow firstDay', () => {
+    // 2026-09-16 is a Wednesday.
+    expect(weekRange('2026-09-16', 0, 1)).toEqual({ from: '2026-09-14', to: '2026-09-20' });
+    expect(weekRange('2026-09-13', 0, 1)).toEqual({ from: '2026-09-07', to: '2026-09-13' }); // a Sunday ends the week
+    expect(weekRange('2026-09-14', -1, 1)).toEqual({ from: '2026-09-07', to: '2026-09-13' });
+    expect(isRecapDay('2026-09-14', 1)).toBe(true); // Monday
+    expect(isRecapDay('2026-09-15', 1)).toBe(true); // Tuesday
+    expect(isRecapDay('2026-09-13', 1)).toBe(false); // Sunday is the end of the week, not its start
+  });
+});

@@ -266,6 +266,29 @@ describe('English entries stay entries', () => runCases('en', STAY_ENTRIES));
 
 /** Fixing the last entry by voice. Only the new value may follow the lead; anything else is a new entry. */
 const CORRECTIONS: Case[] = [
+  // dictation writes "four fifty" as "4 50", and "five and a half" as words
+  ['coffee 4 50', { kind: 'transaction', amount: 4.5, categoryId: 'dining', note: 'Coffee' }],
+  ['amazon 89 99', { kind: 'transaction', amount: 89.99, note: 'Amazon' }],
+  ['lunch 12 50', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['coffee 5 and a half', { kind: 'transaction', amount: 5.5, categoryId: 'dining', note: 'Coffee' }],
+  ['4 50 dollars on coffee', { kind: 'transaction', amount: 4.5, categoryId: 'dining' }],
+  ['remind me to call mom at 9 30', { kind: 'reminder', reminderTime: '09:30' }],
+  // filler words never land in the note
+  ['um spent like 23 on uber', { kind: 'transaction', amount: 23, categoryId: 'transport', note: 'Uber' }],
+  ['bought groceries at trader joes 62 and change', { kind: 'transaction', amount: 62, categoryId: 'groceries', note: 'Groceries at trader joes' }],
+  // corrections that name the entry
+  ['forget the spotify one', { kind: 'correction', correction: { remove: true, target: 'spotify' } }],
+  ['delete the spotify', { kind: 'correction', correction: { remove: true, target: 'spotify' } }],
+  ['remove the uber entry', { kind: 'correction', correction: { remove: true, target: 'uber' } }],
+  ['that uber was 32 not 23', { kind: 'correction', correction: { remove: false, amount: 32, target: 'uber' } }],
+  ['the uber was actually 32', { kind: 'correction', correction: { amount: 32, target: 'uber' } }],
+  ['change the uber to 32', { kind: 'correction', correction: { amount: 32, target: 'uber' } }],
+  ['no the uber was 32', { kind: 'correction', correction: { amount: 32, target: 'uber' } }],
+  ["i didn't spend 23 on uber it was 32", { kind: 'correction', correction: { amount: 32, target: 'uber' } }],
+  ['move the lunch to groceries', { kind: 'correction', correction: { categoryId: 'groceries', target: 'lunch' } }],
+  // goals named after the occasion they are for
+  ['save 500 for christmas', { kind: 'goal', amount: 500, goalName: 'Christmas', targetDate: '2026-12-25' }],
+  ['goal save 500 for christmas', { kind: 'goal', amount: 500, goalName: 'Christmas' }],
   ['actually it was 14', { kind: 'correction', correction: { remove: false, amount: 14 } }],
   ['make that 14', { kind: 'correction', correction: { amount: 14 } }],
   ['no, 14', { kind: 'correction', correction: { amount: 14 } }],

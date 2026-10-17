@@ -2,7 +2,7 @@ import React from 'react';
 import type { ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '@/theme';
 import { useT } from '@/i18n';
 import { useIsWide, useTypeScale } from '@/components/ui';

@@ -1,9 +1,10 @@
 import React, { useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Transaction } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
+import { notify } from '@/lib/dialogs';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, today } from '@/lib/dates';
 import { categoryName, useDateFormat, useMoney, useT } from '@/i18n';
@@ -22,7 +23,7 @@ export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transacti
   // Removal never asks: the entry goes at once and the Undo bar on the tabs puts it back.
   const confirmDelete = () => {
     ref.current?.close();
-    remove(tx.id);
+    remove(tx.id).catch((e: Error) => notify(t.didntWork(e.message)));
   };
 
   const renderRight = () => (
@@ -55,7 +56,7 @@ export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transacti
         <Icon glyph={category?.icon} size={22} />
         <View style={{ flex: 1, marginLeft: spacing.md }}>
           <Text variant="body" numberOfLines={1}>{title}</Text>
-          <Text variant="small" numberOfLines={1}>{subtitleParts.join(' · ')}</Text>
+          <Text variant="small" numberOfLines={2}>{subtitleParts.join(' · ')}</Text>
         </View>
         <Text variant="money" color={tx.type === 'income' ? colors.income : colors.expense}>
           {tx.type === 'income' ? '+' : '−'}{money(tx.amount)}

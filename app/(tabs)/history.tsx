@@ -7,7 +7,7 @@ import { getDb } from '@/db/database';
 import { queryTransactionTotals, queryTransactions } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { addDays, currentMonthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
+import { addDays, monthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
 import { categoryName, useMoney, useT } from '@/i18n';
 import { CategoryPicker } from '@/components/pickers';
 import { TransactionRow } from '@/components/TransactionRow';
@@ -46,24 +46,33 @@ export default function HistoryScreen() {
     { value: 'all', label: t.rangeAll },
   ];
 
+  // Typed search waits a beat before querying: every keystroke would otherwise scan the whole table twice.
+  const [searchQuery, setSearchQuery] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(search), 150);
+    return () => clearTimeout(timer);
+  }, [search]);
+  // "This month" and "90 days" follow the calendar when the screen is still open at midnight or comes back days later.
+  const [day, setDay] = useState(today());
+  useFocusEffect(useCallback(() => { setDay(today()); }, []));
   const bounds = useMemo(() => {
-    const now = today();
-    if (range === 'month') return monthRange(currentMonthKey());
-    if (range === 'last_month') return monthRange(shiftMonthKey(currentMonthKey(), -1));
+    const now = day;
+    if (range === 'month') return monthRange(monthKey(now));
+    if (range === 'last_month') return monthRange(shiftMonthKey(monthKey(now), -1));
     if (range === '90d') return { start: addDays(now, -90), end: now };
     return { start: null, end: null };
-  }, [range]);
+  }, [range, day]);
 
   const load = useCallback(async () => {
     const id = ++requestId.current;
     const db = await getDb();
-    const query = { search, type, categoryId, from: bounds.start, to: bounds.end };
+    const query = { search: searchQuery, type, categoryId, from: bounds.start, to: bounds.end };
     const [list, sums] = await Promise.all([
       queryTransactions(db, { ...query, limit: shown }),
       queryTransactionTotals(db, query),
     ]);
     if (id === requestId.current) { setRows(list); setTotals(sums); }
-  }, [search, type, categoryId, bounds, shown]);
+  }, [searchQuery, type, categoryId, bounds, shown]);
 
   useEffect(() => { load(); }, [load, recent]);
   useFocusEffect(useCallback(() => { load(); }, [load]));

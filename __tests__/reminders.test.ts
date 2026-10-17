@@ -75,10 +75,10 @@ describe('spoken reminders', () => {
 describe('reminder sentence', () => {
   const base = { id: 'r', text: 'Pay rent', notificationId: null, createdAt: '' };
   it('describes each repeat in plain words', () => {
-    expect(reminderSentence({ ...base, date: '2026-10-01', time: '09:00', repeat: 'none' }, TODAY, en)).toBe('Thu, Oct 1 at 09:00');
-    expect(reminderSentence({ ...base, date: '2026-09-11', time: '20:00', repeat: 'daily' }, TODAY, en)).toBe('Every day at 20:00');
-    expect(reminderSentence({ ...base, date: '2026-09-14', time: '08:00', repeat: 'weekly' }, TODAY, en)).toBe('Every Mon at 08:00');
-    expect(reminderSentence({ ...base, date: '2026-09-15', time: '12:00', repeat: 'monthly' }, TODAY, en)).toBe('On the 15th of every month at 12:00');
+    expect(reminderSentence({ ...base, date: '2026-10-01', time: '09:00', repeat: 'none' }, TODAY, en)).toBe('Thu, Oct 1 at 9:00 AM');
+    expect(reminderSentence({ ...base, date: '2026-09-11', time: '20:00', repeat: 'daily' }, TODAY, en)).toBe('Every day at 8:00 PM');
+    expect(reminderSentence({ ...base, date: '2026-09-14', time: '08:00', repeat: 'weekly' }, TODAY, en)).toBe('Every Mon at 8:00 AM');
+    expect(reminderSentence({ ...base, date: '2026-09-15', time: '12:00', repeat: 'monthly' }, TODAY, en)).toBe('On the 15th of every month at 12:00 PM');
     expect(reminderSentence({ ...base, date: '2026-09-15', time: '12:00', repeat: 'monthly' }, TODAY, es)).toBe('El día 15 de cada mes a las 12:00');
   });
 });

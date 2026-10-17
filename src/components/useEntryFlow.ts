@@ -3,14 +3,15 @@ import { useAppStore } from '@/store/useAppStore';
 import { longDate, monthKey, monthRange, today } from '@/lib/dates';
 import { periodContaining, shiftPeriod } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
-import { parseEntries, type ParseResult } from '@/parser';
+import { parseEntries, type Correction, type ParseResult } from '@/parser';
+import type { Transaction } from '@/types';
 import { llmParse } from '@/parser/llmFallback';
 import { categoryName, resolveLanguage, useDateFormat, useMoney, useT } from '@/i18n';
 import { HINT } from '@/parser';
 import { cleanEntry } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
-import { getTransaction, latestSavedTransaction, queryTransactions } from '@/db/repositories';
+import { getTransaction, latestSavedTransaction, queryTransactions, recentTransactions } from '@/db/repositories';
 import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange } from '@/lib/questions';
 import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
@@ -61,7 +62,7 @@ export function useEntryFlow() {
       // The period so far against the same point in the one before, so half a month never meets a whole one.
       const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
       const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);
-      const r = compareRanges(kind, todayStr, current, previous);
+      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: r.before.from, to: r.now.to, limit: 100000 });
       const spentQ = { ...q, ask: 'spent' as const };
@@ -74,7 +75,7 @@ export function useEntryFlow() {
       text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev);
     } else if (q.ask === 'top') {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
       const periodName = period === 'recentDays' ? t.periodLastDays(q.days ?? 7) : period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
@@ -115,7 +116,7 @@ export function useEntryFlow() {
       }
     } else {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
       const a = answerQuestion(q, rows, range, categories);
@@ -146,42 +147,10 @@ export function useEntryFlow() {
    * with the change made, so it is still the person who saves it; "delete that" removes it at
    * once and the undo bar can put it back, like removing any entry.
    */
-  const applyCorrection = useCallback(async (result: ParseResult, source: EntrySource, language: string) => {
-    const fix = result.correction!;
-    const open = pendingRef.current;
+  /** Removes a saved entry, or opens it in the card with the new value filled in, so the person still saves it. */
+  const applyToSaved = useCallback(async (tx: Transaction, fix: Correction, result: ParseResult, source: EntrySource, language: string) => {
     const { categories } = useAppStore.getState();
     const catKind = fix.categoryId ? categories.find((c) => c.id === fix.categoryId)?.kind ?? null : null;
-    if (pendingManyRef.current) { await reply(t.correctionOnCard, source, language); return; }
-    if (open && (open.kind === 'transaction' || open.kind === 'unknown')) {
-      setAnswer(null);
-      if (fix.remove) { setPending(null); await reply(t.correctionCancelled, source, language); return; }
-      setPending({
-        ...open,
-        raw: open.raw,
-        amount: fix.amount ?? open.amount,
-        categoryId: fix.categoryId ?? open.categoryId,
-        type: catKind ?? open.type,
-        occurredAt: fix.date ?? open.occurredAt,
-        dateExplicit: open.dateExplicit || fix.date != null,
-        hints: [],
-        needsReview: false,
-      });
-      return;
-    }
-    if (open) {
-      // A goal, contribution or reminder card is changed on the card; "never mind" still closes it.
-      if (fix.remove) { setPending(null); await reply(t.correctionCancelled, source, language); return; }
-      await reply(t.correctionOnCard, source, language);
-      return;
-    }
-    const db = await getDb();
-    const lastId = useAppStore.getState().lastSavedId;
-    // '' means the last thing saved was not an entry (a goal, a reminder, an import): nothing to reach back to.
-    if (lastId === '') { await reply(t.correctionNothing, source, language); return; }
-    // Only the entry saved last; once it is gone, "fix that" never reaches for an older one the person did not mean.
-    // (No id at all is a fresh launch, where the newest entry they saved is the one.)
-    const tx = lastId ? await getTransaction(db, lastId) : await latestSavedTransaction(db);
-    if (!tx) { await reply(t.correctionNothing, source, language); return; }
     const cat = categories.find((c) => c.id === tx.categoryId) ?? null;
     const what = tx.note ?? (cat ? categoryName(cat, t) : null);
     if (fix.remove) {
@@ -212,6 +181,57 @@ export function useEntryFlow() {
     });
   }, [t, money, reply]);
 
+  const applyCorrection = useCallback(async (result: ParseResult, source: EntrySource, language: string) => {
+    const fix = result.correction!;
+    const open = pendingRef.current;
+    const { categories } = useAppStore.getState();
+    const catKind = fix.categoryId ? categories.find((c) => c.id === fix.categoryId)?.kind ?? null : null;
+    if (pendingManyRef.current) { await reply(t.correctionOnCard, source, language); return; }
+    // "the uber was 32": the entry named, not the last one. An open card counts only when it is that entry.
+    const labelOf = (categoryId: string | null) => { const c = categories.find((x) => x.id === categoryId); return c ? categoryName(c, t).toLowerCase() : ''; };
+    const names = (note: string | null, categoryId: string | null) => `${(note ?? '').toLowerCase()} ${labelOf(categoryId)}`;
+    const isMeant = (note: string | null, categoryId: string | null) => !fix.target || fix.target.split(' ').every((w) => names(note, categoryId).includes(w));
+    if (open && (open.kind === 'transaction' || open.kind === 'unknown') && isMeant(open.note, open.categoryId)) {
+      setAnswer(null);
+      if (fix.remove) { setPending(null); await reply(t.correctionCancelled, source, language); return; }
+      setPending({
+        ...open,
+        raw: open.raw,
+        amount: fix.amount ?? open.amount,
+        categoryId: fix.categoryId ?? open.categoryId,
+        type: catKind ?? open.type,
+        occurredAt: fix.date ?? open.occurredAt,
+        dateExplicit: open.dateExplicit || fix.date != null,
+        hints: [],
+        needsReview: false,
+      });
+      return;
+    }
+    if (open && !fix.target) {
+      // A goal, contribution or reminder card is changed on the card; "never mind" still closes it.
+      if (fix.remove) { setPending(null); await reply(t.correctionCancelled, source, language); return; }
+      await reply(t.correctionOnCard, source, language);
+      return;
+    }
+    const db = await getDb();
+    if (fix.target) {
+      // The newest entry whose note or category says those words ("spotify", "uber"); a plain substring test, never a RegExp.
+      const found = (await recentTransactions(db, 200)).filter((x) => isMeant(x.note, x.categoryId)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+      if (!found) { await reply(t.correctionNoMatch(fix.target), source, language); return; }
+      await applyToSaved(found, fix, result, source, language);
+      return;
+    }
+    const lastId = useAppStore.getState().lastSavedId;
+    // '' means the last thing saved was not an entry (a goal, a reminder, an import): nothing to reach back to.
+    if (lastId === '') { await reply(t.correctionNothing, source, language); return; }
+    // Only the entry saved last; once it is gone, "fix that" never reaches for an older one the person did not mean.
+    // (No id at all is a fresh launch, where the newest entry they saved is the one.)
+    const tx = lastId ? await getTransaction(db, lastId) : await latestSavedTransaction(db);
+    if (!tx) { await reply(t.correctionNothing, source, language); return; }
+    await applyToSaved(tx, fix, result, source, language);
+  }, [t, reply, applyToSaved]);
+
+
   const submitInner = useCallback(async (raw: string, source: EntrySource = 'typed') => {
     const text = cleanEntry(raw);
     if (!text) return;
@@ -220,7 +240,7 @@ export function useEntryFlow() {
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const language = resolveLanguage(settings?.language);
-    const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames };
+    const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames, currency: settings?.currency };
     const entries = parseEntries(text, ctx);
     if (entries.length === 1 && entries[0].kind === 'correction' && entries[0].correction) {
       await applyCorrection(entries[0], source, language);

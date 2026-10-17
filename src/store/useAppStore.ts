@@ -118,6 +118,8 @@ async function moveGoal(db: DB, goalId: string, delta: number): Promise<void> {
 
 /** The day the screens were last worked out for. */
 let refreshedOn = '';
+/** Each refresh takes a number; a slower, older run (a double tap on the period chevron) never writes over a newer one. */
+let refreshRun = 0;
 
 /** `init` runs once; later calls (a re-mounted root, a retry) share the same promise. */
 let initPromise: Promise<void> | null = null;
@@ -239,6 +241,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   refresh: async () => {
+    const run = ++refreshRun;
     const db = await getDb();
     const [settings, categories, goals, rules, keywords, recent, lifetime, reminders, debts, imports, fingerprints, carryovers] = await Promise.all([
       repo.getSettings(db),
@@ -268,7 +271,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     const firstSavedIso = await repo.firstSavedAt(db);
     const firstSaved = firstSavedIso && !Number.isNaN(Date.parse(firstSavedIso)) ? toDateString(new Date(firstSavedIso)) : null;
     const usedSince = (date: string) => firstSaved != null && firstSaved <= date;
-    const recap = isRecapDay(todayStr) && usedSince(weekRange(todayStr, -1).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
+    const firstDay = getLocale(resolveLanguage(settings.language)).format.firstDay ?? 0;
+    let recap: WeekRecap | null = null;
+    if (isRecapDay(todayStr, firstDay) && usedSince(weekRange(todayStr, -1, firstDay).from)) {
+      recap = weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2, firstDay).from, weekRange(todayStr, -1, firstDay).to), todayStr, firstDay);
+      // "$166 more than the week before" is no comparison when the week before had one day of use.
+      if (!usedSince(weekRange(todayStr, -2, firstDay).from)) recap = { ...recap, previousTotal: 0 };
+    }
     const current = periodContaining(settings.budgetPeriod, rules, todayStr);
     let review: PeriodReview | null = null;
     const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
@@ -277,6 +286,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const [lastStats, beforeStats] = await Promise.all([repo.periodStats(db, last), repo.periodStats(db, before)]);
       review = periodReview(lastStats, beforeStats.expenses > 0 || beforeStats.income > 0 ? beforeStats : null);
     }
+    if (run !== refreshRun) return;
     set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry, recap, review });
   },
 

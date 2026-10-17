@@ -65,7 +65,7 @@ export const ACCENTS: Record<Accent, { light: string; dark: string }> = {
   sage: { light: '#3D6B5E', dark: '#7FB3A2' },
   ocean: { light: '#3B5F8A', dark: '#8DB1DB' },
   plum: { light: '#6B4A7A', dark: '#B99BC7' },
-  clay: { light: '#9A5B3F', dark: '#D9A089' },
+  clay: { light: '#8A4F35', dark: '#D9A089' },
 };
 
 const paletteCache = new Map<string, Palette>();

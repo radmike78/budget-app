@@ -91,7 +91,11 @@ export function redactSensitive(input: unknown): string {
  * a number was there, that number masked down to its last four digits.
  */
 export function redactOrMask(input: string): string {
-  return redactSensitive(input) || input.replace(/\d(?=\d{4})/g, '•');
+  const kept = redactSensitive(input);
+  if (kept) return kept;
+  // Only digits were there (a card number with spaces, dots or dashes between the groups): the last four stay.
+  const digits = input.replace(/\D/g, '');
+  return digits ? '•'.repeat(Math.max(0, digits.length - 4)) + digits.slice(-4) : '';
 }
 
 export class BackupValidationError extends Error {

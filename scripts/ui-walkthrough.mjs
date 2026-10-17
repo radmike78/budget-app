@@ -168,6 +168,26 @@ await step('fixing the last entry by voice, then undoing a removal', async () =>
   await button(/^Undo$/).click(); await page.waitForTimeout(800);
   await expectText('Parking');
 });
+await step('fixing an entry by name, and amounts the way dictation writes them', async () => {
+  // "four fifty" arrives as "4 50"; the card must say $4.50, not $4 with a note of "50".
+  await entry('coffee 4 50');
+  await button(/^Save$/).click(); await page.waitForTimeout(600);
+  await expectText('Logged $4.50 out');
+  await entry('spotify 11 99');
+  await button(/^Save$/).click(); await page.waitForTimeout(600);
+  // The coffee is not the last entry any more; naming it still finds it.
+  await entry('the coffee was actually 5');
+  await expectText('Edit entry');
+  await expectText('Coffee');
+  await button(/^Save changes$/).click(); await page.waitForTimeout(600);
+  await expectText('Changed to $5');
+  await entry('forget the spotify one');
+  await expectText('Removed Spotify, $11.99');
+  await entry('delete the piano lessons');
+  await expectText("I couldn't find an entry for piano lessons");
+  await button(/^Done$/).click();
+  await shot('named-correction');
+});
 await step('comparing, the most, and affording', async () => {
   await entry('what did I spend the most on');
   await expectText('the most went to');

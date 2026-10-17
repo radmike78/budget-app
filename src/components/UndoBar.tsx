@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
+import { notify } from '@/lib/dialogs';
 import { radius, spacing, useTheme } from '@/theme';
 import { useT } from '@/i18n';
 import { Button, CONTENT_MAX_WIDTH, Text } from '@/components/ui';
@@ -36,7 +37,7 @@ export function UndoBar({ bottomOffset = 0 }: { bottomOffset?: number }) {
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + bottomOffset, alignItems: 'center' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, paddingLeft: spacing.lg, paddingRight: spacing.xs, paddingVertical: spacing.xs, maxWidth: CONTENT_MAX_WIDTH - spacing.xl, marginHorizontal: spacing.lg }}>
         <Text variant="body" style={{ flexShrink: 1 }}>{t.entryRemovedUndo}</Text>
-        <Button tone="secondary" small title={t.undo} onPress={() => { setVisible(false); undo(); }} style={{ marginLeft: spacing.sm }} />
+        <Button tone="secondary" small title={t.undo} onPress={() => { setVisible(false); undo().catch((e: Error) => notify(t.didntWork(e.message))); }} style={{ marginLeft: spacing.sm }} />
       </View>
     </View>
   );

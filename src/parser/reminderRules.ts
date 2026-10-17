@@ -65,7 +65,8 @@ export function meridiemRule(pre: string[] = []): TimeRule {
 export function clockRule(pre: string[], opts: { suffix?: string; hourSep?: string; dayParts?: Record<string, number> } = {}): TimeRule {
   const p = `(?:${alt(pre)})\\s*`;
   const parts = opts.dayParts ? `(?:(${alt(Object.keys(opts.dayParts))})\\s*)?` : '()';
-  const sep = opts.hourSep ?? ':';
+  // A space counts too: dictation writes "at 9 30" for half past nine (two digits only, so "at 9 tomorrow" is not 9:00-and-something).
+  const sep = `(?:${opts.hourSep ?? ':'}|\\s(?=\\d{2}(?!\\d)))`;
   const suffix = opts.suffix ? `(?:\\s*(?:${opts.suffix}))?` : '';
   const partsAfter = opts.dayParts ? `(?:\\s*(?:de la |du |del |am |in der |di |da )?(${alt(Object.keys(opts.dayParts))}))?` : '()';
   return {

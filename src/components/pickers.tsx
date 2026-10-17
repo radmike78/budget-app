@@ -3,9 +3,9 @@ import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category, TxType } from '@/types';
 import { radius, spacing, useTheme } from '@/theme';
-import { addDays, daysInMonth, friendlyDate, fromDateString, isValidDateString, today } from '@/lib/dates';
+import { addDays, clockLabel, daysInMonth, friendlyDate, fromDateString, isValidDateString, today } from '@/lib/dates';
 import { categoryName, useDateFormat, useT } from '@/i18n';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button, Chip, Field, Icon, ListItem, Row, Text } from './ui';
 
 /** Bottom sheet container used by all pickers. */
@@ -109,14 +109,13 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode, past
       </Row>
       <View style={{ height: spacing.lg }} />
       <MonthGrid value={value} earliest={forward ? t : null} latest={past ? t : null} onPick={(d) => { onPick(d); onClose(); }} />
-      {value ? <Text variant="small" style={{ marginTop: spacing.md }}>{s.currently(friendlyDate(value, t, fmt))}</Text> : null}
     </Sheet>
   );
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-/** A month of days to tap, Sunday first like the rest of the app; days before `earliest` cannot be picked. */
+/** A month of days to tap, starting on the locale's first day of the week; days before `earliest` cannot be picked. */
 function MonthGrid({ value, earliest, latest, onPick }: { value: string; earliest: string | null; latest: string | null; onPick: (d: string) => void }) {
   const { colors } = useTheme();
   const s = useT();
@@ -129,7 +128,9 @@ function MonthGrid({ value, earliest, latest, onPick }: { value: string; earlies
     setShown({ y: d.getFullYear(), m: d.getMonth() });
   }, [value]);
   const step = (delta: number) => setShown(({ y, m }) => ({ y: m + delta < 0 ? y - 1 : m + delta > 11 ? y + 1 : y, m: (m + delta + 12) % 12 }));
-  const firstDow = new Date(shown.y, shown.m, 1).getDay();
+  const firstDay = fmt.firstDay ?? 0;
+  const firstDow = (new Date(shown.y, shown.m, 1).getDay() - firstDay + 7) % 7;
+  const headers = [...fmt.weekdaysShort.slice(firstDay), ...fmt.weekdaysShort.slice(0, firstDay)];
   const count = daysInMonth(shown.y, shown.m);
   const cells: (string | null)[] = [...Array.from({ length: firstDow }, () => null), ...Array.from({ length: count }, (_, i) => `${shown.y}-${pad2(shown.m + 1)}-${pad2(i + 1)}`)];
   while (cells.length % 7) cells.push(null);
@@ -147,7 +148,7 @@ function MonthGrid({ value, earliest, latest, onPick }: { value: string; earlies
         </Pressable>
       </Row>
       <View style={{ flexDirection: 'row' }}>
-        {fmt.weekdaysShort.map((w) => <Text key={w} variant="small" style={{ flex: 1, textAlign: 'center' }} maxFontSizeMultiplier={1.4} numberOfLines={1}>{w}</Text>)}
+        {headers.map((w) => <Text key={w} variant="small" style={{ flex: 1, textAlign: 'center' }} maxFontSizeMultiplier={1.4} numberOfLines={1}>{w}</Text>)}
       </View>
       {Array.from({ length: cells.length / 7 }, (_, row) => (
         <View key={row} style={{ flexDirection: 'row' }}>
@@ -183,6 +184,7 @@ const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 /** Time of day for reminders: a few common hours plus a typed HH:MM. */
 export function TimePicker({ visible, onClose, value, onPick }: { visible: boolean; onClose: () => void; value: string; onPick: (t: string) => void }) {
   const s = useT();
+  const fmt = useDateFormat();
   const [custom, setCustom] = useState(value);
   useEffect(() => { if (visible) setCustom(value); }, [visible, value]);
   const valid = TIME_RE.test(custom);
@@ -191,7 +193,7 @@ export function TimePicker({ visible, onClose, value, onPick }: { visible: boole
     <Sheet visible={visible} onClose={onClose} title={s.time} scroll>
       <Row style={{ flexWrap: 'wrap' }}>
         {QUICK_TIMES.map((q) => (
-          <Chip key={q} label={q} selected={value === q} onPress={() => { onPick(q); onClose(); }} />
+          <Chip key={q} label={clockLabel(q, fmt)} selected={value === q} onPress={() => { onPick(q); onClose(); }} />
         ))}
       </Row>
       <View style={{ height: spacing.lg }} />

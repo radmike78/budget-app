@@ -120,7 +120,7 @@ export default function DebtsScreen() {
             <Text variant="small" style={{ marginTop: 2 }}>
               {t.debtTypes[d.type]}{d.monthlyPayment != null ? ` · ${t.debtMinPayment}: ${money(d.monthlyPayment, { compact: true })}` : ''}{d.apr != null ? ` · ${d.apr}%` : ''}{!CONSUMER.has(d.type) ? ` · ${t.excludedFromPlan}` : ''}
             </Text>
-            <Row style={{ marginTop: spacing.sm }}>
+            <Row style={{ marginTop: spacing.sm, flexWrap: 'wrap' }}>
               <Button tone="ghost" small title={t.edit} onPress={() => openEditor(d)} />
               <Button tone="ghost" small title={t.makeGoal} onPress={() => makeGoal(d)} />
               <Button tone="ghost" small title={t.remove} onPress={() => remove(d)} />
