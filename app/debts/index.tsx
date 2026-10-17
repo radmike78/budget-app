@@ -7,7 +7,7 @@ import { spacing } from '@/theme';
 import { nowIso } from '@/lib/dates';
 import { newId } from '@/lib/ids';
 import { moneyInputText, parseMoneyInput } from '@/lib/money';
-import { confirmDialog } from '@/lib/dialogs';
+import { confirmDialog, notify } from '@/lib/dialogs';
 import { useLocale, useMoney, useT } from '@/i18n';
 import { planPayoff, recommendStrategy, type DebtInput, type Strategy } from '@/statements';
 import { Sheet } from '@/components/pickers';
@@ -55,23 +55,30 @@ export default function DebtsScreen() {
   // and an id settled when the editor opens means a tap that slips through upserts one row.
   const inFlight = useRef(false);
   const newDebtId = useRef(newId());
+  const [unreadable, setUnreadable] = useState<'balance' | 'min' | null>(null);
   const commitEdit = async () => {
     if (!editing || !editing.creditor?.trim() || inFlight.current) return;
+    const balanceValue = parseMoneyInput(balanceText, decimalComma);
+    const minValue = parseMoneyInput(minText, decimalComma);
+    if (balanceText.trim() && balanceValue == null) { setUnreadable('balance'); return; }
+    if (minText.trim() && minValue == null) { setUnreadable('min'); return; }
+    setUnreadable(null);
     inFlight.current = true;
     setSaving(true);
-    const balance = parseMoneyInput(balanceText, decimalComma) ?? 0;
+    const balance = balanceValue ?? 0;
     const apr = Number(aprText.replace(',', '.'));
-    await saveDebt({
+    const saved = await saveDebt({
       id: editing.id ?? newDebtId.current,
       creditor: editing.creditor.trim().slice(0, 80),
       type: editing.type ?? 'other',
       balance,
-      monthlyPayment: parseMoneyInput(minText, decimalComma),
+      monthlyPayment: minValue,
       creditLimit: editing.creditLimit ?? null,
       apr: aprText.trim() && Number.isFinite(apr) && apr >= 0 && apr <= 100 ? apr : null,
       source: editing.source ?? 'manual',
       updatedAt: nowIso(),
-    }).finally(() => { inFlight.current = false; setSaving(false); });
+    }).then(() => true, (e: Error) => { notify(t.didntWork(e.message)); return false; }).finally(() => { inFlight.current = false; setSaving(false); });
+    if (!saved) return;
     newDebtId.current = newId();
     setEditing(null);
   };
@@ -154,8 +161,8 @@ export default function DebtsScreen() {
             <Button key={ty} small tone={editing?.type === ty ? 'primary' : 'secondary'} title={t.debtTypes[ty]} onPress={() => setEditing((e) => ({ ...e, type: ty }))} />
           ))}
         </Row>
-        <Field label={t.debtBalance} value={balanceText} onChangeText={setBalanceText} keyboardType="decimal-pad" placeholder="0" />
-        <Field label={t.debtMinPayment} value={minText} onChangeText={setMinText} keyboardType="decimal-pad" placeholder={t.optional} />
+        <Field label={t.debtBalance} value={balanceText} onChangeText={(v) => { setBalanceText(v); setUnreadable(null); }} keyboardType="decimal-pad" placeholder="0" error={unreadable === 'balance' ? t.amountUnreadable : null} />
+        <Field label={t.debtMinPayment} value={minText} onChangeText={(v) => { setMinText(v); setUnreadable(null); }} keyboardType="decimal-pad" placeholder={t.optional} error={unreadable === 'min' ? t.amountUnreadable : null} />
         <Field label={t.debtApr} value={aprText} onChangeText={setAprText} keyboardType="decimal-pad" placeholder={t.optional} />
         <Button title={t.save} onPress={commitEdit} loading={saving} disabled={!editing?.creditor?.trim()} />
         <View style={{ height: spacing.sm }} />

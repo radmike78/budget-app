@@ -235,6 +235,14 @@ await step('repeating entry', async () => {
   const boxes = page.getByRole('textbox');
   await boxes.nth(0).fill('15.49');
   await boxes.nth(1).fill('Netflix').catch(() => {});
+  // The first date comes from a calendar: a day next month, with no typing.
+  await button(/^Today$/).click(); await page.waitForTimeout(500);
+  await expectText('Tomorrow');
+  await shot('date-calendar');
+  await button(/^Next month$/).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /\b15\b/ }).last().click(); await page.waitForTimeout(500);
+  const nextMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15).toLocaleDateString('en-US', { month: 'short' });
+  await expectText(`${nextMonth} 15`);
   // Two taps in a row must leave one rule, not two: a duplicate would log Netflix twice a month.
   const start = button(/Start repeating/);
   await start.click({ force: true });

@@ -99,7 +99,7 @@ export default function RecurringEditor() {
         </Row>
       ) : null}
       <CategoryPicker visible={showCat} onClose={() => setShowCat(false)} onPick={(c) => setCategoryId(c.id)} kind={type} selectedId={categoryId} categories={categories} />
-      <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={next} onPick={setNext} future={isNew} />
+      <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={next} onPick={setNext} mode={isNew ? 'start' : undefined} />
     </Screen>
   );
 }

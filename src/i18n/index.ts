@@ -47,6 +47,15 @@ export function deviceRegion(): string | null {
   }
 }
 
+/** The phone's own currency ("GBP" for a phone set to the UK), or null when it does not say. */
+export function deviceCurrency(): string | null {
+  try {
+    return getLocales()[0]?.currencyCode ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function resolveLanguage(setting: string | null | undefined): string {
   if (setting && setting !== 'system' && LOCALES[setting]) return setting;
   return deviceLanguage();

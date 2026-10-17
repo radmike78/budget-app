@@ -66,6 +66,7 @@
       [
         "expo-notifications",
         {
+          "icon": "./assets/android-icon-monochrome.png",
           "color": "#3D6B5E",
           "defaultChannel": "reminders"
         }

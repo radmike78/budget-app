@@ -33,6 +33,7 @@ export default function BudgetScreen() {
   const rules = useAppStore((s) => s.rules);
   const [showOverall, setShowOverall] = useState(false);
   const [overallText, setOverallText] = useState('');
+  const [overallError, setOverallError] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     const m = new Map<string, number>();
@@ -56,9 +57,11 @@ export default function BudgetScreen() {
   const overall = settings.overallLimit != null && settings.overallLimit > 0 ? settings.overallLimit : null;
   const tierNames = { needs: t.tierNeeds, obligations: t.tierObligations, wants: t.tierWants };
 
-  const openOverall = () => { setOverallText(overall != null ? moneyInputText(overall, locale.format.decimal === ',') : ''); setShowOverall(true); };
+  const openOverall = () => { setOverallError(null); setOverallText(overall != null ? moneyInputText(overall, locale.format.decimal === ',') : ''); setShowOverall(true); };
   const saveOverall = async () => {
     const value = overallText.trim() ? parseMoneyInput(overallText, locale.format.decimal === ',') : null;
+    if (overallText.trim() && value == null) { setOverallError(t.amountUnreadable); return; }
+    setOverallError(null);
     await updateSettings({ overallLimit: value != null && value > 0 ? value : null });
     setShowOverall(false);
   };
@@ -145,7 +148,7 @@ export default function BudgetScreen() {
       ) : null}
 
       <Sheet visible={showOverall} onClose={() => setShowOverall(false)} title={t.overallPlan} scroll>
-        <Field label={payPeriod ? t.thisPeriod : t.thisMonth} value={overallText} onChangeText={setOverallText} keyboardType="decimal-pad" placeholder={t.overallPlanPlaceholder} hint={t.overallPlanSub} autoFocus />
+        <Field label={payPeriod ? t.thisPeriod : t.thisMonth} value={overallText} onChangeText={(v) => { setOverallText(v); setOverallError(null); }} keyboardType="decimal-pad" placeholder={t.overallPlanPlaceholder} hint={t.overallPlanSub} error={overallError} autoFocus />
         <Button title={t.save} onPress={saveOverall} />
       </Sheet>
     </Screen>

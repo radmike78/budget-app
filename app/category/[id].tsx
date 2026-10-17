@@ -53,9 +53,10 @@ export default function CategoryEditor() {
 
   const onSave = async () => {
     if (!name.trim()) { setError(t.giveName); return; }
+    const limitValue = limit.trim() ? parseMoneyInput(limit, locale.format.decimal === ',') : null;
+    if (limit.trim() && limitValue == null) { setError(t.amountUnreadable); return; }
     if (saving) return;
     setSaving(true);
-    const limitValue = limit.trim() ? parseMoneyInput(limit, locale.format.decimal === ',') : null;
     // A default category keeps its translated name unless the user actually changed it.
     const renamed = existing?.isDefault && name.trim() === categoryName(existing, t) ? existing.name : name.trim();
     const monthlyLimit = kind === 'expense' && limitValue && limitValue > 0 ? limitValue : null;

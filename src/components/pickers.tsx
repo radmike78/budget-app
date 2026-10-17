@@ -3,8 +3,9 @@ import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category, TxType } from '@/types';
 import { radius, spacing, useTheme } from '@/theme';
-import { addDays, friendlyDate, isValidDateString, today } from '@/lib/dates';
+import { addDays, daysInMonth, friendlyDate, fromDateString, isValidDateString, today } from '@/lib/dates';
 import { categoryName, useDateFormat, useT } from '@/i18n';
+import { Ionicons } from '@expo/vector-icons';
 import { Button, Chip, Field, Icon, ListItem, Row, Text } from './ui';
 
 /** Bottom sheet container used by all pickers. */
@@ -70,14 +71,15 @@ export function CategoryPicker({ visible, onClose, onPick, kind, selectedId, cat
   );
 }
 
-export function DatePicker({ visible, onClose, value, onPick, future, mode }: { visible: boolean; onClose: () => void; value: string; onPick: (d: string) => void; future?: boolean; mode?: 'reminder' }) {
+/**
+ * `future`: a deadline (months ahead). `mode` 'reminder' or 'start' (the first date of a repeating entry): today
+ * or the days just after. Neither may be in the past; an entry's own date may be any day at all.
+ */
+export function DatePicker({ visible, onClose, value, onPick, future, mode }: { visible: boolean; onClose: () => void; value: string; onPick: (d: string) => void; future?: boolean; mode?: 'reminder' | 'start' }) {
   const t = today();
   const s = useT();
   const fmt = useDateFormat();
-  const [custom, setCustom] = useState(value);
-  // The typed field follows the current value each time the sheet opens.
-  useEffect(() => { if (visible) setCustom(value); }, [visible, value]);
-  const quick = mode === 'reminder'
+  const quick = mode
     ? [
         { label: s.today, date: t },
         { label: s.tomorrow, date: addDays(t, 1) },
@@ -97,10 +99,7 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
         { label: friendlyDate(addDays(t, -2), t, fmt), date: addDays(t, -2) },
         { label: friendlyDate(addDays(t, -3), t, fmt), date: addDays(t, -3) },
       ];
-  // A deadline or a reminder belongs to today or later; an entry may be any day at all.
-  const forward = future || mode === 'reminder';
-  const tooEarly = forward && isValidDateString(custom) && custom < t;
-  const valid = isValidDateString(custom) && !tooEarly;
+  const forward = future || !!mode;
   return (
     <Sheet visible={visible} onClose={onClose} title={s.date} scroll>
       <Row style={{ flexWrap: 'wrap' }}>
@@ -109,12 +108,71 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
         ))}
       </Row>
       <View style={{ height: spacing.lg }} />
-      <Row gap={spacing.sm} align="flex-end">
-        <Field label={s.orTypeDate} placeholder="YYYY-MM-DD" value={custom} onChangeText={setCustom} autoCapitalize="none" keyboardType="numbers-and-punctuation" style={{ flex: 1, marginBottom: 0 }} hint={tooEarly ? s.dateNotPast : custom && !valid ? s.dateFormatHint : undefined} />
-        <Button title={s.use} disabled={!valid} onPress={() => { onPick(custom); onClose(); }} />
-      </Row>
+      <MonthGrid value={value} earliest={forward ? t : null} onPick={(d) => { onPick(d); onClose(); }} />
       {value ? <Text variant="small" style={{ marginTop: spacing.md }}>{s.currently(friendlyDate(value, t, fmt))}</Text> : null}
     </Sheet>
+  );
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** A month of days to tap, Sunday first like the rest of the app; days before `earliest` cannot be picked. */
+function MonthGrid({ value, earliest, onPick }: { value: string; earliest: string | null; onPick: (d: string) => void }) {
+  const { colors } = useTheme();
+  const s = useT();
+  const fmt = useDateFormat();
+  const todayStr = today();
+  const start = fromDateString(isValidDateString(value) ? value : todayStr);
+  const [shown, setShown] = useState({ y: start.getFullYear(), m: start.getMonth() });
+  useEffect(() => {
+    const d = fromDateString(isValidDateString(value) ? value : today());
+    setShown({ y: d.getFullYear(), m: d.getMonth() });
+  }, [value]);
+  const step = (delta: number) => setShown(({ y, m }) => ({ y: m + delta < 0 ? y - 1 : m + delta > 11 ? y + 1 : y, m: (m + delta + 12) % 12 }));
+  const firstDow = new Date(shown.y, shown.m, 1).getDay();
+  const count = daysInMonth(shown.y, shown.m);
+  const cells: (string | null)[] = [...Array.from({ length: firstDow }, () => null), ...Array.from({ length: count }, (_, i) => `${shown.y}-${pad2(shown.m + 1)}-${pad2(i + 1)}`)];
+  while (cells.length % 7) cells.push(null);
+  const canGoBack = !earliest || `${shown.y}-${pad2(shown.m + 1)}` > earliest.slice(0, 7);
+  return (
+    <View>
+      <Row style={{ justifyContent: 'space-between', marginBottom: spacing.sm }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={s.previousMonth} onPress={() => step(-1)} disabled={!canGoBack} hitSlop={12} style={{ opacity: canGoBack ? 1 : 0.3, padding: spacing.xs }}>
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+        </Pressable>
+        <Text variant="body" style={{ fontWeight: '600' }}>{fmt.monthYear(fmt.months[shown.m], shown.y)}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={s.nextMonth} onPress={() => step(1)} hitSlop={12} style={{ padding: spacing.xs }}>
+          <Ionicons name="chevron-forward" size={22} color={colors.text} />
+        </Pressable>
+      </Row>
+      <View style={{ flexDirection: 'row' }}>
+        {fmt.weekdaysShort.map((w) => <Text key={w} variant="small" style={{ flex: 1, textAlign: 'center' }} maxFontSizeMultiplier={1.4} numberOfLines={1}>{w}</Text>)}
+      </View>
+      {Array.from({ length: cells.length / 7 }, (_, row) => (
+        <View key={row} style={{ flexDirection: 'row' }}>
+          {cells.slice(row * 7, row * 7 + 7).map((d, i) => {
+            if (!d) return <View key={i} style={{ flex: 1, height: 44 }} />;
+            const off = !!earliest && d < earliest;
+            const selected = d === value;
+            return (
+              <Pressable
+                key={d}
+                accessibilityRole="button"
+                accessibilityLabel={friendlyDate(d, todayStr, fmt)}
+                accessibilityState={{ selected, disabled: off }}
+                disabled={off}
+                onPress={() => onPick(d)}
+                style={{ flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? colors.accent : 'transparent', borderWidth: d === todayStr && !selected ? 1 : 0, borderColor: colors.accent }}>
+                  <Text variant="body" maxFontSizeMultiplier={1.4} color={selected ? colors.onAccent : off ? colors.faint : colors.text}>{Number(d.slice(8))}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </View>
   );
 }
 

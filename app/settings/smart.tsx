@@ -44,6 +44,7 @@ export default function SmartParsing() {
           <View style={{ flex: 1, paddingRight: spacing.md }}>
             <Text variant="body">{t.useSmart}</Text>
             <Text variant="small">{t.useSmartSub}</Text>
+            {settings.smartParseEnabled && !hasKey ? <Text variant="small" style={{ marginTop: spacing.xs }}>{t.smartNeedsKey}</Text> : null}
           </View>
           <Switch value={settings.smartParseEnabled} onValueChange={toggle} trackColor={{ true: colors.accent }} accessibilityLabel={t.useSmart} />
         </Row>
