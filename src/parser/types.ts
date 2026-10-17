@@ -54,6 +54,11 @@ export interface LanguagePack {
   goalWords: string;
   /** Generic words around a goal's name when paying into it ("the Japan fund", "my Japan savings"); whole words. */
   goalNouns?: RegExp;
+  /**
+   * Income verbs that mean a paycheck when nothing else is said: "me pagaron 2400", "cobré 1500" (Spanish has no
+   * "got paid" of its own). With anything said after them ("de un cliente") the words decide, as usual.
+   */
+  bareIncomeIsPay?: RegExp;
   /** Words stripped from the start of a goal name. */
   articles: RegExp;
   /** Filler stripped from the start / end of a note. */

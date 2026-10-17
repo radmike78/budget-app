@@ -103,6 +103,7 @@ export const it: LocaleDef = {
       'hint.contributionAmount': 'Quanto hai aggiunto?',
       'hint.stillNoAmount': 'Continuo a non trovare un importo.',
       'hint.assistUnavailable': 'L’assistenza intelligente non è disponibile ora, controlla i campi.',
+      'hint.currencyDiffers': 'Sembrava un’altra valuta. L’importo resta com’è, nella valuta dell’app.',
     },
     newGoal: 'Nuovo obiettivo',
     addTo: (goal) => `Aggiungi a ${goal}`,

@@ -103,6 +103,7 @@ export const es: LocaleDef = {
       'hint.contributionAmount': '¿Cuánto has añadido?',
       'hint.stillNoAmount': 'Sigo sin encontrar un importe.',
       'hint.assistUnavailable': 'La ayuda inteligente no está disponible ahora; revisa los campos.',
+      'hint.currencyDiffers': 'Sonó como otra moneda. El importe se guarda tal cual, en la moneda de la app.',
     },
     newGoal: 'Nueva meta',
     addTo: (goal) => `Añadir a ${goal}`,

@@ -103,6 +103,7 @@ export const ja: LocaleDef = {
       'hint.contributionAmount': 'いくら入れましたか？',
       'hint.stillNoAmount': 'やはり金額が見つかりません。',
       'hint.assistUnavailable': 'スマート補助が今は使えないので、各項目を確認してください。',
+      'hint.currencyDiffers': '別の通貨のように聞こえました。金額はそのまま、アプリの通貨で保存されます。',
     },
     newGoal: '新しい目標',
     addTo: (goal) => `${goal}に追加`,

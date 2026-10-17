@@ -220,7 +220,7 @@ export function useEntryFlow() {
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const language = resolveLanguage(settings?.language);
-    const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames };
+    const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames, currency: settings?.currency };
     const entries = parseEntries(text, ctx);
     if (entries.length === 1 && entries[0].kind === 'correction' && entries[0].correction) {
       await applyCorrection(entries[0], source, language);

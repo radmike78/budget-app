@@ -79,3 +79,19 @@ describe('safe to spend keeps what a bill after payday will need', () => {
     expect(reserveForLater([rent], '2026-10-21')).toBe(0);
   });
 });
+
+describe('a currency said out loud that is not the app’s', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { parseInput } = require('@/parser') as typeof import('@/parser');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DEFAULT_CATEGORIES } = require('@/lib/defaultCategories') as typeof import('@/lib/defaultCategories');
+  const ctx = (currency: string, language = 'en') => ({ categories: DEFAULT_CATEGORIES, goals: [], keywordMap: {}, today: '2026-10-17', language, currency });
+  it('gets a hint, keeps the number, and says nothing when the currency matches or is ambiguous', () => {
+    expect(parseInput('20 euros groceries', ctx('USD'))).toMatchObject({ amount: 20, hints: expect.arrayContaining(['hint.currencyDiffers']) });
+    expect(parseInput('20 euros groceries', ctx('EUR')).hints).not.toContain('hint.currencyDiffers');
+    expect(parseInput('20 dollars groceries', ctx('EUR')).hints).not.toContain('hint.currencyDiffers');
+    expect(parseInput('ランチに1200円使った', ctx('USD', 'ja')).hints).toContain('hint.currencyDiffers');
+    expect(parseInput('ランチに1200円使った', ctx('JPY', 'ja')).hints).not.toContain('hint.currencyDiffers');
+    expect(parseInput('spent 12 on lunch', ctx('USD')).hints).not.toContain('hint.currencyDiffers');
+  });
+});

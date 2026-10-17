@@ -103,6 +103,7 @@ export const ko: LocaleDef = {
       'hint.contributionAmount': '얼마를 넣었나요?',
       'hint.stillNoAmount': '여전히 금액을 찾지 못했어요.',
       'hint.assistUnavailable': '스마트 보조를 지금 사용할 수 없어요. 항목을 확인해 주세요.',
+      'hint.currencyDiffers': '다른 통화처럼 들렸어요. 금액은 말한 그대로 앱의 통화로 저장돼요.',
     },
     newGoal: '새 목표',
     addTo: (goal) => `${goal}에 추가`,

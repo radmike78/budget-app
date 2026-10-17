@@ -103,6 +103,7 @@ export const zh: LocaleDef = {
       'hint.contributionAmount': '存入了多少？',
       'hint.stillNoAmount': '还是没有找到金额。',
       'hint.assistUnavailable': '智能辅助暂时不可用，请检查一下各项内容。',
+      'hint.currencyDiffers': '听起来像是另一种货币。金额按所说保存，使用应用的货币。',
     },
     newGoal: '新目标',
     addTo: (goal) => `存入 ${goal}`,

@@ -1,4 +1,5 @@
 import type { Category, Goal, GoalKind, ReminderRepeat, Transaction, TxType } from '@/types';
+import { spokenCurrency } from './currencyHint';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/lib/defaultCategories';
 import { applyRules } from './dateRules';
 import { nextMonthDay, nextWeekday, pad2 } from './reminderRules';
@@ -74,6 +75,8 @@ export interface ParseContext {
   language?: string;
   /** Display names of default categories in the user's language, so "dining out" is recognised as a category in a question. */
   categoryLabels?: Record<string, string>;
+  /** The app's currency code ('USD'), so "20 euros" said into a dollar budget gets a hint. */
+  currency?: string;
 }
 
 /** Hint identifiers; the UI maps these to translated sentences. */
@@ -93,6 +96,7 @@ export const HINT = {
   contributionAmount: 'hint.contributionAmount',
   stillNoAmount: 'hint.stillNoAmount',
   assistUnavailable: 'hint.assistUnavailable',
+  currencyDiffers: 'hint.currencyDiffers',
 } as const;
 
 const WB_START = '(?<![\\p{L}\\p{N}])';
@@ -682,6 +686,11 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
   let leftover = text;
   if (typeGuess.verb) leftover = leftover.replace(typeGuess.verb, ' ');
   r.note = restoreCase(deriveNote(leftover, pack), raw);
+  // "me pagaron 2400" with nothing else said: the verb alone means a paycheck.
+  if (type === 'income' && !cat && !r.note && typeGuess.verb && pack.bareIncomeIsPay?.test(typeGuess.verb.trim()) && has('salary')) {
+    r.categoryId = 'salary';
+    r.categoryConfidence = 0.7;
+  }
 
   if (!r.amount) {
     r.confidence = 0;
@@ -691,6 +700,9 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
     if (amt.multiple && amt.confidence < 0.8) r.hints.push(HINT.multipleNumbers);
     if (r.categoryConfidence < 0.5) r.hints.push(HINT.unsureCategory);
     if (typeConfidence < 0.7) r.hints.push(type === 'expense' ? HINT.assumedExpense : HINT.assumedIncome);
+    // "20 euros on groceries" into a dollar budget: the number is kept as said, and the person is told.
+    const said = ctx.currency ? spokenCurrency(raw) : null;
+    if (said && said !== ctx.currency) r.hints.push(HINT.currencyDiffers);
   }
   r.confidence = Math.max(0, Math.min(1, r.confidence));
   r.needsReview = !r.amount || r.confidence < 0.55;

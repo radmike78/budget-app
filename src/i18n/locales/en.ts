@@ -112,6 +112,7 @@ export const en = {
       'hint.contributionAmount': 'How much did you add?',
       'hint.stillNoAmount': "I still couldn't find an amount.",
       'hint.assistUnavailable': 'Smart assist is unavailable right now, so please check the fields.',
+      'hint.currencyDiffers': "That sounded like a different currency. The amount is kept as said, in the app's currency.",
     } as Record<string, string>,
     // confirmation card
     newGoal: 'New goal',
