@@ -246,7 +246,7 @@ export const ja: LocaleDef = {
     incomeSection: '収入',
     repeating: '定期',
     repeatingEmpty: '家賃、給料、サブスク：一度設定すれば毎回自動で記録されます。',
-    repeatingSummary: (n, amount) => `定期の記録が${n}件。毎月およそ${amount}が自動で出ていきます。`,
+    repeatingSummary: (n, amount) => `定期の記録が${n}件。${amount ? `毎月およそ${amount}が自動で出ていきます。` : ''}`,
     archived: 'アーカイブ',
     archivedHint: 'アーカイブ済み。タップで復元または削除。',
     goalsIntro: '「今日」タブで「目標：12月までに旅行のために5万円貯めたい」と言うか、ここで追加できます。',

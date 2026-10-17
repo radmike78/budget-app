@@ -272,6 +272,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       recurringRuleId: ruleId && seenRule.has(ruleId) ? ruleId : null,
       fingerprint,
       importId: importId && seenImport.has(importId) ? importId : null,
+      goalId: optId(raw.goalId, 'transaction goal'),
     });
   }
 
@@ -293,7 +294,9 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       completed: bool(raw.completed),
       startingAmount: raw.startingAmount == null ? null : money(raw.startingAmount, 'goal start'),
     });
-  }
+  }  // A transfer keeps its goal only when that goal came along too.
+  for (const t of transactions) if (t.goalId && !seenGoal.has(t.goalId)) t.goalId = null;
+
 
   const keywords: KeywordMapping[] = [];
   const seenWord = new Set<string>();

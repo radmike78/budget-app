@@ -5,7 +5,7 @@ import { getDb } from '@/db/database';
 import { allTransactions } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { longDate, nowIso, today } from '@/lib/dates';
+import { localDay, longDate, nowIso, today } from '@/lib/dates';
 import { buildBackup, summaryText, transactionsToCsv } from '@/lib/export';
 import { BackupValidationError, MAX_BACKUP_BYTES, MIN_PASSPHRASE_LENGTH, validateBackup } from '@/lib/validate';
 import { decryptBackup, encryptBackup, isEncryptedBackupFile } from '@/lib/backupCrypto';
@@ -103,7 +103,10 @@ export default function Backup() {
     const ok = await confirmDialog(t.replaceEverythingQ, t.replaceEverythingBody(data.transactions.length, data.goals.length), { confirmText: t.restore, cancelText: t.cancel, destructive: true });
     if (!ok) return t.cancelled;
     // The switches a file may not set keep whatever this phone already has (the daily reminder stays scheduled or not as it is).
-    await restoreAll({ ...data, settings: { ...data.settings, smartParseEnabled: settings.smartParseEnabled, appLockEnabled: settings.appLockEnabled, reminderEnabled: settings.reminderEnabled } });
+    // The file just restored is itself a backup of everything now on the phone, made when it was exported.
+    const exportedAt = (payload as { exportedAt?: unknown }).exportedAt;
+    const lastBackupAt = typeof exportedAt === 'string' && !Number.isNaN(Date.parse(exportedAt)) && Date.parse(exportedAt) <= Date.now() ? new Date(exportedAt).toISOString() : data.settings.lastBackupAt;
+    await restoreAll({ ...data, settings: { ...data.settings, lastBackupAt, smartParseEnabled: settings.smartParseEnabled, appLockEnabled: settings.appLockEnabled, reminderEnabled: settings.reminderEnabled } });
     return t.restored(data.transactions.length);
   };
 
@@ -145,7 +148,7 @@ export default function Backup() {
 
   return (
     <Screen>
-      <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.backupIntro(settings.lastBackupAt ? longDate(settings.lastBackupAt.slice(0, 10), today(), fmt) : null)}</Text>
+      <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.backupIntro(settings.lastBackupAt ? longDate(localDay(settings.lastBackupAt), today(), fmt) : null)}</Text>
 
       <SectionTitle>{t.exportSection}</SectionTitle>
       <Card style={{ gap: spacing.sm }}>

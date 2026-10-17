@@ -169,6 +169,8 @@ const MIGRATIONS: string[] = [
   UPDATE categories SET tier = 'wants' WHERE tier = 'comforts';`,
   // v15: what a goal started with, so money already saved before it was made is not read as a fast pace.
   `ALTER TABLE goals ADD COLUMN starting_amount REAL;`,
+  // v16: the goal a transfer was added to, so fixing or removing that entry moves the goal's progress with it.
+  `ALTER TABLE transactions ADD COLUMN goal_id TEXT;`,
 ];
 
 async function migrate(db: DB): Promise<void> {

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { Frequency, TxType } from '@/types';
@@ -7,7 +7,8 @@ import { spacing, useTheme } from '@/theme';
 import { friendlyDate, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
 import { moneyInputText, parseMoneyInput } from '@/lib/money';
-import { categoryName, useDateFormat, useLocale, useT } from '@/i18n';
+import { categoryName, useDateFormat, useLanguageCode, useLocale, useT } from '@/i18n';
+import { detectCategory } from '@/parser';
 import { confirmDialog, notify } from '@/lib/dialogs';
 import { CategoryPicker, DatePicker } from '@/components/pickers';
 import { Button, Chip, Field, Row, Screen, Segmented, Text } from '@/components/ui';
@@ -22,6 +23,9 @@ export default function RecurringEditor() {
   const locale = useLocale();
   const fmt = useDateFormat();
   const rules = useAppStore((s) => s.rules);
+  const goals = useAppStore((s) => s.goals);
+  const keywordMap = useAppStore((s) => s.keywordMap);
+  const language = useLanguageCode();
   const categories = useAppStore((s) => s.categories);
   const save = useAppStore((s) => s.saveRule);
   const remove = useAppStore((s) => s.removeRule);
@@ -31,8 +35,9 @@ export default function RecurringEditor() {
   const [amount, setAmount] = useState(existing ? moneyInputText(existing.amount, locale.format.decimal === ',') : '');
   const [type, setType] = useState<TxType>(existing?.type ?? 'expense');
   // 'rent' when it still exists, otherwise the first expense category the user has kept.
-  const defaultCategoryId = (categories.find((c) => c.id === 'rent' && c.kind === 'expense' && !c.archived) ?? categories.find((c) => c.kind === 'expense' && !c.archived))?.id ?? null;
-  const [categoryId, setCategoryId] = useState<string | null>(existing ? existing.categoryId : defaultCategoryId);
+  // A new rule has no category until one is picked or its note names one ("Netflix" is a subscription):
+  // a default like Rent would quietly file every subscription as a need.
+  const [picked, setPicked] = useState<string | null>(existing ? existing.categoryId : null);
   const [frequency, setFrequency] = useState<Frequency>(existing?.frequency ?? 'monthly');
   const [next, setNext] = useState(existing?.nextOccurrence ?? today());
   const [note, setNote] = useState(existing?.note ?? '');
@@ -42,6 +47,13 @@ export default function RecurringEditor() {
   const [saving, setSaving] = useState(false);
   // Settled when the editor opens, so a double tap upserts one rule rather than making two.
   const newRuleId = useRef(newId());
+  const guessed = useMemo(() => {
+    if (existing || picked || !note.trim()) return null;
+    const match = detectCategory(note.toLowerCase(), { categories, goals, keywordMap, today: today(), language });
+    return match && match.kind === type ? match.categoryId : null;
+  }, [existing, picked, note, categories, goals, keywordMap, language, type]);
+  const categoryId = picked ?? guessed;
+  const setCategoryId = setPicked;
   const category = categories.find((c) => c.id === categoryId);
 
   const changeType = (nextType: TxType) => {

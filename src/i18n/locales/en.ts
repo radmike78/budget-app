@@ -258,7 +258,7 @@ export const en = {
     incomeSection: 'Income',
     repeating: 'Repeating',
     repeatingEmpty: 'Rent, salary, subscriptions: set them up once and they log themselves each period.',
-    repeatingSummary: (n: number, amount: string) => `${n} repeating ${n === 1 ? 'entry' : 'entries'}. About ${amount} a month goes out automatically.`,
+    repeatingSummary: (n: number, amount: string | null) => `${n} repeating ${n === 1 ? 'entry' : 'entries'}.${amount ? ` About ${amount} a month goes out automatically.` : ''}`,
     archived: 'Archived',
     archivedHint: 'Archived. Tap to restore or delete.',
     // goals
@@ -307,7 +307,7 @@ export const en = {
     archive: 'Archive',
     restore: 'Restore',
     deleteCategoryQ: (name: string) => `Delete ${name}?`,
-    deleteCategoryUsed: (n: number) => `${n === 1 ? '1 entry' : `${n} entries`} will keep their amounts but lose this category. Archiving keeps everything intact.`,
+    deleteCategoryUsed: (n: number) => `${n === 1 ? '1 entry will keep its amount' : `${n} entries will keep their amounts`} but lose this category. Archiving keeps everything intact.`,
     cannotUndo: 'This cannot be undone.',
     privacyPolicy: 'Privacy policy',
     eraseEverything: 'Erase everything',
@@ -486,7 +486,9 @@ export const en = {
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entry' : 'entries'}`;
-      return income ? `${p} you've brought in ${amount}${what ? ` from ${what}` : ''}, across ${n}.` : `${p} you've spent ${amount}${what ? ` on ${what}` : ''}, across ${n}.`;
+      // A period that is over takes the simple past: "Yesterday you spent", "Last month you brought in".
+      const done = /^(yesterday|last)\b/i.test(period);
+      return income ? `${p} you${done ? '' : "'ve"} brought in ${amount}${what ? ` from ${what}` : ''}, across ${n}.` : `${p} you${done ? '' : "'ve"} spent ${amount}${what ? ` on ${what}` : ''}, across ${n}.`;
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Nothing came in${what ? ` from ${what}` : ''} ${period}.` : `Nothing logged${what ? ` for ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `No entry mentions ${target}, so this is the ${category} total.`,

@@ -242,7 +242,7 @@ const coach: LineSet = {
       '{goal}: {pct}%. Good. Now do it again.',
       '{amount} to {goal}. Champions are made on ordinary days like this.',
       '{goal} +{amount}. The plan only works if you show up. You did.',
-      '{amount} toward {goal}. Keep the streak honest.',
+      '{amount} toward {goal}. Keep showing up like this.',
     ],
   },
   spend_free: {
@@ -453,7 +453,7 @@ const roaster: LineSet = {
     ],
     playful: [
       '{amount} at {place}. Look at you being almost reasonable. {left} left.',
-      '{place}: {amount}. {left} left, so the streak of good choices continues. Weird.',
+      '{place}: {amount}. {left} left, so good choices are happening. Weird.',
       '{amount} at {place}. {left} left. I had money on you blowing it.',
       '{amount} at {place}. {left} left in {category}. Who taught you restraint?',
       '{place}, {amount}. {left} left. The plan is thriving, and so is my disbelief.',

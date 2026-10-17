@@ -246,7 +246,7 @@ export const it: LocaleDef = {
     incomeSection: 'Entrate',
     repeating: 'Ricorrenti',
     repeatingEmpty: 'Affitto, stipendio, abbonamenti: impostali una volta e si registrano da soli ogni periodo.',
-    repeatingSummary: (n, amount) => `${n} ${n === 1 ? 'voce ricorrente' : 'voci ricorrenti'}. Circa ${amount} al mese escono in automatico.`,
+    repeatingSummary: (n, amount) => `${n} ${n === 1 ? 'voce ricorrente' : 'voci ricorrenti'}.${amount ? ` Circa ${amount} al mese escono in automatico.` : ''}`,
     archived: 'Archiviate',
     archivedHint: 'Archiviata. Tocca per ripristinare o eliminare.',
     goalsIntro: 'Di’ "obiettivo: risparmiare 500 per un viaggio entro dicembre" nella scheda Oggi, oppure aggiungine uno qui.',

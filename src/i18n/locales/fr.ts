@@ -246,7 +246,7 @@ export const fr: LocaleDef = {
     incomeSection: 'Revenus',
     repeating: 'Récurrent',
     repeatingEmpty: 'Loyer, salaire, abonnements : configurez-les une fois et ils s’enregistrent seuls à chaque période.',
-    repeatingSummary: (n, amount) => `${n} ${n === 1 ? 'opération récurrente' : 'opérations récurrentes'}. Environ ${amount} par mois sortent automatiquement.`,
+    repeatingSummary: (n, amount) => `${n} ${n === 1 ? 'opération récurrente' : 'opérations récurrentes'}.${amount ? ` Environ ${amount} par mois sortent automatiquement.` : ''}`,
     archived: 'Archivées',
     archivedHint: 'Archivée. Touchez pour restaurer ou supprimer.',
     goalsIntro: 'Dites « objectif : économiser 500 pour un voyage avant décembre » dans l’onglet Aujourd’hui, ou ajoutez-en un ici.',

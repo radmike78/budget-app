@@ -6,6 +6,7 @@ import type { RecurringRule } from '@/types';
 import { parseMoneyInput } from '@/lib/money';
 import { mainPayRules, periodContaining } from '@/lib/periods';
 import { carryInto } from '@/lib/rollover';
+import { reserveForLater, safeToSpend } from '@/lib/safeToSpend';
 
 jest.mock('expo-notifications', () => ({}));
 // eslint-disable-next-line import/first
@@ -59,5 +60,22 @@ describe('money typed with a stray separator at the end', () => {
     expect(parseMoneyInput('12,50.', true)).toBe(12.5);
     expect(parseMoneyInput('12.')).toBe(12);
     expect(parseMoneyInput('.')).toBeNull();
+  });
+});
+
+describe('safe to spend keeps what a bill after payday will need', () => {
+  const pay = rule({ id: 'pay', amount: 500, frequency: 'weekly', nextOccurrence: '2026-10-22' });
+  const rent = rule({ id: 'rent', type: 'expense', categoryId: 'rent', amount: 1000, frequency: 'monthly', nextOccurrence: '2026-10-31', anchorDay: 31 });
+  it('keeps from now only what the paychecks before a bill cannot cover', () => {
+    // Weekly: the 22nd and the 29th bring 1,000 before rent on the 31st, so nothing has to be kept now.
+    expect(reserveForLater([pay, rent], '2026-10-21')).toBe(0);
+    // Every other week: only the 29th comes before rent, so 500 of it has to come from this period.
+    const biweekly = { ...pay, frequency: 'biweekly' as const, nextOccurrence: '2026-10-29' };
+    expect(reserveForLater([biweekly, rent], '2026-10-21')).toBe(500);
+    const stats = { period: { start: '2026-10-15', end: '2026-10-28' }, income: 500, expenses: 0 } as unknown as Parameters<typeof safeToSpend>[0];
+    expect(safeToSpend(stats, [{ ...biweekly, nextOccurrence: '2026-10-29' }, rent], '2026-10-16')!.amount).toBe(0);
+  });
+  it('without repeating income nothing ahead is known, so nothing extra is kept', () => {
+    expect(reserveForLater([rent], '2026-10-21')).toBe(0);
   });
 });

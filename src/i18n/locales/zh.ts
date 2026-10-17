@@ -246,7 +246,7 @@ export const zh: LocaleDef = {
     incomeSection: '收入',
     repeating: '定期记录',
     repeatingEmpty: '房租、工资、会员：设置一次，每期自动记账。',
-    repeatingSummary: (n, amount) => `${n} 条定期记录。每月大约自动支出 ${amount}。`,
+    repeatingSummary: (n, amount) => `${n} 条定期记录。${amount ? `每月大约自动支出 ${amount}。` : ''}`,
     archived: '已归档',
     archivedHint: '已归档。点击可恢复或删除。',
     goalsIntro: '在"今天"页说"目标：年底前存5000去旅行"，或者在这里添加。',

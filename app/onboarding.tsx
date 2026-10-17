@@ -181,7 +181,7 @@ export default function Onboarding() {
           <View style={{ marginTop: spacing.sm, alignItems: 'center' }}>
             <Button tone="ghost" small title={t.skip} onPress={() => { setPayText(''); setRentText(''); setUnreadable(null); go(3); }} />
           </View>
-          <DatePicker visible={showPayday} onClose={() => setShowPayday(false)} value={lastPayday} onPick={setLastPayday} />
+          <DatePicker visible={showPayday} onClose={() => setShowPayday(false)} value={lastPayday} onPick={setLastPayday} past />
         </View>
         </ScrollView>
         </View>

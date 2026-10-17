@@ -107,6 +107,15 @@ interface AppState {
 /** Creditor names are compared without case or punctuation, in any script. */
 const NON_ALNUM_RE = /[^\p{L}\p{N}]+/gu;
 
+/** Changes what a goal holds by `delta` (never below zero); a goal that has been removed is left alone. */
+async function moveGoal(db: DB, goalId: string, delta: number): Promise<void> {
+  if (!delta) return;
+  const goal = (await repo.allGoals(db)).find((g) => g.id === goalId);
+  if (!goal) return;
+  const currentAmount = Math.max(0, Math.round((goal.currentAmount + delta) * 100) / 100);
+  await repo.upsertGoal(db, { ...goal, currentAmount, completed: goal.completed || currentAmount >= goal.targetAmount });
+}
+
 /** The day the screens were last worked out for. */
 let refreshedOn = '';
 
@@ -293,7 +302,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateTransaction: async (t) => {
     const db = await getDb();
+    const before = await repo.getTransaction(db, t.id);
     await repo.updateTransaction(db, { ...t, note: t.note ? redactSensitive(t.note) || null : null });
+    // "Actually it was 50" on a transfer to a goal changes what the goal holds by the same amount.
+    if (before?.goalId) await moveGoal(db, before.goalId, t.amount - before.amount);
     await get().refresh();
   },
 
@@ -301,9 +313,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     const tx = await repo.getTransaction(db, id);
     await repo.deleteTransaction(db, id);
+    // A transfer to a goal that is taken back is taken out of the goal too (and the undo puts it back).
+    if (tx?.goalId) await moveGoal(db, tx.goalId, -tx.amount);
     // Nothing was there to remove (a second tap on the same button): the offer to
     // put back the entry that *was* removed has to survive it.
     if (tx) set({ lastDeleted: { tx, at: Date.now() } });
+    // The entry "fix that" would change is gone: there is nothing to reach back to until the next save or an undo.
+    if (tx && (get().lastSavedId === id || get().lastSavedId == null)) set({ lastSavedId: '' });
     await get().refresh();
   },
 
@@ -321,7 +337,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       categoryId: last.tx.categoryId && cats.has(last.tx.categoryId) ? last.tx.categoryId : null,
       recurringRuleId: last.tx.recurringRuleId && ruleIds.has(last.tx.recurringRuleId) ? last.tx.recurringRuleId : null,
     };
-    if (!(await repo.getTransaction(db, tx.id))) await repo.insertTransaction(db, tx);
+    if (!(await repo.getTransaction(db, tx.id))) {
+      await repo.insertTransaction(db, tx);
+      if (tx.goalId) await moveGoal(db, tx.goalId, tx.amount);
+    }
+    // Put back, it is again the entry "make that 14" means.
+    set({ lastSavedId: tx.id });
     await get().refresh();
   },
 
@@ -392,6 +413,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         createdAt: nowIso(),
         isRecurringInstance: false,
         recurringRuleId: null,
+        goalId: goal.id,
       });
     }
     set({ lastSavedId: transferId });

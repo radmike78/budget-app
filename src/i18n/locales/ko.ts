@@ -246,7 +246,7 @@ export const ko: LocaleDef = {
     incomeSection: '수입',
     repeating: '반복 내역',
     repeatingEmpty: '월세, 월급, 구독: 한 번만 설정하면 매번 자동으로 기록돼요.',
-    repeatingSummary: (n, amount) => `반복 내역 ${n}건. 매달 약 ${amount}가 자동으로 나갑니다.`,
+    repeatingSummary: (n, amount) => `반복 내역 ${n}건.${amount ? ` 매달 약 ${amount}가 자동으로 나갑니다.` : ''}`,
     archived: '보관됨',
     archivedHint: '보관됨. 눌러서 복원하거나 삭제하세요.',
     goalsIntro: '"오늘" 탭에서 "목표: 연말까지 여행을 위해 100만원 모으기"라고 말하거나, 여기서 추가하세요.',

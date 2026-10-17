@@ -5,7 +5,7 @@ import * as ScreenCapture from 'expo-screen-capture';
 import { notify } from '@/lib/dialogs';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { authenticateWithReason } from '@/lib/appLock';
+import { authenticateWithReason, isPrompting } from '@/lib/appLock';
 import { useT } from '@/i18n';
 import { Button, Text } from './ui';
 
@@ -31,6 +31,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
     setBusy(true);
     try {
       const result = await authenticateWithReason(t.unlockPrompt, t.cancel);
+      backgroundedAt.current = null;
       if (result === 'ok') setLocked(false);
       else if (result === 'unavailable') {
         // The phone has no passcode or biometrics any more, so there is nothing to ask: the data is only on this
@@ -62,6 +63,9 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!enabled) return;
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      // The system's own Face ID / passcode prompt sends the app to "inactive" (iOS) or pauses it (Android): that is
+      // not time away, and a slow passcode must not relock the app the moment it opens.
+      if (isPrompting()) return;
       if (state === 'active') {
         setCovered(false);
         const away = backgroundedAt.current ? Date.now() - backgroundedAt.current : 0;

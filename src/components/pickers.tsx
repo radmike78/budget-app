@@ -73,9 +73,9 @@ export function CategoryPicker({ visible, onClose, onPick, kind, selectedId, cat
 
 /**
  * `future`: a deadline (months ahead). `mode` 'reminder' or 'start' (the first date of a repeating entry): today
- * or the days just after. Neither may be in the past; an entry's own date may be any day at all.
+ * or the days just after. `past`: something that has already happened (the last payday), today or earlier. Neither may be in the past; an entry's own date may be any day at all.
  */
-export function DatePicker({ visible, onClose, value, onPick, future, mode }: { visible: boolean; onClose: () => void; value: string; onPick: (d: string) => void; future?: boolean; mode?: 'reminder' | 'start' }) {
+export function DatePicker({ visible, onClose, value, onPick, future, mode, past }: { visible: boolean; onClose: () => void; value: string; onPick: (d: string) => void; future?: boolean; mode?: 'reminder' | 'start'; past?: boolean }) {
   const t = today();
   const s = useT();
   const fmt = useDateFormat();
@@ -108,7 +108,7 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
         ))}
       </Row>
       <View style={{ height: spacing.lg }} />
-      <MonthGrid value={value} earliest={forward ? t : null} onPick={(d) => { onPick(d); onClose(); }} />
+      <MonthGrid value={value} earliest={forward ? t : null} latest={past ? t : null} onPick={(d) => { onPick(d); onClose(); }} />
       {value ? <Text variant="small" style={{ marginTop: spacing.md }}>{s.currently(friendlyDate(value, t, fmt))}</Text> : null}
     </Sheet>
   );
@@ -117,7 +117,7 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode }: { 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** A month of days to tap, Sunday first like the rest of the app; days before `earliest` cannot be picked. */
-function MonthGrid({ value, earliest, onPick }: { value: string; earliest: string | null; onPick: (d: string) => void }) {
+function MonthGrid({ value, earliest, latest, onPick }: { value: string; earliest: string | null; latest: string | null; onPick: (d: string) => void }) {
   const { colors } = useTheme();
   const s = useT();
   const fmt = useDateFormat();
@@ -134,6 +134,7 @@ function MonthGrid({ value, earliest, onPick }: { value: string; earliest: strin
   const cells: (string | null)[] = [...Array.from({ length: firstDow }, () => null), ...Array.from({ length: count }, (_, i) => `${shown.y}-${pad2(shown.m + 1)}-${pad2(i + 1)}`)];
   while (cells.length % 7) cells.push(null);
   const canGoBack = !earliest || `${shown.y}-${pad2(shown.m + 1)}` > earliest.slice(0, 7);
+  const canGoOn = !latest || `${shown.y}-${pad2(shown.m + 1)}` < latest.slice(0, 7);
   return (
     <View>
       <Row style={{ justifyContent: 'space-between', marginBottom: spacing.sm }}>
@@ -141,7 +142,7 @@ function MonthGrid({ value, earliest, onPick }: { value: string; earliest: strin
           <Ionicons name="chevron-back" size={22} color={colors.text} />
         </Pressable>
         <Text variant="body" style={{ fontWeight: '600' }}>{fmt.monthYear(fmt.months[shown.m], shown.y)}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={s.nextMonth} onPress={() => step(1)} hitSlop={12} style={{ padding: spacing.xs }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={s.nextMonth} onPress={() => step(1)} disabled={!canGoOn} hitSlop={12} style={{ opacity: canGoOn ? 1 : 0.3, padding: spacing.xs }}>
           <Ionicons name="chevron-forward" size={22} color={colors.text} />
         </Pressable>
       </Row>
@@ -152,7 +153,7 @@ function MonthGrid({ value, earliest, onPick }: { value: string; earliest: strin
         <View key={row} style={{ flexDirection: 'row' }}>
           {cells.slice(row * 7, row * 7 + 7).map((d, i) => {
             if (!d) return <View key={i} style={{ flex: 1, height: 44 }} />;
-            const off = !!earliest && d < earliest;
+            const off = (!!earliest && d < earliest) || (!!latest && d > latest);
             const selected = d === value;
             return (
               <Pressable

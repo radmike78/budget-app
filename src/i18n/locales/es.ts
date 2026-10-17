@@ -246,7 +246,7 @@ export const es: LocaleDef = {
     incomeSection: 'Ingresos',
     repeating: 'Recurrentes',
     repeatingEmpty: 'Alquiler, nómina, suscripciones: configúralos una vez y se registran solos cada periodo.',
-    repeatingSummary: (n, amount) => `${n} ${n === 1 ? 'movimiento recurrente' : 'movimientos recurrentes'}. Unos ${amount} al mes salen automáticamente.`,
+    repeatingSummary: (n, amount) => `${n} ${n === 1 ? 'movimiento recurrente' : 'movimientos recurrentes'}.${amount ? ` Unos ${amount} al mes salen automáticamente.` : ''}`,
     archived: 'Archivadas',
     archivedHint: 'Archivada. Toca para restaurar o borrar.',
     goalsIntro: 'Di "meta: ahorrar 500 para un viaje para diciembre" en la pestaña Hoy, o añade una aquí.',

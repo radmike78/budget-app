@@ -29,7 +29,8 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, onPress }: {
   // The "Other" category and spending with no category are both "other": giving either a
   // segment of its own would put two "Other" labels side by side with the folded remainder.
   const named = rows.filter((r) => r.category && r.category.id !== FALLBACK_EXPENSE_CATEGORY_ID);
-  const top = named.slice(0, SEGMENTS - 1);
+  // Room is kept for "Other" only when there is something to fold into it: exactly three categories show all three.
+  const top = rows.length === named.length && named.length <= SEGMENTS ? named : named.slice(0, SEGMENTS - 1);
   const rest = rows.filter((r) => !top.includes(r));
   const restTotal = rest.reduce((s, r) => s + r.total, 0);
   const segments = top.map((r) => ({ key: r.category?.id ?? 'none', label: r.category ? nameOf(r.category) : otherLabel, icon: r.category?.icon ?? null, share: r.share }));

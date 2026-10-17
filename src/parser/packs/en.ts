@@ -103,6 +103,9 @@ export const en: LanguagePack = {
     'income', 'deposited', 'deposit from', 'bonus', 'commission', 'sold', 'made money', 'made from', 'won money', 'winnings', 'cashback', 'cash back', 'dividend',
     'dividends', 'pension', 'stipend', 'allowance', 'gift from', 'gave me', 'sent me', 'paid back', 'paid me back', 'repaid',
     'tips', 'tip money', 'tax refund', 'tax return', 'freelance', 'invoice paid', 'client paid', 'payout', 'cashed',
+    // "got 50 from mom": money from family is money in (a purchase "from" a shop names the shop, not a parent).
+    'from mom', 'from my mom', 'from mum', 'from my mum', 'from dad', 'from my dad', 'from my parents', 'from grandma', 'from my grandma',
+    'from grandpa', 'from my grandpa', 'got back from', 'got paid back', 'borrowed from',
     'got for my birthday', 'venmoed me', 'zelled me', 'cash apped me', 'paypaled me', 'e-transferred me', 'transferred me', 'sent me money', 'made in tips', 'brought in', 'took home', 'take home pay', 'came in',
   ],
   expenseVerbs: [

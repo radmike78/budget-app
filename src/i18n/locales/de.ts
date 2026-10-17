@@ -246,7 +246,7 @@ export const de: LocaleDef = {
     incomeSection: 'Einnahmen',
     repeating: 'Wiederkehrend',
     repeatingEmpty: 'Miete, Gehalt, Abos: einmal einrichten, und sie tragen sich jede Periode selbst ein.',
-    repeatingSummary: (n, amount) => `${n} wiederkehrende${n === 1 ? 'r Eintrag' : ' Einträge'}. Etwa ${amount} im Monat gehen automatisch raus.`,
+    repeatingSummary: (n, amount) => `${n} wiederkehrende${n === 1 ? 'r Eintrag' : ' Einträge'}.${amount ? ` Etwa ${amount} im Monat gehen automatisch raus.` : ''}`,
     archived: 'Archiviert',
     archivedHint: 'Archiviert. Antippen zum Wiederherstellen oder Löschen.',
     goalsIntro: 'Sag „Ziel: 500 für eine Reise bis Dezember sparen“ im Tab Heute, oder leg hier eines an.',
