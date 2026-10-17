@@ -332,6 +332,8 @@ export const zh: LocaleDef = {
     yourData: '你的数据',
     backupExport: '备份与导出',
     backupExportSub: 'CSV、可读的摘要，或可用于恢复的完整备份。',
+    lastBackupShort: (when: string) => `上次备份：${when}。`,
+    noBackupYetShort: '尚未备份。',
     repeatingEntries: '定期记录',
     repeatingEntriesSub: '房租、工资、会员。',
     categories: '分类',

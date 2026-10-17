@@ -13,7 +13,8 @@ import { CURRENCIES, currencyInfo } from '@/lib/money';
 import { cancelDailyReminder, scheduleDailyReminder } from '@/lib/reminders';
 import { authenticate, canUseAppLock } from '@/lib/appLock';
 import { triggerOfflineModelDownload } from '@/lib/speech';
-import { LANGUAGE_OPTIONS, useLanguageCode, useT } from '@/i18n';
+import { LANGUAGE_OPTIONS, useDateFormat, useLanguageCode, useT } from '@/i18n';
+import { friendlyDate, localDay, today } from '@/lib/dates';
 import { confirmDialog, notify } from '@/lib/dialogs';
 import { Sheet } from '@/components/pickers';
 import { Button, Card, ListItem, Row, Screen, SectionTitle, Segmented, Spacer, Text } from '@/components/ui';
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const t = useT();
+  const fmt = useDateFormat();
   const languageCode = useLanguageCode();
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
@@ -94,7 +96,8 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <SectionTitle>{t.yourData}</SectionTitle>
-      <ListItem title={t.backupExport} subtitle={t.backupExportSub} onPress={() => router.push('/settings/backup')} />
+      {/* The date is on the row itself: a local-first app's one real risk is a phone lost with no copy made. */}
+      <ListItem title={t.backupExport} subtitle={`${t.backupExportSub} ${settings.lastBackupAt ? t.lastBackupShort(friendlyDate(localDay(settings.lastBackupAt), today(), fmt)) : t.noBackupYetShort}`} onPress={() => router.push('/settings/backup')} />
       <ListItem title={t.repeatingEntries} subtitle={t.repeatingEntriesSub} onPress={() => router.push('/recurring')} />
       <ListItem title={t.reminders} subtitle={t.remindersSub} onPress={() => router.push('/settings/reminders')} />
       <ListItem title={t.importStatement} subtitle={t.importStatementSub} onPress={() => router.push('/import')} />

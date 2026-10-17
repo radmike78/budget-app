@@ -332,6 +332,8 @@ export const ko: LocaleDef = {
     yourData: '내 데이터',
     backupExport: '백업 및 내보내기',
     backupExportSub: 'CSV, 읽기 쉬운 요약, 또는 복원 가능한 전체 백업.',
+    lastBackupShort: (when: string) => `마지막 백업: ${when}.`,
+    noBackupYetShort: '아직 백업이 없어요.',
     repeatingEntries: '반복 내역',
     repeatingEntriesSub: '월세, 월급, 구독.',
     categories: '카테고리',

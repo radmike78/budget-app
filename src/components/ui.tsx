@@ -241,7 +241,7 @@ export function ListItem({ title, subtitle, right, onPress, left, style }: { tit
       {left ? <View style={{ marginRight: spacing.md }}>{left}</View> : null}
       <View style={{ flex: 1 }}>
         <Text variant="body" numberOfLines={1}>{title}</Text>
-        {subtitle ? <Text variant="small" numberOfLines={2}>{subtitle}</Text> : null}
+        {subtitle ? <Text variant="small" numberOfLines={3}>{subtitle}</Text> : null}
       </View>
       {right ? <View style={{ marginLeft: spacing.md }}>{right}</View> : null}
     </Pressable>

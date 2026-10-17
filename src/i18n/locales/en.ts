@@ -351,6 +351,8 @@ export const en = {
     yourData: 'Your data',
     backupExport: 'Backup & export',
     backupExportSub: 'CSV, a readable summary, or a full backup you can restore from.',
+    lastBackupShort: (when: string) => `Last backup ${when}.`,
+    noBackupYetShort: 'No backup yet.',
     repeatingEntries: 'Repeating entries',
     repeatingEntriesSub: 'Rent, salary, subscriptions.',
     categories: 'Categories',

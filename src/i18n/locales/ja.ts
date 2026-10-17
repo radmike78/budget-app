@@ -332,6 +332,8 @@ export const ja: LocaleDef = {
     yourData: 'あなたのデータ',
     backupExport: 'バックアップと書き出し',
     backupExportSub: 'CSV、読みやすい要約、または復元できる完全バックアップ。',
+    lastBackupShort: (when: string) => `最後のバックアップ: ${when}`,
+    noBackupYetShort: 'まだバックアップがありません。',
     repeatingEntries: '定期の記録',
     repeatingEntriesSub: '家賃、給料、サブスク。',
     categories: 'カテゴリ',

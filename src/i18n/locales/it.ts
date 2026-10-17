@@ -332,6 +332,8 @@ export const it: LocaleDef = {
     yourData: 'I tuoi dati',
     backupExport: 'Backup ed esportazione',
     backupExportSub: 'CSV, un riepilogo leggibile o un backup completo da cui ripristinare.',
+    lastBackupShort: (when: string) => `Ultimo backup: ${when}.`,
+    noBackupYetShort: 'Nessun backup ancora.',
     repeatingEntries: 'Voci ricorrenti',
     repeatingEntriesSub: 'Affitto, stipendio, abbonamenti.',
     categories: 'Categorie',
