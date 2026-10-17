@@ -30,6 +30,8 @@ export interface Transaction {
   /** Set on lines imported from a statement: used to skip the same line twice. */
   fingerprint?: string | null;
   importId?: string | null;
+  /** The goal a transfer was added to ("add 50 to the trip"), so changing or removing it moves the goal too. */
+  goalId?: string | null;
 }
 
 export type DebtType = 'credit_card' | 'personal_loan' | 'student_loan' | 'auto_loan' | 'mortgage' | 'line_of_credit' | 'other';

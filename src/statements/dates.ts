@@ -32,7 +32,7 @@ export function defaultDateOrder(language: string, region?: string | null): 'dmy
 }
 
 // Numeric dates that can only be dates (a slash, or day, month and year): "4.50" is an amount, not April 50th.
-const RE_ORDER_HINT = /(?<![\d/.-])(\d{1,2})(?:\/(\d{1,2})(?:\/\d{2,4})?|[.-](\d{1,2})[.-]\d{2,4})(?![\d/.-])/g;
+const RE_ORDER_HINT = /(?<![\d/.-])(\d{1,2})(?:\/(\d{1,2})(\/\d{2,4})?|[.-](\d{1,2})([.-]\d{2,4}))(?![\d/.-])/g;
 
 /**
  * Reads the order from the statement itself: "15/03" can only be day first and "03/15" only month first.
@@ -45,8 +45,11 @@ export function numericDateOrder(rows: Row[]): 'dmy' | 'mdy' | null {
     RE_ORDER_HINT.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = RE_ORDER_HINT.exec(row.text)) !== null) {
+      // Only a date that starts a line, or one with a year: "Call us 24/7" in a footer is not a date.
+      const leading = row.text.slice(0, m.index).trim() === '';
+      if ((!leading && !(m[3] || m[5])) || m[0] === '24/7') continue;
       const a = Number(m[1]);
-      const b = Number(m[2] ?? m[3]);
+      const b = Number(m[2] ?? m[4]);
       if (a > 12 && a <= 31 && b >= 1 && b <= 12) dmy += 1;
       else if (b > 12 && b <= 31 && a >= 1 && a <= 12) mdy += 1;
     }

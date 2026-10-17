@@ -84,7 +84,7 @@ export function useLanguageCode(): string {
 /** Display name for a category: default categories are translated, custom ones keep their name. */
 export function categoryName(cat: { id: string; name: string; isDefault: boolean } | null | undefined, s: Strings): string {
   if (!cat) return s.uncategorized;
-  if (cat.isDefault && s.categoryNames[cat.id]) return s.categoryNames[cat.id];
+  if (cat.isDefault && Object.prototype.hasOwnProperty.call(s.categoryNames, cat.id)) return s.categoryNames[cat.id];
   return cat.name;
 }
 

@@ -170,6 +170,7 @@ export const en = {
     orTypeTime: 'Or type a time',
     timeFormatHint: 'Use HH:MM, like 08:30 or 20:00.',
     reminderNotificationTitle: 'OnlyBudget reminder',
+    reminderPrivateBody: 'Open OnlyBudget to see it.',
     // statement import
     importStatement: 'Import a statement',
     importStatementSub: 'A bank or card statement, or a credit report, as a PDF. It is read on your phone and then deleted. Only the entries you approve are kept, never account or card numbers.',
@@ -257,7 +258,7 @@ export const en = {
     incomeSection: 'Income',
     repeating: 'Repeating',
     repeatingEmpty: 'Rent, salary, subscriptions: set them up once and they log themselves each period.',
-    repeatingSummary: (n: number, amount: string) => `${n} repeating ${n === 1 ? 'entry' : 'entries'}. About ${amount} a month goes out automatically.`,
+    repeatingSummary: (n: number, amount: string | null) => `${n} repeating ${n === 1 ? 'entry' : 'entries'}.${amount ? ` About ${amount} a month goes out automatically.` : ''}`,
     archived: 'Archived',
     archivedHint: 'Archived. Tap to restore or delete.',
     // goals
@@ -306,7 +307,7 @@ export const en = {
     archive: 'Archive',
     restore: 'Restore',
     deleteCategoryQ: (name: string) => `Delete ${name}?`,
-    deleteCategoryUsed: (n: number) => `${n === 1 ? '1 entry' : `${n} entries`} will keep their amounts but lose this category. Archiving keeps everything intact.`,
+    deleteCategoryUsed: (n: number) => `${n === 1 ? '1 entry will keep its amount' : `${n} entries will keep their amounts`} but lose this category. Archiving keeps everything intact.`,
     cannotUndo: 'This cannot be undone.',
     privacyPolicy: 'Privacy policy',
     eraseEverything: 'Erase everything',
@@ -370,6 +371,7 @@ export const en = {
     appLock: 'Lock the app',
     appLockSub: 'Ask for Face ID, fingerprint or your passcode when OnlyBudget opens.',
     appLockUnavailable: 'This phone has no screen lock set up, so the app lock cannot be turned on.',
+    appLockOpenedWithout: 'This phone has no screen lock set up any more, so OnlyBudget opened without asking. The app lock comes back once the phone has a passcode again.',
     lockedTitle: 'OnlyBudget is locked',
     unlockPrompt: 'Unlock OnlyBudget',
     unlock: 'Unlock',
@@ -484,7 +486,9 @@ export const en = {
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entry' : 'entries'}`;
-      return income ? `${p} you've brought in ${amount}${what ? ` from ${what}` : ''}, across ${n}.` : `${p} you've spent ${amount}${what ? ` on ${what}` : ''}, across ${n}.`;
+      // A period that is over takes the simple past: "Yesterday you spent", "Last month you brought in".
+      const done = /^(yesterday|last)\b/i.test(period);
+      return income ? `${p} you${done ? '' : "'ve"} brought in ${amount}${what ? ` from ${what}` : ''}, across ${n}.` : `${p} you${done ? '' : "'ve"} spent ${amount}${what ? ` on ${what}` : ''}, across ${n}.`;
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Nothing came in${what ? ` from ${what}` : ''} ${period}.` : `Nothing logged${what ? ` for ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `No entry mentions ${target}, so this is the ${category} total.`,

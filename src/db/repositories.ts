@@ -8,12 +8,12 @@ import { isValidDateString, monthKey, monthRange } from '@/lib/dates';
 type TxRow = {
   id: string; amount: number; type: TxType; category_id: string | null; note: string | null; raw_input: string | null;
   occurred_at: string; created_at: string; is_recurring_instance: number; recurring_rule_id: string | null;
-  fingerprint?: string | null; import_id?: string | null;
+  fingerprint?: string | null; import_id?: string | null; goal_id?: string | null;
 };
 const toTx = (r: TxRow): Transaction => ({
   id: r.id, amount: r.amount, type: r.type, categoryId: r.category_id, note: r.note, rawInput: r.raw_input,
   occurredAt: r.occurred_at, createdAt: r.created_at, isRecurringInstance: r.is_recurring_instance === 1, recurringRuleId: r.recurring_rule_id,
-  fingerprint: r.fingerprint ?? null, importId: r.import_id ?? null,
+  fingerprint: r.fingerprint ?? null, importId: r.import_id ?? null, goalId: r.goal_id ?? null,
 });
 
 type CatRow = { id: string; name: string; icon: string | null; kind: TxType; monthly_limit: number | null; is_default: number; archived: number; sort_order: number; rollover?: string | null; rollover_since?: string | null; tier?: string | null };
@@ -54,9 +54,9 @@ const toSettings = (r: SettingsRow): Settings => ({
 
 export async function insertTransaction(db: DB, t: Transaction): Promise<void> {
   await db.runAsync(
-    `INSERT INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id, fingerprint, import_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null],
+    `INSERT INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id, fingerprint, import_id, goal_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null, t.goalId ?? null],
   );
 }
 
@@ -271,7 +271,7 @@ export async function allCategories(db: DB): Promise<Category[]> {
 export async function upsertCategory(db: DB, c: Category): Promise<void> {
   await db.runAsync(
     `INSERT INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since, tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, icon = excluded.icon, kind = excluded.kind, monthly_limit = excluded.monthly_limit, archived = excluded.archived, sort_order = excluded.sort_order, rollover = excluded.rollover, rollover_since = excluded.rollover_since, tier = excluded.tier`,
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, icon = excluded.icon, kind = excluded.kind, monthly_limit = excluded.monthly_limit, is_default = excluded.is_default, archived = excluded.archived, sort_order = excluded.sort_order, rollover = excluded.rollover, rollover_since = excluded.rollover_since, tier = excluded.tier`,
     [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null, c.tier ?? null],
   );
 }
@@ -414,8 +414,8 @@ export async function replaceAllData(
         [r.id, r.kind, r.fileName, r.periodStart, r.periodEnd, r.count, r.importedAt]);
     }
     for (const t of data.transactions) {
-      await db.runAsync('INSERT INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id, fingerprint, import_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null]);
+      await db.runAsync('INSERT INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id, fingerprint, import_id, goal_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null, t.goalId ?? null]);
     }
     for (const g of data.goals) {
       await db.runAsync('INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed, starting_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',

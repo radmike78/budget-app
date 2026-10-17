@@ -118,9 +118,14 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
     const p = pending.current;
     pending.current = null;
     if (!p) return;
+    // Whatever the outcome, the page that held the statement is thrown away: its copy of the file and the
+    // text read from it go with it, and the next import starts on a clean page.
+    restart(null);
     if (msg.type === 'done' && Array.isArray(msg.items)) {
-      const items = msg.items.slice(0, MAX_ITEMS).filter((it) => typeof it.str === 'string' && Number.isFinite(it.x) && Number.isFinite(it.y)).map((it) => ({ ...it, str: it.str.slice(0, MAX_ITEM_CHARS) }));
-      p.resolve({ items, numPages: msg.numPages ?? 0 });
+      const items = msg.items.slice(0, MAX_ITEMS)
+        .filter((it) => it && typeof it.str === 'string' && Number.isFinite(it.x) && Number.isFinite(it.y))
+        .map((it) => ({ str: it.str.slice(0, MAX_ITEM_CHARS), x: it.x, y: it.y, w: Number.isFinite(it.w) ? it.w : undefined, page: Number.isInteger(it.page) ? it.page : 1 }));
+      p.resolve({ items, numPages: Number.isInteger(msg.numPages) ? (msg.numPages as number) : 0 });
     } else if (msg.type === 'blocked') p.reject(new PdfBlockedError(Array.isArray(msg.reasons) ? msg.reasons.map(String) : []));
     else if (msg.code === 'password') p.reject(new PdfEncryptedError());
     else p.reject(new Error('extract failed'));
@@ -136,10 +141,13 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
         // statement): the import in flight fails at once and a fresh page is started for the next.
         onContentProcessDidTerminate={() => restart(new Error('extract failed'))}
         onRenderProcessGone={() => restart(new Error('extract failed'))}
-        source={{ html }}
-        originWhitelist={['about:blank']}
+        source={{ html, baseUrl: 'about:blank' }}
+        // Every navigation comes here ('*'), and only the page itself loads. With a narrower whitelist the
+        // library hands any other URL to Linking.openURL, so a page subverted by a hostile PDF could open
+        // links outside the app; here it goes nowhere.
+        originWhitelist={['*']}
         onMessage={onMessage}
-        onShouldStartLoadWithRequest={(req) => req.url === 'about:blank' || req.url.startsWith('about:') || req.url.startsWith('data:text/html')}
+        onShouldStartLoadWithRequest={(req) => req.url === 'about:blank' || req.url === 'about:srcdoc'}
         javaScriptEnabled
         domStorageEnabled={false}
         allowFileAccess={false}

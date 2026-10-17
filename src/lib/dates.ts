@@ -39,6 +39,12 @@ export function toDateString(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** The phone's own day for a saved UTC time ("2026-10-17T02:26Z" is still October 16 in New York). */
+export function localDay(iso: string): string {
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? iso.slice(0, 10) : toDateString(new Date(t));
+}
+
 export function fromDateString(s: string): Date {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, (m || 1) - 1, d || 1);

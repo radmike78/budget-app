@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { longDate, nowIso, today } from '@/lib/dates';
+import { localDay, longDate, nowIso, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
 import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { goalPlanSentence, goalProgress } from '@/lib/plain';
@@ -127,7 +127,7 @@ export default function GoalEditor() {
           <Button tone="danger" title={t.remove} style={{ flex: 1 }} onPress={onDelete} />
         </Row>
       ) : null}
-      {existing ? <Text variant="small" style={{ marginTop: spacing.lg }}>{t.goalMeta(money(existing.targetAmount), longDate(existing.createdAt.slice(0, 10), today(), fmt))}</Text> : null}
+      {existing ? <Text variant="small" style={{ marginTop: spacing.lg }}>{t.goalMeta(money(existing.targetAmount), longDate(localDay(existing.createdAt), today(), fmt))}</Text> : null}
       <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={targetDate ?? today()} onPick={setTargetDate} future />
     </Screen>
   );

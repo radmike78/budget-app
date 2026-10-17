@@ -1,6 +1,7 @@
 /* OnlyBudget service worker: cache the app shell so the web version opens offline.
    Data never goes through here; SQLite lives in the browser's own storage. */
-const CACHE = 'onlybudget-shell-v1';
+// A new name drops everything an older worker kept (v1 kept the pdf.js worker cache-first).
+const CACHE = 'onlybudget-shell-v2';
 const PRECACHE = ['/', '/sw-register.js', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -21,11 +22,23 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request).then((res) => { caches.open(CACHE).then((c) => c.put('/', res.clone())); return res; }).catch(() => caches.match('/')));
     return;
   }
-  // Hashed assets: cache first.
+  // Hashed bundles (a new build gives them new names): cache first.
+  const { pathname } = new URL(request.url);
+  if (pathname.startsWith('/_expo/') || pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(request).then((cached) => cached || fetch(request).then((res) => {
+        if (res.ok) caches.open(CACHE).then((c) => c.put(request, res.clone()));
+        return res;
+      })),
+    );
+    return;
+  }
+  // Files that keep their name between builds (the pdf.js worker that reads statements, its fonts, icons):
+  // network first, so a fixed version is used as soon as it is deployed; the cache is only for offline.
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((res) => {
+    fetch(request).then((res) => {
       if (res.ok) caches.open(CACHE).then((c) => c.put(request, res.clone()));
       return res;
-    })),
+    }).catch(() => caches.match(request)),
   );
 });

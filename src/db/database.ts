@@ -9,7 +9,8 @@ export function getDb(): Promise<DB> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const db = await SQLite.openDatabaseAsync('onlybudget.db');
-      await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+      // secure_delete: a removed entry is overwritten in the file, not left in a free page for a recovery tool.
+      await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;');
       await migrate(db);
       return db;
     })();
@@ -168,6 +169,8 @@ const MIGRATIONS: string[] = [
   UPDATE categories SET tier = 'wants' WHERE tier = 'comforts';`,
   // v15: what a goal started with, so money already saved before it was made is not read as a fast pace.
   `ALTER TABLE goals ADD COLUMN starting_amount REAL;`,
+  // v16: the goal a transfer was added to, so fixing or removing that entry moves the goal's progress with it.
+  `ALTER TABLE transactions ADD COLUMN goal_id TEXT;`,
 ];
 
 async function migrate(db: DB): Promise<void> {
@@ -205,5 +208,7 @@ export async function resetDatabase(db: DB): Promise<void> {
     await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers; DELETE FROM app_state;');
     await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', app_lock=0, answer_mode='auto', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female', accent='sage', onboarding_done=0 WHERE id=1");
   });
+  // Nothing erased may linger in the write-ahead log or in pages the file still holds.
+  await db.execAsync('PRAGMA wal_checkpoint(TRUNCATE); VACUUM;').catch(() => {});
   await seedDefaultCategories(db);
 }

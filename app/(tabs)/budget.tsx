@@ -134,7 +134,7 @@ export default function BudgetScreen() {
         {activeRules.length === 0 ? (
           <Text variant="muted">{t.repeatingEmpty}</Text>
         ) : (
-          <Text variant="body">{t.repeatingSummary(activeRules.length, money(recurringOut, { compact: true }))}</Text>
+          <Text variant="body">{t.repeatingSummary(activeRules.length, recurringOut > 0 ? money(recurringOut, { compact: true }) : null)}</Text>
         )}
       </Card>
 

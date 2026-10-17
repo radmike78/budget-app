@@ -34,11 +34,20 @@ export async function shareTextFile(filename: string, contents: string): Promise
   await Sharing.shareAsync(file.uri, { mimeType: MIME[ext] ?? 'text/plain', dialogTitle: filename, UTI: ext === 'json' || ext === 'onlybudget' ? 'public.json' : 'public.plain-text' });
 }
 
-/** Lets the user pick a backup file and returns its text, or null if cancelled. */
-export async function pickTextFile(): Promise<{ name: string; text: string } | null> {
+/**
+ * Lets the user pick a backup file and returns its text, or null if cancelled. A file larger than `maxBytes` is
+ * never read into memory (a multi-gigabyte file would end the app); its text comes back empty, which the caller
+ * reads as "not a backup".
+ */
+export async function pickTextFile(maxBytes = Infinity): Promise<{ name: string; text: string } | null> {
   const result = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/plain', '*/*'], copyToCacheDirectory: true, multiple: false });
   if (result.canceled || !result.assets?.length) return null;
   const asset = result.assets[0];
+  const declared = typeof asset.size === 'number' ? asset.size : (asset as { file?: Blob }).file?.size;
+  if (declared != null && declared > maxBytes) {
+    if (Platform.OS !== 'web') { try { const f = new File(asset.uri); if (f.exists) f.delete(); } catch { /* best effort */ } }
+    return { name: asset.name, text: '' };
+  }
   if (Platform.OS === 'web') {
     const webFile = (asset as { file?: Blob }).file;
     const text = webFile ? await webFile.text() : await (await fetch(asset.uri)).text();
@@ -47,6 +56,8 @@ export async function pickTextFile(): Promise<{ name: string; text: string } | n
   const file = new File(asset.uri);
   let text: string;
   try {
+    // The picker does not always know the size; the copy on disk does.
+    if (file.size > maxBytes) return { name: asset.name, text: '' };
     text = await file.text();
   } finally {
     // The picker's cached copy is not kept.

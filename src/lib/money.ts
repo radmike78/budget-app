@@ -102,7 +102,8 @@ export const MAX_AMOUNT = 1_000_000_000_000;
  */
 export function parseMoneyInput(text: string, decimalComma = false): number | null {
   const negative = /^\s*-/.test(text);
-  const cleaned = text.replace(/[^0-9.,]/g, '');
+  // A separator with nothing after it ("12.50.") is a slip of the finger, not a decimal mark.
+  const cleaned = text.replace(/[^0-9.,]/g, '').replace(/[.,]+$/, '');
   if (!/\d/.test(cleaned)) return null;
   const last = Math.max(cleaned.lastIndexOf('.'), cleaned.lastIndexOf(','));
   let intPart = cleaned;

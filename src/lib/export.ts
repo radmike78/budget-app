@@ -4,7 +4,7 @@
 import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
-import { longDate, monthLabel, monthKey } from './dates';
+import { localDay, longDate, monthLabel, monthKey } from './dates';
 import { formatMoney } from './money';
 
 /**
@@ -72,7 +72,7 @@ export function summaryText(transactions: Transaction[], categories: Category[],
   }
   const lines: string[] = [];
   lines.push(S.summaryTitle);
-  lines.push(S.generated(generatedAt.slice(0, 10)));
+  lines.push(S.generated(localDay(generatedAt)));
   lines.push('');
   if (months.size === 0) lines.push(S.noEntriesYet);
   for (const k of [...months.keys()].sort().reverse()) {
@@ -97,7 +97,7 @@ export function summaryText(transactions: Transaction[], categories: Category[],
   if (openGoals.length) {
     lines.push(S.goalsHeading);
     for (const g of openGoals) {
-      lines.push(S.goalLine(g.name, money(g.currentAmount), money(g.targetAmount), g.targetDate ? longDate(g.targetDate, generatedAt.slice(0, 10), locale.format) : null));
+      lines.push(S.goalLine(g.name, money(g.currentAmount), money(g.targetAmount), g.targetDate ? longDate(g.targetDate, localDay(generatedAt), locale.format) : null));
     }
     lines.push('');
   }

@@ -20,7 +20,10 @@ export function normalizeDecimalPoint(text: string): string {
     // "1.234,56" written the European way: the last separator is the decimal.
     .replace(/(\d{1,3}(?:\.\d{3})+),(\d{1,2})(?!\d)/g, (_m, int: string, dec: string) => `${int.replace(/\./g, '')}.${dec}`)
     // "3,000,000": every separator goes, not only the first.
-    .replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, ''));
+    .replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, ''))
+    // "12,50" with no space after the comma is a decimal comma (people in comma countries use the English app
+    // too); "12, 50" stays two numbers, and three digits after it ("2,400") were grouping, handled above.
+    .replace(/(?<![\d.,])(\d+),(\d{2})(?![\d,])/g, '$1.$2');
 }
 
 /** "2.4k" -> "2400". */

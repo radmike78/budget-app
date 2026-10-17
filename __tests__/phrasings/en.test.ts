@@ -58,6 +58,17 @@ const CASES: Case[] = [
   ['spotify 11.99', { type: 'expense', amount: 11.99, categoryId: 'subscriptions' }],
   ['amazon order 64', { type: 'expense', amount: 64, categoryId: 'shopping' }],
   // income
+  ['got 50 from mom', { kind: 'transaction', type: 'income', amount: 50 }],
+  ['got 100 from my dad', { kind: 'transaction', type: 'income', amount: 100 }],
+  ['got 40 back from sarah', { kind: 'transaction', type: 'income', amount: 40 }],
+  ['got 20 from grandma for my birthday', { kind: 'transaction', type: 'income', amount: 20 }],
+  // amounts written without a leading zero, and a coffee chain whose name ends in "bucks"
+  ['spent 12,50 on lunch', { kind: 'transaction', type: 'expense', amount: 12.5, categoryId: 'dining' }],
+  ['12,99 netflix', { kind: 'transaction', type: 'expense', amount: 12.99, categoryId: 'subscriptions' }],
+  ['gum .50', { kind: 'transaction', type: 'expense', amount: 0.5 }],
+  ['spent .99 on an app', { kind: 'transaction', type: 'expense', amount: 0.99 }],
+  ['starbucks 6.75', { kind: 'transaction', type: 'expense', amount: 6.75, categoryId: 'dining', note: 'Starbucks' }],
+  ['starbucks 5 dollars', { kind: 'transaction', type: 'expense', amount: 5, categoryId: 'dining' }],
   ['got paid 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
   ['paycheck 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
   ['salary came in 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],

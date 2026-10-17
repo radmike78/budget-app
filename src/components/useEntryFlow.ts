@@ -178,13 +178,14 @@ export function useEntryFlow() {
     const lastId = useAppStore.getState().lastSavedId;
     // '' means the last thing saved was not an entry (a goal, a reminder, an import): nothing to reach back to.
     if (lastId === '') { await reply(t.correctionNothing, source, language); return; }
-    const tx = (lastId ? await getTransaction(db, lastId) : null) ?? await latestSavedTransaction(db);
+    // Only the entry saved last; once it is gone, "fix that" never reaches for an older one the person did not mean.
+    // (No id at all is a fresh launch, where the newest entry they saved is the one.)
+    const tx = lastId ? await getTransaction(db, lastId) : await latestSavedTransaction(db);
     if (!tx) { await reply(t.correctionNothing, source, language); return; }
     const cat = categories.find((c) => c.id === tx.categoryId) ?? null;
     const what = tx.note ?? (cat ? categoryName(cat, t) : null);
     if (fix.remove) {
       await useAppStore.getState().deleteTransaction(tx.id);
-      useAppStore.setState({ lastSavedId: null });
       await reply(t.correctionRemoved(money(tx.amount), what), source, language);
       return;
     }

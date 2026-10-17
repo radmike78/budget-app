@@ -32,11 +32,16 @@ and their limits; goals; repeating entries; reminders; debts; records of
 statements you imported; and your settings.
 
 On iOS and Android this storage is private to the app and is covered by the
-device's own encryption when the device is locked with a passcode. On the web
-version it is stored in your browser, under the origin the app is served from.
+device's own encryption. On iOS the files are locked whenever the device is
+locked with a passcode. On the web version it is stored in your browser, under
+the origin the app is served from.
 
-No copy of this data exists anywhere else unless you make one yourself, by
-exporting it (see **Backups and exports**).
+OnlyBudget never makes a copy of this data anywhere else; you make one yourself
+by exporting it (see **Backups and exports**). On Android the app is left out
+of Google's automatic backup and of transfers to a new phone. On iOS, a backup
+of the whole iPhone that you make to iCloud or to a computer includes the data
+of the apps on it, OnlyBudget's too, as for any app; that backup is yours and
+Apple's terms cover it, and OnlyBudget cannot read or reach it.
 
 ## What leaves your device, and when
 
@@ -140,10 +145,12 @@ import record and learned word from the device, clears your saved Smart Assist
 key, and returns the app to the state it was in when you installed it. It takes
 effect immediately and cannot be undone.
 
-Uninstalling the app also removes everything.
+Uninstalling the app also removes everything on the device. (An iPhone backup
+you made earlier keeps what was there when it was made, until you delete that
+backup.)
 
-Because no copy of your data exists off your device, there is nothing to request
-deletion of from anyone else, and no request to make.
+Because OnlyBudget keeps no copy of your data off your device, there is nothing
+to request deletion of from us, and no request to make.
 
 ## Children
 

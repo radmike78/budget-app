@@ -65,8 +65,8 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 </ul>
 <h2 id="what-the-app-stores-and-where">What the app stores, and where</h2>
 <p>Everything you enter is kept in a database inside the app's private storage on your device: entries and their amounts, dates, notes and categories; categories and their limits; goals; repeating entries; reminders; debts; records of statements you imported; and your settings.</p>
-<p>On iOS and Android this storage is private to the app and is covered by the device's own encryption when the device is locked with a passcode. On the web version it is stored in your browser, under the origin the app is served from.</p>
-<p>No copy of this data exists anywhere else unless you make one yourself, by exporting it (see <strong>Backups and exports</strong>).</p>
+<p>On iOS and Android this storage is private to the app and is covered by the device's own encryption. On iOS the files are locked whenever the device is locked with a passcode. On the web version it is stored in your browser, under the origin the app is served from.</p>
+<p>OnlyBudget never makes a copy of this data anywhere else; you make one yourself by exporting it (see <strong>Backups and exports</strong>). On Android the app is left out of Google's automatic backup and of transfers to a new phone. On iOS, a backup of the whole iPhone that you make to iCloud or to a computer includes the data of the apps on it, OnlyBudget's too, as for any app; that backup is yours and Apple's terms cover it, and OnlyBudget cannot read or reach it.</p>
 <h2 id="what-leaves-your-device-and-when">What leaves your device, and when</h2>
 <p>Two features involve a network, and only two. Both are described here in full.</p>
 <h3 id="1-speech-recognition-when-you-use-the-microphone">1. Speech recognition, when you use the microphone</h3>
@@ -108,8 +108,8 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <p>Full backups can be encrypted with a passphrase you choose. Encryption uses scrypt for key derivation and XChaCha20-Poly1305 for the data. The passphrase is never stored and cannot be recovered: if you lose it, that backup cannot be opened, by us or by anyone.</p>
 <h2 id="deleting-your-data">Deleting your data</h2>
 <p>Settings → <strong>Erase everything</strong> removes every entry, goal, reminder, debt, import record and learned word from the device, clears your saved Smart Assist key, and returns the app to the state it was in when you installed it. It takes effect immediately and cannot be undone.</p>
-<p>Uninstalling the app also removes everything.</p>
-<p>Because no copy of your data exists off your device, there is nothing to request deletion of from anyone else, and no request to make.</p>
+<p>Uninstalling the app also removes everything on the device. (An iPhone backup you made earlier keeps what was there when it was made, until you delete that backup.)</p>
+<p>Because OnlyBudget keeps no copy of your data off your device, there is nothing to request deletion of from us, and no request to make.</p>
 <h2 id="children">Children</h2>
 <p>OnlyBudget is not directed at children and does not knowingly collect information from anyone. It collects no personal information from any user, of any age.</p>
 <h2 id="your-rights">Your rights</h2>

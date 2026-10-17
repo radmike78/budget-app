@@ -5,7 +5,7 @@
 import type { BudgetPeriodMode, Category, CategoryTotal, Goal, GoalKind, MonthStats, Period, Reminder } from '@/types';
 import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
-import { addDays, daysBetween, friendlyDate, longDate, monthKey, monthName, monthRange, type DateFormat } from './dates';
+import { addDays, daysBetween, friendlyDate, localDay, longDate, monthKey, monthName, monthRange, type DateFormat } from './dates';
 import { formatMoney } from './money';
 
 function moneyFn(currency: string, locale: LocaleDef) {
@@ -73,7 +73,7 @@ export function goalProgress(goal: Goal, currency: string, todayStr: string, loc
 
   if (goal.completed || remaining === 0) return { remaining: 0, fraction: 1, status: 'done', sentence: goal.kind === 'debt' ? S.goalDoneDebt(goal, money) : S.goalDone(goal, money) };
 
-  const createdDay = goal.createdAt.slice(0, 10);
+  const createdDay = localDay(goal.createdAt);
   const elapsedDays = Math.max(1, daysBetween(createdDay, todayStr));
   const added = Math.max(0, goal.currentAmount - (goal.startingAmount ?? 0));
   const perDay = elapsedDays < PACE_AFTER_DAYS ? 0 : added / elapsedDays;

@@ -183,17 +183,35 @@ interface AmountExtraction {
  */
 interface AmountCandidate { value: number; start: number; end: number; marked: boolean }
 
+const LATIN = /\p{Script=Latin}/u;
+
 /** Every money-looking number in the text, in order, with its span. */
 export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[] {
   const candidates: AmountCandidate[] = [];
   const marker = pack.currencyMarkers.source;
-  const re = new RegExp(`(?:(${marker})\\s?)?(\\d+(?:\\.\\d+)?)(?:\\s?(${marker}))?`, 'giu');
+  // ".50" (no leading zero) is money too, when it is not the tail of another number.
+  const re = new RegExp(`(?:(${marker})\\s?)?(\\d+(?:\\.\\d+)?|(?<![\\d.,])\\.\\d{1,2}(?![\\d.]))(?:\\s?(${marker}))?`, 'giu');
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    const full = m[0];
-    const after = text.slice(m.index + full.length, m.index + full.length + 16);
-    const before = text.slice(Math.max(0, m.index - 3), m.index);
-    const marked = Boolean(m[1] || m[3]);
+    let full = m[0];
+    let start = m.index;
+    let lead: string | undefined = m[1];
+    let trail: string | undefined = m[3];
+    // A currency word that is the end or start of a longer word is not a currency: "starbucks 6.75", "12 krispy".
+    // (Latin letters only: "1200円使った" has no spaces and the yen sign is a currency.)
+    if (lead && LATIN.test(lead) && LATIN.test(text[start - 1] ?? '')) {
+      const cut = full.indexOf(m[2], lead.length);
+      start += cut;
+      full = full.slice(cut);
+      lead = undefined;
+    }
+    if (trail && LATIN.test(trail) && LATIN.test(text[start + full.length] ?? '')) {
+      full = full.slice(0, full.length - trail.length).trimEnd();
+      trail = undefined;
+    }
+    const after = text.slice(start + full.length, start + full.length + 16);
+    const before = text.slice(Math.max(0, start - 3), start);
+    const marked = Boolean(lead || trail);
     if (!marked) {
       if (/^(st|nd|rd|th|º|ª|°|\.|%|\s?%|\s?(am|pm)\b|:\d|\s?o'clock|\s?x\b|\s?uhr\b|\s?h\b|時|点|시|月|日|월|일|年|년)/iu.test(after) && !/^\.(?:\s|$)/.test(after)) continue;
       // "12:30" is a time: neither half is money.
@@ -206,7 +224,7 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
     }
     const value = Number(m[2]);
     if (!Number.isFinite(value)) continue;
-    candidates.push({ value, start: m.index, end: m.index + full.length, marked });
+    candidates.push({ value, start, end: start + full.length, marked });
   }
   return candidates;
 }
@@ -794,7 +812,7 @@ function categoryFromWords(words: string, ctx: ParseContext, pack: LanguagePack)
   const compact = key.replace(/\s+/g, '');
   const forms = [key, ...(pack.tokenizer === 'space' && pack.singularForms ? pack.singularForms(key) : [])];
   const active = ctx.categories.filter((cat) => !cat.archived);
-  const namesOf = (cat: Category) => [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => !!n).map((n) => n.toLowerCase().trim());
+  const namesOf = (cat: Category) => [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => typeof n === 'string' && !!n).map((n) => n.toLowerCase().trim());
   for (const cat of active) if (namesOf(cat).some((n) => forms.includes(n) || n.replace(/\s+/g, '') === compact)) return { categoryId: cat.id, matched: words };
   if (pack.tokenizer === 'space') {
     for (const cat of active) {

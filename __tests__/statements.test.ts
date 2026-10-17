@@ -123,6 +123,9 @@ describe('money and dates on statements', () => {
     expect(parseStatement(rows, ctx('en'), { language: 'en', region: 'GB', today: TODAY }).lines[0].date).toBe('2025-04-03');
     expect(parseStatement(rows, ctx('en'), { language: 'en', region: 'US', today: TODAY }).lines[0].date).toBe('2025-03-04');
     expect(parseStatement(rows, ctx('en'), { language: 'en', today: TODAY }).lines[0].date).toBe('2025-03-04');
+    // "Call us 24/7" in a footer says nothing about the order of the dates.
+    expect(numericDateOrder(rowsFromText('Questions? Call us 24/7 at the number on your card\n03/05 COFFEE 4.50\n03/09 GAS 30.00'))).toBeNull();
+    expect(numericDateOrder(rowsFromText('24/7 support\n03/05 COFFEE 4.50\n03/15 GAS 30.00'))).toBe('mdy');
     // Amounts never count as dates when reading the order.
     expect(numericDateOrder(rowsFromText('01/05 COFFEE 4.50\n01/06 LUNCH 12.25'))).toBeNull();
     expect(defaultDateOrder('en', 'AU')).toBe('dmy');
