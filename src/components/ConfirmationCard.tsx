@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useAppStore } from '@/store/useAppStore';
 import { personaLineForContribution, personaLineForTransaction } from '@/components/persona';
 import { radius, spacing, useTheme } from '@/theme';
-import { friendlyDate, longDate, nowIso, today } from '@/lib/dates';
+import { clockLabel, friendlyDate, longDate, nowIso, today } from '@/lib/dates';
 import { moneyInputText, parseMoneyInput } from '@/lib/money';
 import { goalPlanSentence } from '@/lib/plain';
 import { newId } from '@/lib/ids';
@@ -167,10 +167,10 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
       {result.kind === 'reminder' ? (
         <>
           <Field label={t.reminderWhat} value={reminderText} onChangeText={setReminderText} placeholder={t.reminderExample} autoFocus={!result.reminderText} />
-          <Text variant="label" style={{ marginBottom: 6 }}>{t.categoryDate}</Text>
+          <Text variant="label" style={{ marginBottom: 6 }}>{t.date}</Text>
           <Row style={{ marginBottom: spacing.lg, flexWrap: 'wrap' }}>
             <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />
-            <Button tone="secondary" small title={reminderTime} onPress={() => setShowTime(true)} />
+            <Button tone="secondary" small title={clockLabel(reminderTime, fmt)} onPress={() => setShowTime(true)} />
           </Row>
           <Text variant="label" style={{ marginBottom: 6 }}>{t.repeat}</Text>
           <View style={{ marginBottom: spacing.lg }}>

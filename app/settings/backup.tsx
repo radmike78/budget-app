@@ -158,8 +158,8 @@ export default function Backup() {
 
       <SectionTitle>{t.backupSection}</SectionTitle>
       <Card style={{ gap: spacing.sm }}>
-        <Button title={t.fullBackup} onPress={exportBackup} loading={busy === 'backup'} />
         <Button title={t.encryptedBackup} onPress={() => { setPass(''); setPass2(''); setAskPass({ mode: 'encrypt' }); }} loading={busy === 'encrypted'} />
+        <Button tone="secondary" title={t.fullBackup} onPress={exportBackup} loading={busy === 'backup'} />
         <Text variant="small">{t.encryptedHint}</Text>
       </Card>
 

@@ -3,6 +3,7 @@ import { AccessibilityInfo, Animated, Easing } from 'react-native';
 
 let reduceMotion: boolean | null = null;
 AccessibilityInfo.isReduceMotionEnabled?.().then((v) => { reduceMotion = v; }).catch(() => { reduceMotion = false; });
+AccessibilityInfo.addEventListener?.('reduceMotionChanged', (v: boolean) => { reduceMotion = v; });
 
 /** Runs a short timing animation unless the phone asks for reduced motion. */
 export function useSettle(value: number, duration = 500): Animated.Value {

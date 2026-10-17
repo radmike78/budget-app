@@ -3,7 +3,7 @@ import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Category, TxType } from '@/types';
 import { radius, spacing, useTheme } from '@/theme';
-import { addDays, daysInMonth, friendlyDate, fromDateString, isValidDateString, today } from '@/lib/dates';
+import { addDays, clockLabel, daysInMonth, friendlyDate, fromDateString, isValidDateString, today } from '@/lib/dates';
 import { categoryName, useDateFormat, useT } from '@/i18n';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Button, Chip, Field, Icon, ListItem, Row, Text } from './ui';
@@ -109,7 +109,6 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode, past
       </Row>
       <View style={{ height: spacing.lg }} />
       <MonthGrid value={value} earliest={forward ? t : null} latest={past ? t : null} onPick={(d) => { onPick(d); onClose(); }} />
-      {value ? <Text variant="small" style={{ marginTop: spacing.md }}>{s.currently(friendlyDate(value, t, fmt))}</Text> : null}
     </Sheet>
   );
 }
@@ -185,6 +184,7 @@ const TIME_RE = /^([01]?\d|2[0-3]):([0-5]\d)$/;
 /** Time of day for reminders: a few common hours plus a typed HH:MM. */
 export function TimePicker({ visible, onClose, value, onPick }: { visible: boolean; onClose: () => void; value: string; onPick: (t: string) => void }) {
   const s = useT();
+  const fmt = useDateFormat();
   const [custom, setCustom] = useState(value);
   useEffect(() => { if (visible) setCustom(value); }, [visible, value]);
   const valid = TIME_RE.test(custom);
@@ -193,7 +193,7 @@ export function TimePicker({ visible, onClose, value, onPick }: { visible: boole
     <Sheet visible={visible} onClose={onClose} title={s.time} scroll>
       <Row style={{ flexWrap: 'wrap' }}>
         {QUICK_TIMES.map((q) => (
-          <Chip key={q} label={q} selected={value === q} onPress={() => { onPick(q); onClose(); }} />
+          <Chip key={q} label={clockLabel(q, fmt)} selected={value === q} onPress={() => { onPick(q); onClose(); }} />
         ))}
       </Row>
       <View style={{ height: spacing.lg }} />

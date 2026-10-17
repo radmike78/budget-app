@@ -272,7 +272,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const firstSaved = firstSavedIso && !Number.isNaN(Date.parse(firstSavedIso)) ? toDateString(new Date(firstSavedIso)) : null;
     const usedSince = (date: string) => firstSaved != null && firstSaved <= date;
     const firstDay = getLocale(resolveLanguage(settings.language)).format.firstDay ?? 0;
-    const recap = isRecapDay(todayStr, firstDay) && usedSince(weekRange(todayStr, -1, firstDay).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2, firstDay).from, weekRange(todayStr, -1, firstDay).to), todayStr, firstDay) : null;
+    let recap: WeekRecap | null = null;
+    if (isRecapDay(todayStr, firstDay) && usedSince(weekRange(todayStr, -1, firstDay).from)) {
+      recap = weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2, firstDay).from, weekRange(todayStr, -1, firstDay).to), todayStr, firstDay);
+      // "$166 more than the week before" is no comparison when the week before had one day of use.
+      if (!usedSince(weekRange(todayStr, -2, firstDay).from)) recap = { ...recap, previousTotal: 0 };
+    }
     const current = periodContaining(settings.budgetPeriod, rules, todayStr);
     let review: PeriodReview | null = null;
     const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);

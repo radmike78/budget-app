@@ -20,6 +20,8 @@ export interface DateFormat {
   monthYear: (month: string, year: number) => string;
   /** The day a week starts on: 0 Sunday (US, Japan, Korea), 1 Monday (most of Europe, China). */
   firstDay?: 0 | 1;
+  /** Clock times read "3:00 PM" rather than "15:00". */
+  hour12?: boolean;
   today?: string;
   yesterday?: string;
 }
@@ -45,6 +47,14 @@ export function toDateString(d: Date): string {
 export function localDay(iso: string): string {
   const t = Date.parse(iso);
   return Number.isNaN(t) ? iso.slice(0, 10) : toDateString(new Date(t));
+}
+
+/** "15:00" as the locale says it: "3:00 PM" with a 12-hour clock, unchanged otherwise. Stored times stay HH:MM. */
+export function clockLabel(hhmm: string, fmt: Pick<DateFormat, 'hour12'> = EN_DATE_FORMAT): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm);
+  if (!m || !fmt.hour12) return hhmm;
+  const h = Number(m[1]);
+  return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
 export function fromDateString(s: string): Date {

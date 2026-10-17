@@ -18,6 +18,8 @@ export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | '
 export interface Correction {
   /** "delete that": the entry is removed (and the undo bar can put it back). */
   remove: boolean;
+  /** Words naming the entry meant ("the uber", "spotify"), when it is not simply the last one; null for the last one. */
+  target: string | null;
   amount: number | null;
   categoryId: string | null;
   /** YYYY-MM-DD */
@@ -185,7 +187,36 @@ interface AmountExtraction {
  * Finds the money amount. Prefers numbers with a currency marker ($12, 12 dollars, 12块),
  * then the first bare number. Ordinals, times and percentages are ignored.
  */
-interface AmountCandidate { value: number; start: number; end: number; marked: boolean }
+interface AmountCandidate { value: number; start: number; end: number; marked: boolean; leadMarked?: boolean; digits?: string }
+
+// "five and a half" as dictation writes it, in the Latin-script languages.
+const HALF_RE = /^ (?:and a half|and a half dollars?|y medi[oa]|et demi|e mezzo|und ein halb|einhalb)(?![\p{L}])/iu;
+// Dictation writes "four fifty" as "4 50" and "eighty-nine ninety-nine" as "89 99": a whole number followed by exactly
+// two digits with one space between is one amount. "at 9 30" is a time, so a time word just before stops the merge.
+const TIME_BEFORE_RE = /(?:\bat|\bum|\buhr|\balle|\ba las|\bà|\bkl\.?)\s*$/iu;
+
+/** Joins "4 50" into 4.50 and "5 and a half" into 5.5 where dictation wrote an amount that way. */
+function mergeDictated(candidates: AmountCandidate[], text: string, pack: LanguagePack): AmountCandidate[] {
+  if (pack.tokenizer !== 'space') return candidates;
+  const out: AmountCandidate[] = [];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const c = { ...candidates[i] };
+    const next = candidates[i + 1];
+    const whole = c.digits && /^\d+$/.test(c.digits);
+    if (whole && next && !next.leadMarked && next.digits && /^\d{2}$/.test(next.digits) && text.slice(c.end, next.start) === ' '
+      && !TIME_BEFORE_RE.test(text.slice(0, c.start)) && !/^\s?(?:am|pm|h|uhr|:)\b/i.test(text.slice(next.end, next.end + 4))) {
+      c.value = Number(`${c.digits}.${next.digits}`);
+      c.end = next.end;
+      c.marked = c.marked || next.marked;
+      i += 1;
+    } else {
+      const half = HALF_RE.exec(text.slice(c.end));
+      if (half && whole) { c.value += 0.5; c.end += half[0].length; }
+    }
+    out.push(c);
+  }
+  return out;
+}
 
 const LATIN = /\p{Script=Latin}/u;
 
@@ -228,9 +259,9 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
     }
     const value = Number(m[2]);
     if (!Number.isFinite(value)) continue;
-    candidates.push({ value, start, end: start + full.length, marked });
+    candidates.push({ value, start, end: start + full.length, marked, leadMarked: !!lead, digits: m[2] });
   }
-  return candidates;
+  return mergeDictated(candidates, text, pack);
 }
 
 const CENTS_CONNECTORS = 'and|e|ed|y|et|und|con|avec|mit';
@@ -445,7 +476,7 @@ function cleanGoalName(s: string, pack: LanguagePack): string | null {
     name = name.replace(pack.leadingFiller, '').trim();
   }
   name = name.replace(pack.trailingFiller, '').replace(pack.articles, '').replace(/[.,;:!。]+$/g, '').trim();
-  name = name.replace(new RegExp(`^(?:${pack.forWords})\\s+`, 'iu'), '').trim();
+  name = name.replace(new RegExp(`^(?:${pack.forWords})(?:\\s+|$)`, 'iu'), '').trim();
   if (!name) return null;
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
@@ -571,6 +602,12 @@ function parseGoal(afterLead: string, raw: string, ctx: ParseContext, pack: Lang
     namePart = forMatch ? forMatch[1] : rest.replace(new RegExp(`^(?:${pack.forWords})\\s+`, 'iu'), '');
   }
   r.goalName = restoreCase(cleanGoalName(namePart, pack), raw);
+  // "save 500 for christmas": the occasion set the date and would leave no name, yet it is what the goal is for.
+  if (!r.goalName && future.date && pack.tokenizer !== 'cjk') {
+    const said = extractAmount(afterLead, pack).text.replace(new RegExp(pack.goalIntent.source, 'giu'), ' ').replace(/\s+/g, ' ').trim();
+    const forSaid = said.match(forWord);
+    if (forSaid) r.goalName = restoreCase(cleanGoalName(forSaid[1].replace(/^(?:by|before|until|till|antes de|avant|prima di|vor|bis)\s+/iu, ''), pack), raw);
+  }
   if (!r.goalName && debt) r.goalName = null;
   r.confidence = (r.amount ? 0.6 : 0.2) + (r.goalName ? 0.3 : 0) + (r.targetDate ? 0.1 : 0);
   if (!r.amount) r.hints.push(debt ? HINT.debtAmount : HINT.goalAmount);
@@ -844,11 +881,28 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   if (!text) return null;
   const base = baseResult(raw, ctx.today);
   if (rules.remove.test(text)) {
-    return { ...base, kind: 'correction', correction: { remove: true, amount: null, categoryId: null, date: null }, confidence: 0.9, needsReview: false };
+    return { ...base, kind: 'correction', correction: { remove: true, target: null, amount: null, categoryId: null, date: null }, confidence: 0.9, needsReview: false };
   }
+  // "forget the spotify one", "delete the uber": removal of a named entry.
+  const removeNamed = rules.removeTarget?.exec(text);
+  if (removeNamed?.groups?.target) {
+    const target = cleanTarget(removeNamed.groups.target, pack);
+    if (target) return { ...base, kind: 'correction', correction: { remove: true, target, amount: null, categoryId: null, date: null }, confidence: 0.85, needsReview: false };
+  }
+  let target: string | null = null;
+  let rest: string;
   const lead = rules.lead.exec(text);
-  if (!lead || lead.index !== 0) return null;
-  let rest = text.slice(lead[0].length).trim();
+  if (lead && lead.index === 0) {
+    rest = text.slice(lead[0].length).trim();
+  } else {
+    // "that uber was 32 not 23", "change the uber to 32": a named entry and its new value.
+    let named: RegExpExecArray | null = null;
+    for (const re of rules.targetLeads ?? []) { named = re.exec(text); if (named?.groups?.target && named.groups.rest) break; named = null; }
+    if (!named) return null;
+    target = cleanTarget(named.groups!.target, pack);
+    if (!target) return null;
+    rest = named.groups!.rest.trim();
+  }
   const c = compile(pack);
   const dated = applyRules(pack.pastDateRules, rest, ctx.today);
   rest = dated.text;
@@ -878,10 +932,17 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   return {
     ...base,
     kind: 'correction',
-    correction: { remove: false, amount: amt.amount, categoryId, date: dated.date },
+    correction: { remove: false, target, amount: amt.amount, categoryId, date: dated.date },
     confidence: 0.9,
     needsReview: false,
   };
+}
+
+/** The words naming an entry, without articles or "entry"/"one" tails: "the spotify one" is "spotify". */
+function cleanTarget(words: string, pack: LanguagePack): string | null {
+  let s = words.trim().replace(pack.articles, '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/^(?:the|that|this|my|our)\s+/iu, '').replace(/\s+(?:one|entry|expense|purchase|thing|item|charge)$/iu, '').trim();
+  return s && !/^\d/.test(s) ? s.toLowerCase() : null;
 }
 
 export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {

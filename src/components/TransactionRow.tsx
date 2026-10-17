@@ -56,7 +56,7 @@ export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transacti
         <Icon glyph={category?.icon} size={22} />
         <View style={{ flex: 1, marginLeft: spacing.md }}>
           <Text variant="body" numberOfLines={1}>{title}</Text>
-          <Text variant="small" numberOfLines={1}>{subtitleParts.join(' · ')}</Text>
+          <Text variant="small" numberOfLines={2}>{subtitleParts.join(' · ')}</Text>
         </View>
         <Text variant="money" color={tx.type === 'income' ? colors.income : colors.expense}>
           {tx.type === 'income' ? '+' : '−'}{money(tx.amount)}

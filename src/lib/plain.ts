@@ -5,7 +5,7 @@
 import type { BudgetPeriodMode, Category, CategoryTotal, Goal, GoalKind, MonthStats, Period, Reminder } from '@/types';
 import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
-import { addDays, daysBetween, friendlyDate, localDay, longDate, monthKey, monthName, monthRange, type DateFormat } from './dates';
+import { addDays, clockLabel, daysBetween, friendlyDate, localDay, longDate, monthKey, monthName, monthRange, type DateFormat } from './dates';
 import { formatMoney } from './money';
 
 function moneyFn(currency: string, locale: LocaleDef) {
@@ -138,7 +138,7 @@ export function reminderSentence(rem: Reminder, todayStr: string, locale: Locale
   const [y, m, d] = rem.date.split('-').map((n) => Number(n));
   const weekday = fmt.weekdaysShort[new Date(y, m - 1, d).getDay()] ?? '';
   const dateLabel = friendlyDate(rem.date, todayStr, fmt);
-  return locale.s.reminderSchedule(rem.repeat, dateLabel, rem.time, weekday, d);
+  return locale.s.reminderSchedule(rem.repeat, dateLabel, clockLabel(rem.time, fmt), weekday, d);
 }
 
 export function goalDeadlineLabel(goal: Goal, todayStr: string, locale: LocaleDef = en): string | null {

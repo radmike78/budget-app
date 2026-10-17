@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, Switch, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { getApiKey } from '@/lib/secrets';
 import Constants from 'expo-constants';
 import type { Accent, AnswerMode, BudgetPeriodMode, ThemeSetting } from '@/types';
 import { ACCENTS } from '@/theme';
@@ -14,13 +15,13 @@ import { cancelDailyReminder, scheduleDailyReminder } from '@/lib/reminders';
 import { authenticate, canUseAppLock } from '@/lib/appLock';
 import { triggerOfflineModelDownload } from '@/lib/speech';
 import { LANGUAGE_OPTIONS, useDateFormat, useLanguageCode, useT } from '@/i18n';
-import { friendlyDate, localDay, today } from '@/lib/dates';
+import { clockLabel, friendlyDate, localDay, today, type DateFormat } from '@/lib/dates';
 import { confirmDialog, notify } from '@/lib/dialogs';
 import { Sheet } from '@/components/pickers';
 import { Button, Card, ListItem, Row, Screen, SectionTitle, Segmented, Spacer, Text } from '@/components/ui';
 
-function hourLabel(h: number): string {
-  return `${h < 10 ? '0' : ''}${h}:00`;
+function hourLabel(h: number, fmt: Pick<DateFormat, 'hour12'>): string {
+  return clockLabel(`${h < 10 ? '0' : ''}${h}:00`, fmt);
 }
 
 export default function SettingsScreen() {
@@ -38,6 +39,9 @@ export default function SettingsScreen() {
   const [showCurrency, setShowCurrency] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [erasing, setErasing] = useState(false);
+  // "On" with no key saved would read as if phrases were being sent; the row says what the sub-screen says.
+  const [hasKey, setHasKey] = useState<boolean | null>(null);
+  useFocusEffect(useCallback(() => { getApiKey().then((k) => setHasKey(!!k)).catch(() => setHasKey(false)); }, []));
   if (!settings) return null;
 
   const reminderText = { title: t.reminderTitle, body: t.reminderBody, channelName: t.reminderChannelDaily };
@@ -98,12 +102,13 @@ export default function SettingsScreen() {
       <SectionTitle>{t.yourData}</SectionTitle>
       {/* The date is on the row itself: a local-first app's one real risk is a phone lost with no copy made. */}
       <ListItem title={t.backupExport} subtitle={`${t.backupExportSub} ${settings.lastBackupAt ? t.lastBackupShort(friendlyDate(localDay(settings.lastBackupAt), today(), fmt)) : t.noBackupYetShort}`} onPress={() => router.push('/settings/backup')} />
+      <Card style={{ marginBottom: spacing.sm }}>
+        <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.budgetPeriod}</Text>
+        <Segmented<BudgetPeriodMode> value={settings.budgetPeriod} onChange={changeBudgetPeriod} options={[{ value: 'month', label: t.periodMonth }, { value: 'pay', label: t.periodPay }]} />
+        <Text variant="small" style={{ marginTop: spacing.sm }}>{t.budgetPeriodSub}</Text>
+      </Card>
       <ListItem title={t.repeatingEntries} subtitle={t.repeatingEntriesSub} onPress={() => router.push('/recurring')} />
       <ListItem title={t.reminders} subtitle={t.remindersSub} onPress={() => router.push('/settings/reminders')} />
-      <ListItem title={t.importStatement} subtitle={t.importStatementSub} onPress={() => router.push('/import')} />
-      <ListItem title={t.debts} subtitle={t.debtsSub} onPress={() => router.push('/debts')} />
-      <ListItem title={t.categories} subtitle={t.categoriesSub} onPress={() => router.push('/budget')} />
-      <ListItem title={t.learnedWords} subtitle={t.learnedWordsSub(keywords.length)} onPress={() => router.push('/settings/keywords')} />
 
       <SectionTitle>{t.preferences}</SectionTitle>
       <ListItem title={t.language} subtitle={languageLabel} onPress={() => setShowLanguage(true)} />
@@ -117,7 +122,7 @@ export default function SettingsScreen() {
             const selected = settings.accent === a;
             const label = { sage: t.accentSage, ocean: t.accentOcean, plum: t.accentPlum, clay: t.accentClay }[a];
             return (
-              <Pressable key={a} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} onPress={() => updateSettings({ accent: a })} style={{ alignItems: 'center' }}>
+              <Pressable key={a} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} onPress={() => updateSettings({ accent: a })} style={{ alignItems: 'center', minWidth: 44, minHeight: 44, paddingTop: 6 }}>
                 <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ACCENTS[a][isDark ? 'dark' : 'light'], borderWidth: selected ? 3 : 0, borderColor: colors.text }} />
                 <Text variant="small" style={{ marginTop: 4 }}>{label}</Text>
               </Pressable>
@@ -129,11 +134,6 @@ export default function SettingsScreen() {
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.answerMode}</Text>
         <Segmented<AnswerMode> value={settings.answerMode} onChange={(answerMode) => updateSettings({ answerMode })} options={[{ value: 'text', label: t.answerText }, { value: 'speak', label: t.answerSpeak }, { value: 'auto', label: t.answerAuto }]} />
         <Text variant="small" style={{ marginTop: spacing.sm }}>{t.answerModeSub}</Text>
-      </Card>
-      <Card style={{ marginBottom: spacing.sm }}>
-        <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.budgetPeriod}</Text>
-        <Segmented<BudgetPeriodMode> value={settings.budgetPeriod} onChange={changeBudgetPeriod} options={[{ value: 'month', label: t.periodMonth }, { value: 'pay', label: t.periodPay }]} />
-        <Text variant="small" style={{ marginTop: spacing.sm }}>{t.budgetPeriodSub}</Text>
       </Card>
       <ListItem title={t.voice} subtitle={voiceSummary} onPress={() => router.push('/settings/voice')} />
       {Platform.OS !== 'web' ? <Card style={{ marginBottom: spacing.sm }}>
@@ -147,7 +147,7 @@ export default function SettingsScreen() {
         {settings.reminderEnabled ? (
           <Row style={{ marginTop: spacing.md, justifyContent: 'space-between' }}>
             <Button tone="secondary" small title="−1h" accessibilityLabel={t.reminderEarlier} onPress={() => changeHour(-1)} />
-            <Text variant="body">{hourLabel(settings.reminderHour)}</Text>
+            <Text variant="body">{hourLabel(settings.reminderHour, fmt)}</Text>
             <Button tone="secondary" small title="+1h" accessibilityLabel={t.reminderLater} onPress={() => changeHour(1)} />
           </Row>
         ) : null}
@@ -161,10 +161,15 @@ export default function SettingsScreen() {
           <Switch value={settings.appLockEnabled} onValueChange={toggleAppLock} trackColor={{ true: colors.accent }} accessibilityLabel={t.appLock} />
         </Row>
       </Card> : null}
+
+      <SectionTitle>{t.moreSection}</SectionTitle>
+      <ListItem title={t.importStatement} subtitle={t.importStatementSub} onPress={() => router.push('/import')} />
+      <ListItem title={t.debts} subtitle={t.debtsSub} onPress={() => router.push('/debts')} />
+      <ListItem title={t.learnedWords} subtitle={t.learnedWordsSub(keywords.length)} onPress={() => router.push('/settings/keywords')} />
       {Platform.OS === 'android' ? (
         <ListItem title={t.offlineVoice} subtitle={t.offlineVoiceSub} onPress={async () => notify(t.voiceModel, await triggerOfflineModelDownload(languageCode, { ready: t.voiceModelReady, status: t.voiceModelStatus, failed: t.voiceModelFailed }))} />
       ) : null}
-      <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? t.smartParseOn : t.smartParseOff} onPress={() => router.push('/settings/smart')} />
+      <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? (hasKey === false ? t.smartNeedsKey : t.smartParseOn) : t.smartParseOff} onPress={() => router.push('/settings/smart')} />
 
       <SectionTitle>{t.about}</SectionTitle>
       <ListItem title={t.help} subtitle={t.helpSub} onPress={() => router.push('/settings/help')} />

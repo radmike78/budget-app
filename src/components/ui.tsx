@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Animated } from 'react-native';
 import { radius, spacing, useTheme } from '@/theme';
+import { useLanguageCode } from '@/i18n';
 import { useSettle } from '@/components/motion';
 
 /**
@@ -44,11 +45,19 @@ const variantStyles: Record<Variant, TextStyle> = {
   money: { fontSize: 17, fontWeight: '600', fontVariant: ['tabular-nums'] },
 };
 
+const HEADING_VARIANTS = new Set<Variant>(['display', 'title', 'heading']);
+const CJK = new Set(['ja', 'ko', 'zh']);
+
 export function Text({ variant = 'body', color, style, ...rest }: TextProps & { variant?: Variant; color?: string }) {
   const { colors } = useTheme();
   const scale = useTypeScale();
+  const language = useLanguageCode();
   const defaultColor = variant === 'muted' || variant === 'small' || variant === 'label' ? colors.muted : colors.text;
-  return <RNText {...rest} style={[scaleText(variantStyles[variant], scale), { color: color ?? defaultColor }, style]} />;
+  const heading = HEADING_VARIANTS.has(variant);
+  // Fraunces has no CJK glyphs: Japanese, Korean and Chinese headings use the system face throughout rather than a mix.
+  const face = heading && CJK.has(language) ? { fontFamily: undefined, fontWeight: '700' as const } : null;
+  // Screen readers can jump between headings.
+  return <RNText accessibilityRole={heading ? 'header' : undefined} {...rest} style={[scaleText(variantStyles[variant], scale), { color: color ?? defaultColor }, face, style]} />;
 }
 
 // ---------- Layout ----------
@@ -138,7 +147,7 @@ export function Divider() {
 export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <Row style={{ justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: spacing.sm }}>
-      <Text variant="label">{children}</Text>
+      <Text variant="label" accessibilityRole="header">{children}</Text>
       {right}
     </Row>
   );
@@ -203,9 +212,10 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
     <View accessibilityRole="radiogroup" style={[styles.segmented, { backgroundColor: colors.cardAlt }]}>
       {options.map((o) => {
         const active = o.value === value;
+        // The chosen segment is a tinted pill with accent text: card-on-cardAlt was 1.1:1 in dark mode, bold text alone.
         return (
-          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 1 }]}>
-            <RNText style={{ color: active ? colors.text : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale }}>{o.label}</RNText>
+          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent }]}>
+            <RNText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: active ? colors.accent : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale }}>{o.label}</RNText>
           </Pressable>
         );
       })}
@@ -254,7 +264,7 @@ export function ProgressBar({ fraction, tone = 'accent' }: { fraction: number; t
   // The fill settles into place rather than snapping, unless the phone asks for reduced motion.
   const width = useSettle(f * 100).interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
   return (
-    <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(f * 100) }} style={[styles.progressTrack, { backgroundColor: colors.cardAlt }]}>
+    <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(f * 100) }} style={[styles.progressTrack, { backgroundColor: `${colors.muted}40` }]}>
       <Animated.View style={[styles.progressFill, { width, backgroundColor: tone === 'warn' ? colors.warn : colors.accent }]} />
     </View>
   );

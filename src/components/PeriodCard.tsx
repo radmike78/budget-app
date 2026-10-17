@@ -51,7 +51,9 @@ export function PeriodCard({ stats, settings, categories, rules, today, onBarPre
     // this period, so when there are any it is "short once they are paid", and only without
     // them is it simply "more than came in".
     label = safe.amount >= 0 ? t.toSpendUntil(until) : t.shortOfIncome(safe.upcoming > 0);
-    if (safe.perDay != null) detail = t.perDayShort(money(safe.perDay, { compact: true }));
+    // The bills kept back are named, so "$310 to spend" with $480 in and nothing out is not a puzzle.
+    const parts = [safe.perDay != null ? t.perDayShort(money(safe.perDay, { compact: true })) : null, safe.upcoming > 0 ? t.afterBillsShort(money(safe.upcoming, { compact: true })) : null].filter(Boolean);
+    if (parts.length) detail = parts.join(' · ');
     tone = safe.amount >= 0 ? colors.income : colors.warn;
   } else if (stats.income > 0) {
     headline = stats.income - stats.expenses;
@@ -74,7 +76,7 @@ export function PeriodCard({ stats, settings, categories, rules, today, onBarPre
       </Row>
       {stats.expenses > 0 ? (
         <View style={{ marginTop: spacing.md }}>
-          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} onPress={onBarPress} />
+          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} restLabel={t.spendRest} onPress={onBarPress} />
         </View>
       ) : null}
     </Card>

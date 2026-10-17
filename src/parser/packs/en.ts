@@ -38,7 +38,7 @@ const KEYWORDS: Record<string, string[]> = {
   subscriptions: ['subscription', 'subscriptions', 'netflix', 'spotify', 'hulu', 'disney plus', 'disney+', 'hbo', 'max', 'apple music', 'apple tv', 'youtube premium', 'youtube', 'prime', 'amazon prime', 'icloud', 'google one', 'dropbox', 'chatgpt', 'claude', 'adobe', 'membership', 'patreon', 'substack', 'newspaper', 'nyt', 'new york times', 'paramount', 'peacock', 'crunchyroll', 'twitch', 'app subscription', 'monthly plan', 'annual plan', 'renewal', 'renewed', 'xbox live', 'game pass', 'ps plus', 'playstation plus', 'nintendo online', 'audible subscription', 'kindle unlimited', 'duolingo', 'headspace', 'calm', 'strava', 'peloton'],
   debt: ['credit card', 'credit card payment', 'card payment', 'loan', 'loan payment', 'student loan', 'student loans', 'debt', 'paid off', 'minimum payment', 'interest payment', 'late fee', 'overdraft', 'affirm', 'klarna', 'afterpay', 'personal loan', 'line of credit', 'paying back', 'paid back', 'owed', 'repayment', 'installment', 'instalment'],
   savings: ['savings', 'saving', 'transfer', 'transferred', 'moved to savings', 'emergency fund', 'investment', 'invested', 'investing', 'retirement', '401k', 'ira', 'roth', 'brokerage', 'stocks', 'crypto', 'bitcoin', 'vanguard', 'fidelity', 'schwab', 'robinhood', 'acorns', 'wealthfront', 'betterment', 'set aside', 'put away', 'deposit to savings', 'high yield', 'hysa', 'sinking fund'],
-  other_expense: ['fee', 'fees', 'bank fee', 'atm', 'atm fee', 'cash', 'withdrawal', 'withdrew', 'donation', 'donated', 'charity', 'church', 'tithe', 'taxes', 'tax', 'irs', 'fine', 'parking ticket', 'speeding ticket', 'postage', 'stamps', 'shipping', 'ups', 'fedex', 'usps', 'post office', 'misc', 'miscellaneous', 'other', 'stuff', 'things', 'lent', 'loaned', 'venmo', 'zelle', 'paypal', 'cash app', 'sent', 'paid someone', 'insurance', 'life insurance', 'childcare', 'daycare', 'babysitter', 'nanny', 'school', 'education', 'legal', 'lawyer', 'accountant', 'wedding', 'vacation', 'trip', 'travel', 'hotel', 'airbnb', 'hostel', 'lodging'],
+  other_expense: ['tuition', 'school fees', 'school fee', 'daycare', 'childcare', 'child care', 'babysitter', 'nursery', 'textbooks', 'haircut', 'barber', 'fee', 'fees', 'bank fee', 'atm', 'atm fee', 'cash', 'withdrawal', 'withdrew', 'donation', 'donated', 'charity', 'church', 'tithe', 'taxes', 'tax', 'irs', 'fine', 'parking ticket', 'speeding ticket', 'postage', 'stamps', 'shipping', 'ups', 'fedex', 'usps', 'post office', 'misc', 'miscellaneous', 'other', 'stuff', 'things', 'lent', 'loaned', 'venmo', 'zelle', 'paypal', 'cash app', 'sent', 'paid someone', 'insurance', 'life insurance', 'childcare', 'daycare', 'babysitter', 'nanny', 'school', 'education', 'legal', 'lawyer', 'accountant', 'wedding', 'vacation', 'trip', 'travel', 'hotel', 'airbnb', 'hostel', 'lodging'],
 };
 
 const STOPWORDS = [
@@ -146,7 +146,8 @@ export const en: LanguagePack = {
   articles: /^(?:(?:a|an|the|my|our|some|new)\s+)+/,
   leadingFiller: /^(?:(?:i|we|just|then|and|so|also|today|ok|okay|um|uh|please|note|log|add|record|entry|new|expense|income|spent|spend|paid|pay|bought|buy|purchased|got|get|received|earned|made|cost|for|on|at|of|to|in|from|the|a|an|some|my|our|about|around|roughly|another)\s+)+/,
   trailingFiller: /(?:\s+(?:today|yesterday|for|on|at|of|to|in|from|the|a|an|and|with|each|total|again|please|thanks|it|that|this))+$/,
-  noteStrip: [],
+  // "um", "uh", "like" before a preposition, and "and change" never belong in a note.
+  noteStrip: [/(?<![\p{L}])(?:um+|uh+|er+|hmm+|erm)(?![\p{L}])/giu, /(?<![\p{L}])like (?=(?:on|at|for|in|to|from)\b)/giu, /(?<![\p{L}])(?:and|or) (?:some )?change(?![\p{L}])/giu],
   singularForms,
   listSeparators: [',', ';', 'and', 'plus', 'also', 'then', 'and then', 'and also'],
   reminder: {
@@ -214,6 +215,16 @@ export const en: LanguagePack = {
     ],
   },
   correction: {
+    removeTarget: /^(?:(?:oh|oops|sorry|actually|wait|no|nope|nah|hmm|please|ok|okay)[, ]+)*(?:delete|remove|erase|scratch|cancel|drop|get rid of|take out|forget|undo) (?:the |that |this |my |our )?(?<target>(?!that\b|this\b|it\b|last\b)[\p{L}' ]+?)(?: (?:one|1|entry|expense|purchase|item|charge|thing))?(?: please)?$/iu,
+    targetLeads: [
+      // "change the uber to 32", "move the lunch to groceries", "make the coffee 4.50"
+      /^(?:(?:oh|oops|sorry|wait|no|nope|nah|hmm|ok|okay)[, ]+)*(?:change|fix|correct|update|set|make|move|put|file) (?:the |that |this |my )?(?<target>[\p{L}' ]+?)(?: (?:to|into|as|under|in))? (?<rest>.+)$/iu,
+      // "that uber was 32 not 23", "the uber was actually 32", "no the uber was 32"
+      /^(?:(?:oh|oops|sorry|wait|hmm|ok|okay)[, ]+)*(?:the |that |my )(?<target>[\p{L}' ]+?) (?:was|is|cost|should be|should have been) (?:actually |really )?(?<rest>[$€£]?\d[\d.,]*(?: (?:dollars?|bucks?))?)(?:,? (?:not|and not|instead of|rather than) [$€£]?\d[\d.,]*)?$/iu,
+      /^(?:no|nope|nah|wait|oops|sorry|actually)[, ]+(?:the |that |my )?(?<target>[\p{L}' ]+?) (?:was|is|cost) (?:actually |really )?(?<rest>[$€£]?\d[\d.,]*(?: (?:dollars?|bucks?))?)(?:,? (?:not|instead of) [$€£]?\d[\d.,]*)?$/iu,
+      // "i didn't spend 23 on uber it was 32"
+      /^(?:(?:oh|oops|sorry|wait|no|nope|hmm)[, ]+)*i (?:didn't|did not|never) (?:spend|pay|spent|paid) [$€£]?\d[\d.,]* (?:on|for|at) (?:the |that )?(?<target>[\p{L}' ]+?),? (?:it was|it's|that was|i spent|i paid|it should be) (?<rest>[$€£]?\d[\d.,]*(?: (?:dollars?|bucks?))?)$/iu,
+    ],
     remove: /^(?:(?:oh|oops|sorry|actually|wait|no|nope|nah|hmm|please|ok|okay)[, ]+)*(?:(?:delete|remove|erase|scratch|cancel|drop|get rid of|take out|forget|undo) (?:that|this|it|that one|this one|that 1|this 1|the last (?:one|1|entry|thing|expense|purchase|item)|my last (?:one|1|entry|expense|purchase)|last entry|the last thing i said)|scratch that|forget it|never ?mind(?: (?:that|that one|the last one))?|delete|remove)(?: please)?$/u,
     lead: /^(?:(?:oh|oops|sorry|wait|hmm|my bad|ok|okay|no|nope|nah)[, ]+)*(?:actually[, ]+(?:it was|that was|it's|that's|it is|that is|make (?:that|it)|change (?:that|it)(?: to)?|it should be|that should be)?|(?:make|change|fix|correct|update|switch|set) (?:that|it|this|the last (?:one|1|entry)|my last (?:one|1|entry))(?: (?:to|into|as))?|(?:that|it) should (?:be|have been)|(?:that|it) (?:was|is) (?:actually|really)|(?:put|move|file) (?:that|it|this|the last (?:one|1)) (?:under|in|into|as|to)|correction:?|i meant|(?:it|that) was (?=(?:yesterday|today|on |last |the day before))|(?:no|nope|oops|sorry)[, ]+(?=[$€£¥]?\d))\s*/u,
   },

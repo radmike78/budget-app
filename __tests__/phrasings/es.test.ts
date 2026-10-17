@@ -92,6 +92,8 @@ const income: Case[] = [
   ['me cayó la quincena, 12000', { type: 'income', amount: 12000, categoryId: 'salary' }],
   ['cobré 2400 de sueldo', { type: 'income', amount: 2400, categoryId: 'salary' }],
   ['me pagaron 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['ahorrar 500 para navidad', { kind: 'goal', amount: 500, goalName: 'Navidad', targetDate: '2026-12-25' }],
+  ['café 4 50', { kind: 'transaction', amount: 4.5 }],
   ['me pagaron la pensión 900', { type: 'income', amount: 900, categoryId: 'other_income' }],
   ['cobré 1500', { type: 'income', amount: 1500, categoryId: 'salary' }],
   ['cobré 300 por un trabajo freelance', { type: 'income', amount: 300, categoryId: 'freelance' }],

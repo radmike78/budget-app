@@ -18,6 +18,7 @@ export const en = {
     weekdaysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     /** The day a week starts on: 0 Sunday (US, Japan, Korea), 1 Monday (most of Europe, China). Weeks in questions, the recap and the calendar follow it. */
     firstDay: 0 as 0 | 1,
+    hour12: true,
     /** "September 3" / "September 3, 2027" */
     longDate: (day: number, month: string, year: number | null) => (year ? `${month} ${day}, ${year}` : `${month} ${day}`),
     /** "Mon, Sep 3" / "Sep 3, 2025" */
@@ -48,6 +49,9 @@ export const en = {
     manage: 'Manage',
     seeAll: 'See all',
     showMore: 'Show more',
+    moreSection: 'More',
+    moreCategories: (n: number) => `${n} more ${n === 1 ? 'category' : 'categories'} with nothing yet`,
+    fewerCategories: 'Show fewer',
     allGoals: 'All goals',
     today: 'Today',
     yesterday: 'Yesterday',
@@ -135,6 +139,7 @@ export const en = {
     correctionOnCard: 'Change it on the card, then save.',
     correctionCancelled: 'Cancelled. Nothing was saved.',
     correctionNothing: "There's nothing to change yet.",
+    correctionNoMatch: (what: string): string => `I couldn't find an entry for ${what}.`,
     correctionRemoved: (amount: string, what: string | null): string => (what ? `Removed ${what}, ${amount}. Undo puts it back.` : `Removed ${amount}. Undo puts it back.`),
     // several entries in one go
     multiTitle: (n: number) => `${n} entries`,
@@ -176,7 +181,7 @@ export const en = {
     reminderPrivateBody: 'Open OnlyBudget to see it.',
     // statement import
     importStatement: 'Import a statement',
-    importStatementSub: 'A bank or card statement, or a credit report, as a PDF. It is read on your phone and then deleted. Only the entries you approve are kept, never account or card numbers.',
+    importStatementSub: 'A bank or card statement, or a credit report, as a PDF, read on your phone and then deleted.',
     importIntro: 'Pick a PDF from your bank, card issuer or credit bureau. OnlyBudget reads it on this device, sorts each line into a category, and shows you everything before saving. Nothing is uploaded.',
     pickPdf: 'Choose a PDF',
     readingPdf: 'Reading the file…',
@@ -466,6 +471,8 @@ export const en = {
     ofPlanShort: (plan: string) => `left of ${plan} plan`,
     toSpendUntil: (date: string) => `to spend until ${date}`,
     perDayShort: (amount: string) => `about ${amount} a day`,
+    afterBillsShort: (amount: string) => `after ${amount} in bills still due`,
+    spendRest: 'Everything else',
     planShort: (spent: string, plan: string, left: string) => `${left} left of ${plan}`,
     toGoShort: (toGo: string) => `${toGo} to go`,
     pastPlanShort: (over: string, plan: string) => `${over} past the ${plan} plan`,
@@ -619,7 +626,7 @@ export const en = {
     quickSetup: 'Quick setup',
     quickSetupBody: "No account. No email. A few optional choices and you're in.",
     moneySetupTitle: 'Your pay and rent',
-    moneySetupBody: "Optional. With these, Today shows what's safe to spend until payday from the start. You can change them later under Repeating.",
+    moneySetupBody: "Optional. With these, Today shows what's safe to spend until payday from the start. You can change them later under Repeating. The budget then runs from payday to payday; Settings → Budget period switches it back to calendar months.",
     takeHomePay: 'Take-home pay',
     lastPayday: 'Last payday',
     rentOrMortgage: 'Rent or mortgage, each month',

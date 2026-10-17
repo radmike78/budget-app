@@ -213,7 +213,7 @@ export default function ImportScreen() {
         <>
           <SectionTitle>{t.importKind[parsed.kind] ?? t.importKind.unknown}</SectionTitle>
           <Text variant="muted">
-            {parsed.period ? t.importPeriod(longDate(parsed.period.start, today(), fmt), longDate(parsed.period.end, today(), fmt)) : ''} {t.importLinesFound(lines.length)}
+            {parsed.period ? t.importPeriod(longDate(parsed.period.start, '1900-01-01', fmt), longDate(parsed.period.end, '1900-01-01', fmt)) : ''} {t.importLinesFound(lines.length)}
           </Text>
           {parsed.warnings.filter((w) => t.importWarnings[w]).map((w) => (
             <Text key={w} variant="small" style={{ marginTop: spacing.xs }}>{t.importWarnings[w]}</Text>

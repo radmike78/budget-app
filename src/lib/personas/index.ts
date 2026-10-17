@@ -96,6 +96,7 @@ export function situationFor(e: PersonaEvent): Situation | null {
 }
 
 const PLACE_FLAVORS = new Set<Flavor>(['coffee', 'restaurant', 'delivery']);
+const THING_RE = /^(?:coffee|coffees|latte|lattes|espresso|cappuccino|americano|mocha|matcha|chai|tea|lunch|dinner|breakfast|brunch|drinks?|beers?|wine|takeout|take-out|delivery|pizza|snacks?|sushi|tacos?|burgers?|sandwich)$/i;
 const WHERE_RE = /\s(at|on|for|from)\s+(\S.*)$/i;
 
 /**
@@ -108,7 +109,9 @@ export function wherePhrase(e: Pick<PersonaEvent, 'type' | 'note' | 'categoryId'
   if (m) return `${m[1].toLowerCase()} ${m[2]}`;
   const subject = note || e.categoryName || 'that';
   const flavor = flavorFor(e);
-  return `${flavor && PLACE_FLAVORS.has(flavor) ? 'at' : 'on'} ${subject}`;
+  // "coffee" is a thing, so "on coffee"; "Starbucks" is a place, so "at Starbucks".
+  const thing = THING_RE.test(note);
+  return `${flavor && PLACE_FLAVORS.has(flavor) && !thing ? 'at' : 'on'} ${thing ? subject.toLowerCase() : subject}`;
 }
 
 function fill(template: string, e: PersonaEvent, money: (n: number) => string): string {
