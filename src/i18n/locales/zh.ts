@@ -160,6 +160,7 @@ export const zh: LocaleDef = {
     orTypeTime: '或输入时间',
     timeFormatHint: '请用 HH:MM 格式，例如 08:30 或 20:00。',
     reminderNotificationTitle: 'OnlyBudget 提醒',
+    reminderPrivateBody: '打开 OnlyBudget 查看。',
     // statement import
     importStatement: '导入账单',
     importStatementSub: '银行或信用卡账单，或信用报告的 PDF。在手机上读取后立即删除。只保留你确认的记录，绝不保存账号或卡号。',
@@ -351,6 +352,7 @@ export const zh: LocaleDef = {
     appLock: '锁定应用',
     appLockSub: '打开 OnlyBudget 时要求面容、指纹或手机密码。',
     appLockUnavailable: '这台手机没有设置锁屏，所以无法开启应用锁。',
+    appLockOpenedWithout: '这部手机已没有屏幕锁，所以 OnlyBudget 未经验证就打开了。手机重新设置密码后，应用锁会恢复。',
     lockedTitle: 'OnlyBudget 已锁定',
     unlockPrompt: '解锁 OnlyBudget',
     unlock: '解锁',

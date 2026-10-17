@@ -7,13 +7,17 @@
  */
 import type { CarryDecision, Category, Debt, DebtType, Frequency, Goal, ImportRecord, KeywordMapping, RecurringRule, Reminder, ReminderRepeat, Rollover, Settings, Tier, Transaction, TxType } from '@/types';
 import { TIERS } from './tiers';
-import { isValidDateString } from './dates';
+import { addDays, isValidDateString } from './dates';
+import { advance } from './recurring';
+import { DEFAULT_CATEGORIES } from './defaultCategories';
 
 /** A spoken entry is a sentence or two; anything longer is not an entry. */
 export const MAX_ENTRY_LENGTH = 400;
 export const MAX_TEXT_FIELD = 200;
 export const MAX_NOTE_LENGTH = 500;
 export const MAX_ROWS = 200_000;
+/** Nobody has a thousand repeating entries; a file that claims to is refused rather than logged on every launch. */
+export const MAX_RULES = 1000;
 export { MAX_AMOUNT } from './money';
 import { MAX_AMOUNT } from './money';
 /** Backup files above this are refused before JSON.parse runs. */
@@ -23,6 +27,9 @@ export const MIN_PASSPHRASE_LENGTH = 8;
 // C0/C1 controls, zero-width and bidi-override characters (Trojan Source), BOM.
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]', 'g');
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+/** Ids that would read as something else: a route ("new") or a built-in property of every object ("constructor"). */
+const isReservedId = (v: string): boolean => v === 'new' || v in Object.prototype;
+const DEFAULT_CATEGORY_IDS = new Set(DEFAULT_CATEGORIES.map((c) => c.id));
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?$/;
 const FREQUENCIES: Frequency[] = ['weekly', 'biweekly', 'monthly', 'yearly'];
@@ -54,7 +61,10 @@ export function cleanEntry(input: unknown): string {
 
 // Card numbers (13-19 digits, plain or in groups of 4 / 4-6-5), account and routing numbers
 // (8+ contiguous digits), IBANs, and masked forms like "XXXX1234" or "ending in 1234".
-const CARD_GROUPED_RE = /\b\d{4}(?:[ -]\d{4}){2,4}\b|\b\d{4}[ -]\d{6}[ -]\d{5}\b/g;
+const CARD_GROUPED_RE = /\b\d{4}(?:[ .-]\d{4}){2,4}\b|\b\d{4}[ .-]\d{6}[ .-]\d{4,5}\b/g;
+// US social security numbers and e-mail addresses: never part of an entry, never sent anywhere.
+const SSN_RE = /\b\d{3}-\d{2}-\d{4}\b/g;
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
 const LONG_DIGITS_RE = /\b\d{8,19}\b/g;
 const IBAN_RE = /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}(?:[ -]?[A-Z0-9]{1,4})?\b/gi;
 const MASKED_RE = /(?:[xX*•·#]{2,}\s?[-]?\s?\d{2,6}\b)|(?:\b(?:ending(?: in)?|last four|acct|account|card|a\/c|iban|routing|no\.?)\s*(?:number|#|no\.?)?\s*:?\s*[xX*•·]*\s?\d{4,}\b)/gi;
@@ -66,12 +76,22 @@ const MASKED_RE = /(?:[xX*•·#]{2,}\s?[-]?\s?\d{2,6}\b)|(?:\b(?:ending(?: in)?
 export function redactSensitive(input: unknown): string {
   if (typeof input !== 'string') return '';
   return input
+    .replace(EMAIL_RE, ' ')
     .replace(IBAN_RE, ' ')
     .replace(CARD_GROUPED_RE, ' ')
+    .replace(SSN_RE, ' ')
     .replace(LONG_DIGITS_RE, ' ')
     .replace(MASKED_RE, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim();
+}
+
+/**
+ * For text that must keep a value (a goal's name, a reminder, a creditor): the redacted text, or when nothing but
+ * a number was there, that number masked down to its last four digits.
+ */
+export function redactOrMask(input: string): string {
+  return redactSensitive(input) || input.replace(/\d(?=\d{4})/g, '•');
 }
 
 export class BackupValidationError extends Error {
@@ -99,7 +119,7 @@ const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 
 function assertObj(x: unknown, what: string): asserts x is Record<string, unknown> {
   if (!isObj(x)) fail(what);
 }
-const id = (v: unknown, what: string): string => (typeof v === 'string' && ID_RE.test(v) ? v : fail(`${what} id`));
+const id = (v: unknown, what: string): string => (typeof v === 'string' && ID_RE.test(v) && !isReservedId(v) ? v : fail(`${what} id`));
 const optId = (v: unknown, what: string): string | null => (v == null || v === '' ? null : id(v, what));
 const money = (v: unknown, what: string): number => {
   const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
@@ -159,7 +179,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       icon: raw.icon == null ? null : text(raw.icon, 8, 'category icon') || null,
       kind: txType(raw.kind, 'category'),
       monthlyLimit: limit,
-      isDefault: bool(raw.isDefault),
+      // Only the app's own categories are defaults (their names are translated by id).
+      isDefault: bool(raw.isDefault) && DEFAULT_CATEGORY_IDS.has(cid),
       archived: bool(raw.archived),
       sortOrder: typeof raw.sortOrder === 'number' && Number.isFinite(raw.sortOrder) ? Math.trunc(raw.sortOrder) : categories.length,
     });
@@ -172,24 +193,37 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
 
   const recurringRules: RecurringRule[] = [];
   const seenRule = new Set<string>();
-  for (const raw of list(o.recurringRules, 'recurring rules')) {
+  const ruleList = list(o.recurringRules, 'recurring rules');
+  if (ruleList.length > MAX_RULES) fail('recurring rules too many rows');
+  // An active rule a long way behind would log every missed date on each launch: it restarts within the last year.
+  const today = now.slice(0, 10);
+  const yearAgo = isValidDateString(today) ? addDays(today, -366) : null;
+  for (const raw of ruleList) {
     assertObj(raw, 'recurring rule');
     const rid = id(raw.id, 'recurring rule');
     if (seenRule.has(rid)) fail('duplicate rule id');
     seenRule.add(rid);
     const frequency = FREQUENCIES.find((f) => f === raw.frequency);
     if (!frequency) fail('rule frequency');
+    const anchorDay = typeof raw.anchorDay === 'number' && Number.isInteger(raw.anchorDay) && raw.anchorDay >= 1 && raw.anchorDay <= 31 ? raw.anchorDay : null;
+    const active = raw.active == null ? true : bool(raw.active);
+    let nextOccurrence = day(raw.nextOccurrence, 'rule next');
+    if (nextOccurrence < '2000-01-01') fail('rule next date');
+    if (active && yearAgo && nextOccurrence < yearAgo) {
+      const anchor = anchorDay ?? Number(nextOccurrence.slice(8, 10));
+      for (let guard = 0; nextOccurrence < yearAgo && guard < 2000; guard += 1) nextOccurrence = advance(nextOccurrence, frequency as Frequency, anchor);
+    }
     recurringRules.push({
       id: rid,
       amount: money(raw.amount, 'rule'),
       type: txType(raw.type, 'rule'),
       categoryId: catRef(raw.categoryId, 'rule category'),
       frequency: frequency as Frequency,
-      nextOccurrence: day(raw.nextOccurrence, 'rule next'),
+      nextOccurrence,
       // The day the rule was set on, so a monthly rule on the 31st keeps returning to the 31st after a restore.
-      anchorDay: typeof raw.anchorDay === 'number' && Number.isInteger(raw.anchorDay) && raw.anchorDay >= 1 && raw.anchorDay <= 31 ? raw.anchorDay : null,
-      note: text(raw.note, MAX_NOTE_LENGTH, 'rule note') || null,
-      active: raw.active == null ? true : bool(raw.active),
+      anchorDay,
+      note: redactSensitive(text(raw.note, MAX_NOTE_LENGTH, 'rule note')) || null,
+      active,
     });
   }
 
@@ -206,7 +240,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     imports.push({
       id: iid,
       kind: oneOf(raw.kind, IMPORT_KINDS, 'import kind'),
-      fileName: text(raw.fileName, MAX_TEXT_FIELD, 'import file name'),
+      // The app never keeps a statement's file name (it often carries an account number).
+      fileName: '',
       periodStart: optDay(raw.periodStart, 'import period'),
       periodEnd: optDay(raw.periodEnd, 'import period'),
       count: Math.trunc(count),

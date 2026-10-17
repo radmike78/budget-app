@@ -160,6 +160,7 @@ export const ja: LocaleDef = {
     orTypeTime: 'または時刻を入力',
     timeFormatHint: 'HH:MM の形式で。例：08:30、20:00',
     reminderNotificationTitle: 'OnlyBudget のリマインダー',
+    reminderPrivateBody: 'OnlyBudget を開いて確認してください。',
     // statement import
     importStatement: '明細を取り込む',
     importStatementSub: '銀行・カードの明細や信用情報レポートの PDF。端末上で読み取った後に削除します。承認した項目だけが残り、口座番号やカード番号は一切保存しません。',
@@ -351,6 +352,7 @@ export const ja: LocaleDef = {
     appLock: 'アプリをロック',
     appLockSub: 'OnlyBudget を開くときに Face ID、指紋、または端末のパスコードを求めます。',
     appLockUnavailable: 'この端末には画面ロックが設定されていないため、アプリロックをオンにできません。',
+    appLockOpenedWithout: 'この電話には画面ロックが設定されていないため、確認なしで OnlyBudget を開きました。電話にパスコードを設定すると、アプリのロックが戻ります。',
     lockedTitle: 'OnlyBudget はロックされています',
     unlockPrompt: 'OnlyBudget のロックを解除',
     unlock: 'ロック解除',

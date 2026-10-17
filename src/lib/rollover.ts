@@ -39,6 +39,8 @@ export function carryInto(cat: Pick<Category, 'monthlyLimit' | 'rollover' | 'rol
   if (mode === 'carry') {
     // A plan changed part-way restarts carrying from that period, starting with what had carried until then
     // (saved as the decision for `since`), so a new plan never rewrites what earlier periods left over.
+    // A period from before carrying started (or restarted) has nothing carried into it.
+    if (since && current.start < since) return NONE;
     let carry = since ? Math.max(0, decisions.get(since) ?? 0) : 0;
     for (const p of usable) carry = Math.max(0, limit + carry - p.spent);
     return carry > 0 ? { amount: round2(carry), pendingLeftover: null } : NONE;

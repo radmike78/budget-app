@@ -160,6 +160,7 @@ export const fr: LocaleDef = {
     orTypeTime: 'Ou saisissez une heure',
     timeFormatHint: 'Utilisez HH:MM, par exemple 08:30 ou 20:00.',
     reminderNotificationTitle: 'Rappel OnlyBudget',
+    reminderPrivateBody: 'Ouvrez OnlyBudget pour le voir.',
     // statement import
     importStatement: 'Importer un relevé',
     importStatementSub: 'Un relevé bancaire ou de carte, ou un rapport de crédit, en PDF. Il est lu sur votre téléphone puis supprimé. Seules les entrées que vous approuvez sont conservées, jamais les numéros de compte ou de carte.',
@@ -351,6 +352,7 @@ export const fr: LocaleDef = {
     appLock: 'Verrouiller l’app',
     appLockSub: 'Demande Face ID, l’empreinte ou votre code à l’ouverture d’OnlyBudget.',
     appLockUnavailable: 'Ce téléphone n’a pas de verrouillage d’écran, le verrou de l’app ne peut donc pas être activé.',
+    appLockOpenedWithout: 'Ce téléphone n’a plus de verrouillage d’écran, donc OnlyBudget s’est ouvert sans le demander. Le verrouillage de l’app reviendra dès que le téléphone aura de nouveau un code.',
     lockedTitle: 'OnlyBudget est verrouillée',
     unlockPrompt: 'Déverrouiller OnlyBudget',
     unlock: 'Déverrouiller',
@@ -461,7 +463,7 @@ export const fr: LocaleDef = {
     recapLine: (total: string, top: string | null, compare: 'less' | 'more' | 'same' | 'first', diff: string) => { const lead = top ? `${total} sont sortis, surtout en ${top}.` : `${total} sont sortis.`; if (compare === 'less') return `${lead} C’est ${diff} de moins que la semaine précédente.`; if (compare === 'more') return `${lead} C’est ${diff} de plus que la semaine précédente.`; if (compare === 'same') return `${lead} À peu près comme la semaine précédente.`; return lead; },
     readAloud: 'Lire à voix haute',
     periodNames: { today: 'aujourd\'hui', yesterday: 'hier', week: 'cette semaine', lastWeek: 'la semaine dernière', month: 'ce mois-ci', lastMonth: 'le mois dernier', year: 'cette année', lastYear: 'l\'année dernière', all: 'au total', budget: 'cette période de paie', weekend: 'ce week-end' } as Record<string, string>,
-    periodLastDays: (n: number) => (n === 1 ? 'depuis hier' : `ces ${n} derniers jours`),
+    periodLastDays: (n: number) => (n === 1 ? 'aujourd’hui' : `ces ${n} derniers jours`),
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entrée' : 'entrées'}`;

@@ -33,9 +33,12 @@ export async function authenticate(prompt: string, cancel: string): Promise<bool
 export async function authenticateWithReason(prompt: string, cancel: string): Promise<'ok' | 'failed' | 'unavailable'> {
   if (Platform.OS === 'web') return 'ok';
   try {
-    const res = await LocalAuthentication.authenticateAsync({ promptMessage: prompt, cancelLabel: cancel, disableDeviceFallback: false });
+    // Strong (class 3) biometrics only: a 2D face match on some Android phones opens for a photo. The passcode
+    // is always the fallback.
+    const res = await LocalAuthentication.authenticateAsync({ promptMessage: prompt, cancelLabel: cancel, disableDeviceFallback: false, biometricsSecurityLevel: 'strong' });
     if (res.success) return 'ok';
-    if (res.error === 'not_enrolled' || res.error === 'passcode_not_set' || res.error === 'not_available') return 'unavailable';
+    // An error code alone ("not available" is also a busy sensor) never counts: only a phone that really has
+    // no lock any more lets the app in.
     return (await canUseAppLock()) ? 'failed' : 'unavailable';
   } catch {
     return (await canUseAppLock()) ? 'failed' : 'unavailable';

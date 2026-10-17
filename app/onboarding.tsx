@@ -77,7 +77,9 @@ export default function Onboarding() {
       // A payday typed long ago would log every paycheck since; only the latest one up to today counts.
       // A payday still ahead is the next one: nothing is logged before it comes.
       const first = lastPayday > todayStr ? lastPayday : latestOnOrBefore(lastPayday, payFrequency, todayStr);
-      await saveRule({ id: newId(), amount: pay, type: 'income', categoryId: 'salary', frequency: payFrequency, nextOccurrence: first, note: t.payNote, active: true });
+      // Monthly pay keeps the day it was given: paid on the 31st, so the 30th in a short month and the 31st after.
+      const anchorDay = payFrequency === 'monthly' ? Number(lastPayday.slice(8, 10)) : undefined;
+      await saveRule({ id: newId(), amount: pay, type: 'income', categoryId: 'salary', frequency: payFrequency, nextOccurrence: first, anchorDay, note: t.payNote, active: true });
       if (first <= todayStr) logged += pay;
     }
     if (rent != null && rent > 0 && rent <= MAX_AMOUNT) {

@@ -160,6 +160,7 @@ export const es: LocaleDef = {
     orTypeTime: 'O escribe una hora',
     timeFormatHint: 'Usa HH:MM, como 08:30 o 20:00.',
     reminderNotificationTitle: 'Recordatorio de OnlyBudget',
+    reminderPrivateBody: 'Abre OnlyBudget para verlo.',
     // statement import
     importStatement: 'Importar un extracto',
     importStatementSub: 'Un extracto bancario o de tarjeta, o un informe de crédito, en PDF. Se lee en tu teléfono y luego se borra. Solo se guardan las entradas que apruebes, nunca números de cuenta ni de tarjeta.',
@@ -351,6 +352,7 @@ export const es: LocaleDef = {
     appLock: 'Bloquear la app',
     appLockSub: 'Pide Face ID, huella o tu código cuando OnlyBudget se abre.',
     appLockUnavailable: 'Este teléfono no tiene bloqueo de pantalla, así que no se puede activar el bloqueo de la app.',
+    appLockOpenedWithout: 'Este teléfono ya no tiene bloqueo de pantalla, así que OnlyBudget se abrió sin pedirlo. El bloqueo de la app vuelve cuando el teléfono tenga otra vez un código.',
     lockedTitle: 'OnlyBudget está bloqueada',
     unlockPrompt: 'Desbloquear OnlyBudget',
     unlock: 'Desbloquear',

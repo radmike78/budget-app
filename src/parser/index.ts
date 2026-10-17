@@ -794,7 +794,7 @@ function categoryFromWords(words: string, ctx: ParseContext, pack: LanguagePack)
   const compact = key.replace(/\s+/g, '');
   const forms = [key, ...(pack.tokenizer === 'space' && pack.singularForms ? pack.singularForms(key) : [])];
   const active = ctx.categories.filter((cat) => !cat.archived);
-  const namesOf = (cat: Category) => [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => !!n).map((n) => n.toLowerCase().trim());
+  const namesOf = (cat: Category) => [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => typeof n === 'string' && !!n).map((n) => n.toLowerCase().trim());
   for (const cat of active) if (namesOf(cat).some((n) => forms.includes(n) || n.replace(/\s+/g, '') === compact)) return { categoryId: cat.id, matched: words };
   if (pack.tokenizer === 'space') {
     for (const cat of active) {

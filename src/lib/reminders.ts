@@ -131,6 +131,8 @@ async function ensureChannel(channelName: string): Promise<string | undefined> {
     importance: Notifications.AndroidImportance.DEFAULT,
     vibrationPattern: undefined,
     showBadge: false,
+    // On a locked phone only "OnlyBudget reminder" shows; the words are seen after unlocking.
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
   });
   return 'reminders';
 }
@@ -142,14 +144,15 @@ const REMINDER_PREFIX = 'onlybudget-reminder-';
  * when notifications are not allowed (the reminder is still kept and can be armed later).
  * `channelName` is the Android channel's user-visible name, in the app's language.
  */
-export async function scheduleReminderNotification(rem: Reminder, title: string, channelName: string): Promise<string | null> {
+export async function scheduleReminderNotification(rem: Reminder, title: string, channelName: string, privateBody: string | null = null): Promise<string | null> {
   if (Platform.OS === 'web') return null;
   // The channel comes first: Android 13+ shows the permission prompt only once the app has a channel.
   const channelId = await ensureChannel(channelName);
   const state = await ensureNotificationPermission();
   if (state !== 'granted') return null;
   const { hour, minute } = parseTime(rem.time);
-  const content = { title, body: rem.text, sound: false as const };
+  // With the app lock on, the reminder's own words ("pay the Visa 1,240") are not put on the lock screen.
+  const content = { title, body: privateBody ?? rem.text, sound: false as const };
   const identifier = `${REMINDER_PREFIX}${rem.id}`;
   await cancelReminderNotification(identifier);
   const now = new Date();
@@ -168,7 +171,7 @@ export async function scheduleReminderNotification(rem: Reminder, title: string,
     return identifier;
   }
   // Monthly on a day every month has keeps firing without the app being opened.
-  if (rem.repeat === 'monthly' && day <= 28 && first.getTime() - now.getTime() <= 31 * 86_400_000) {
+  if (rem.repeat === 'monthly' && day <= 28 && monthlyTriggerFits(first, now)) {
     await Notifications.scheduleNotificationAsync({ identifier, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day, hour, minute, channelId } });
     return identifier;
   }
@@ -180,6 +183,18 @@ export async function scheduleReminderNotification(rem: Reminder, title: string,
     await Notifications.scheduleNotificationAsync({ identifier: k === 0 ? identifier : `${identifier}${SERIES_MARK}${k}`, content, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: dates[k], channelId } });
   }
   return identifier;
+}
+
+/**
+ * A monthly trigger fires on the next matching day and time after now, so it is used only when that is the
+ * reminder's first date (or the reminder has already started): "rent on the 1st" set on February 1 for March 1
+ * would otherwise go off that same morning, a month early.
+ */
+export function monthlyTriggerFits(first: Date, now: Date): boolean {
+  if (first.getTime() <= now.getTime()) return true;
+  const fire = new Date(now.getFullYear(), now.getMonth(), first.getDate(), first.getHours(), first.getMinutes());
+  if (fire.getTime() <= now.getTime()) fire.setMonth(fire.getMonth() + 1);
+  return fire.getTime() === first.getTime();
 }
 
 /** How many dated notifications a repeating reminder keeps ahead of it when it cannot use a repeating trigger. */
@@ -219,7 +234,7 @@ export async function cancelReminderNotification(notificationId: string | null |
 export function needsRearm(rem: Reminder, now: Date = new Date()): boolean {
   if (rem.repeat === 'none') return false;
   const first = reminderDateTime(rem.date, rem.time);
-  if (rem.repeat === 'monthly') return first.getDate() > 28 || first.getTime() - now.getTime() > 31 * 86_400_000;
+  if (rem.repeat === 'monthly') return first.getDate() > 28 || !monthlyTriggerFits(first, now);
   return first.getTime() > now.getTime();
 }
 

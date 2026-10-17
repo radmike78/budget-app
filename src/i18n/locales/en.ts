@@ -170,6 +170,7 @@ export const en = {
     orTypeTime: 'Or type a time',
     timeFormatHint: 'Use HH:MM, like 08:30 or 20:00.',
     reminderNotificationTitle: 'OnlyBudget reminder',
+    reminderPrivateBody: 'Open OnlyBudget to see it.',
     // statement import
     importStatement: 'Import a statement',
     importStatementSub: 'A bank or card statement, or a credit report, as a PDF. It is read on your phone and then deleted. Only the entries you approve are kept, never account or card numbers.',
@@ -370,6 +371,7 @@ export const en = {
     appLock: 'Lock the app',
     appLockSub: 'Ask for Face ID, fingerprint or your passcode when OnlyBudget opens.',
     appLockUnavailable: 'This phone has no screen lock set up, so the app lock cannot be turned on.',
+    appLockOpenedWithout: 'This phone has no screen lock set up any more, so OnlyBudget opened without asking. The app lock comes back once the phone has a passcode again.',
     lockedTitle: 'OnlyBudget is locked',
     unlockPrompt: 'Unlock OnlyBudget',
     unlock: 'Unlock',

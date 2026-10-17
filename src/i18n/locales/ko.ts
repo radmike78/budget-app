@@ -160,6 +160,7 @@ export const ko: LocaleDef = {
     orTypeTime: '또는 시간 입력',
     timeFormatHint: 'HH:MM 형식으로 입력하세요. 예: 08:30, 20:00',
     reminderNotificationTitle: 'OnlyBudget 알림',
+    reminderPrivateBody: 'OnlyBudget을 열어 확인하세요.',
     // statement import
     importStatement: '명세서 가져오기',
     importStatementSub: '은행·카드 명세서나 신용 보고서 PDF. 휴대폰에서 읽은 뒤 바로 삭제해요. 승인한 항목만 남고 계좌번호나 카드번호는 절대 저장하지 않아요.',
@@ -351,6 +352,7 @@ export const ko: LocaleDef = {
     appLock: '앱 잠금',
     appLockSub: 'OnlyBudget을 열 때 Face ID, 지문 또는 휴대폰 비밀번호를 요구해요.',
     appLockUnavailable: '이 휴대폰에는 화면 잠금이 설정되어 있지 않아 앱 잠금을 켤 수 없어요.',
+    appLockOpenedWithout: '이 휴대폰에 화면 잠금이 없어서 OnlyBudget이 확인 없이 열렸어요. 휴대폰에 다시 암호를 설정하면 앱 잠금이 돌아와요.',
     lockedTitle: 'OnlyBudget이 잠겨 있어요',
     unlockPrompt: 'OnlyBudget 잠금 해제',
     unlock: '잠금 해제',

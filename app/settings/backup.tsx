@@ -120,7 +120,7 @@ export default function Backup() {
   };
 
   const restore = () => run('restore', async () => {
-    const picked = await pickTextFile();
+    const picked = await pickTextFile(MAX_BACKUP_BYTES);
     if (!picked) return t.noFileChosen;
     const parsed = parseFile(picked.text);
     if (isEncryptedBackupFile(parsed)) {

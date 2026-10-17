@@ -177,7 +177,7 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   const compact = key.replace(/\s+/g, '');
   for (const cat of ctx.categories) {
     if (cat.archived) continue;
-    const names = [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => !!n).map((n) => n.toLowerCase().trim());
+    const names = [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => typeof n === 'string' && !!n).map((n) => n.toLowerCase().trim());
     if (names.some((n) => n === key || n.replace(/\s+/g, '') === compact)) {
       return { ...base, target: ctx.restoreCase(rest), categoryId: cat.id, fallbackCategoryId: null };
     }
@@ -191,7 +191,7 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   // A word that starts a category's name, or one side of it: "dining" is "Dining out", "mortgage" is "Rent / Mortgage".
   for (const cat of ctx.categories) {
     if (cat.archived) continue;
-    const names = [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => !!n).map((n) => n.toLowerCase().trim());
+    const names = [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => typeof n === 'string' && !!n).map((n) => n.toLowerCase().trim());
     const parts = names.flatMap((n) => n.split(/\s*[/&,]\s*/u)).map((p) => p.trim()).filter(Boolean);
     if (parts.some((p) => p === key || p.split(/\s+/u)[0] === key)) {
       return { ...base, target: ctx.restoreCase(rest), categoryId: cat.id, fallbackCategoryId: null };

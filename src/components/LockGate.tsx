@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus, Modal, Platform, StyleSheet, View } from 'react-native';
 import { FullWindowOverlay } from 'react-native-screens';
+import * as ScreenCapture from 'expo-screen-capture';
+import { notify } from '@/lib/dialogs';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { authenticateWithReason } from '@/lib/appLock';
@@ -18,7 +20,6 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   const t = useT();
   const enabled = useAppStore((s) => s.settings?.appLockEnabled ?? false);
-  const updateSettings = useAppStore((s) => s.updateSettings);
   const ready = useAppStore((s) => s.ready);
   const [locked, setLocked] = useState(enabled);
   const [covered, setCovered] = useState(false);
@@ -32,14 +33,16 @@ export function LockGate({ children }: { children: React.ReactNode }) {
       const result = await authenticateWithReason(t.unlockPrompt, t.cancel);
       if (result === 'ok') setLocked(false);
       else if (result === 'unavailable') {
-        // The phone has no passcode or biometrics any more: the lock has nothing left to ask, so it turns off.
+        // The phone has no passcode or biometrics any more, so there is nothing to ask: the data is only on this
+        // phone, and locking the person out would lose it. They are let in and told; the setting stays on, so the
+        // lock comes back once the phone has a passcode again.
         setLocked(false);
-        await updateSettings({ appLockEnabled: false });
+        notify(t.appLock, t.appLockOpenedWithout);
       }
     } finally {
       setBusy(false);
     }
-  }, [busy, t, updateSettings]);
+  }, [busy, t]);
 
   // Locked when the app opens with the lock on; turning it on in Settings has just asked, so it does not lock again.
   const wasEnabled = useRef<boolean | null>(null);
@@ -63,13 +66,22 @@ export function LockGate({ children }: { children: React.ReactNode }) {
         setCovered(false);
         const away = backgroundedAt.current ? Date.now() - backgroundedAt.current : 0;
         backgroundedAt.current = null;
-        if (away > RELOCK_AFTER_MS) setLocked(true);
+        // A clock set back while away (negative time) locks too, or turning the time back would skip the lock.
+        if (away < 0 || away > RELOCK_AFTER_MS) setLocked(true);
       } else {
-        if (state === 'background' && backgroundedAt.current == null) backgroundedAt.current = Date.now();
+        // Time in the app switcher (iOS "inactive") counts as away as well.
+        if (backgroundedAt.current == null) backgroundedAt.current = Date.now();
         setCovered(true);
       }
     });
     return () => sub.remove();
+  }, [enabled]);
+
+  // With the lock on, the system is told the screens are private: no screenshots or recordings, and Android shows
+  // a blank card in recent apps (the cover below arrives a moment too late for that snapshot).
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    (enabled ? ScreenCapture.preventScreenCaptureAsync('app-lock') : ScreenCapture.allowScreenCaptureAsync('app-lock')).catch(() => {});
   }, [enabled]);
 
   const show = enabled && (locked || covered);

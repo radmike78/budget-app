@@ -16,12 +16,20 @@ import { execSync } from 'node:child_process';
 
 const dist = path.resolve(process.argv[2] || 'dist');
 const conf = fs.readFileSync(path.resolve('deploy/nginx/default.conf'), 'utf8');
-const serverBlock = conf.split('location ')[0];
-const headers = Object.fromEntries([...serverBlock.matchAll(/add_header\s+([\w-]+)\s+"([^"]+)"/g)].map((m) => [m[1], m[2]]));
+// nginx sends a location's own add_header lines instead of the server's, so each location is checked on its own
+// and the page is served with what `location /` (index.html) really sends.
+const headersOf = (block) => Object.fromEntries([...block.matchAll(/add_header\s+([\w-]+)\s+"([^"]+)"/g)].map((m) => [m[1], m[2]]));
+const locations = conf.split(/\n\s*location /).slice(1).map((b) => ({ name: b.slice(0, b.indexOf('{')).trim(), headers: headersOf(b.slice(0, b.indexOf('\n    }'))) }));
+const root = locations.find((l) => l.name === '/');
+if (!root) { console.error('No `location /` in the nginx config'); process.exit(1); }
+const headers = root.headers;
+delete headers['Cache-Control'];
 
 const REQUIRED = ['Content-Security-Policy', 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy', 'Strict-Transport-Security', 'Cross-Origin-Opener-Policy', 'Cross-Origin-Embedder-Policy'];
-const missing = REQUIRED.filter((h) => !headers[h]);
-if (missing.length) { console.error('Missing headers in nginx config:', missing.join(', ')); process.exit(1); }
+for (const loc of locations) {
+  const missing = REQUIRED.filter((h) => !loc.headers[h]);
+  if (missing.length) { console.error(`Missing headers in nginx location ${loc.name}:`, missing.join(', ')); process.exit(1); }
+}
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.mjs': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm', '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };
 

@@ -59,7 +59,7 @@ export default function SmartParsing() {
       <SectionTitle>{t.yourApiKey}</SectionTitle>
       <Card>
         <Text variant="small" style={{ marginBottom: spacing.md }}>{hasKey ? t.keySaved : t.noKey}</Text>
-        <Field value={key} onChangeText={setKey} placeholder={hasKey ? t.pasteNewKey : 'sk-ant-…'} secureTextEntry autoCapitalize="none" autoCorrect={false} />
+        <Field value={key} onChangeText={setKey} placeholder={hasKey ? t.pasteNewKey : 'sk-ant-…'} secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="off" importantForAutofill="no" textContentType="none" />
         <Row>
           <Button title={t.saveKey} onPress={saveKey} disabled={!key.trim()} />
           {hasKey ? <Button tone="ghost" title={t.removeKey} onPress={async () => { await setApiKey(null); setHasKey(false); }} /> : null}

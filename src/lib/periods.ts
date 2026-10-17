@@ -5,18 +5,23 @@
  */
 import type { BudgetPeriodMode, Frequency, Period, RecurringRule } from '@/types';
 import { addDays, addMonths, addYears, fromDateString, longDate, monthKey, monthRange, type DateFormat, EN_DATE_FORMAT } from './dates';
-import { advance } from './recurring';
+import { advance, monthlyEquivalent } from './recurring';
 
 type PayRule = Pick<RecurringRule, 'type' | 'active' | 'frequency' | 'nextOccurrence' | 'anchorDay' | 'amount'>;
 
-/** An income at least this share of the largest one is pay; anything smaller (a side gig, interest) never splits a period. */
+/** An income worth at least this share of the largest a month is pay; anything smaller (a side gig, interest) never splits a period. */
 const MAIN_PAY_SHARE = 0.5;
 
-/** The active income rules that set paydays: the largest, and any about as large (pay split over the 1st and 15th). */
+/**
+ * The active income rules that set paydays: the largest by what it brings in a month, and any about as large (pay split
+ * over the 1st and 15th). A yearly bonus is never a payday while anything more frequent comes in: a period a year long
+ * would hide every plan.
+ */
 export function mainPayRules<R extends PayRule>(rules: R[]): R[] {
-  const income = rules.filter((r) => r.active && r.type === 'income');
-  const largest = income.reduce((max, r) => Math.max(max, r.amount), 0);
-  return income.filter((r) => r.amount >= largest * MAIN_PAY_SHARE);
+  const all = rules.filter((r) => r.active && r.type === 'income');
+  const income = all.some((r) => r.frequency !== 'yearly') ? all.filter((r) => r.frequency !== 'yearly') : all;
+  const largest = income.reduce((max, r) => Math.max(max, monthlyEquivalent(r)), 0);
+  return income.filter((r) => monthlyEquivalent(r) >= largest * MAIN_PAY_SHARE);
 }
 
 /** Steps one occurrence back; the mirror of `advance`. */

@@ -37,18 +37,21 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 export function base64ToBytes(s: string): Uint8Array {
   const clean = s.replace(/[^A-Za-z0-9+/]/g, '');
-  const out: number[] = [];
+  // Written straight into a typed array of the final size: a plain array of numbers costs eight bytes or more
+  // per byte, which on a large file is enough to end the app.
+  const out = new Uint8Array(Math.floor((clean.length * 6) / 8));
+  let n = 0;
   let buffer = 0;
   let bits = 0;
-  for (const ch of clean) {
-    buffer = (buffer << 6) | B64.indexOf(ch);
+  for (let i = 0; i < clean.length; i += 1) {
+    buffer = ((buffer << 6) | B64.indexOf(clean[i])) & 0xffffff;
     bits += 6;
     if (bits >= 8) {
       bits -= 8;
-      out.push((buffer >> bits) & 255);
+      out[n++] = (buffer >> bits) & 255;
     }
   }
-  return new Uint8Array(out);
+  return out.subarray(0, n);
 }
 
 /** Async so the screen keeps drawing (and the spinner keeps turning) while the key is derived. */
@@ -85,7 +88,7 @@ export function isEncryptedBackupFile(x: unknown): x is EncryptedBackupFile {
   if (!x || typeof x !== 'object') return false;
   const o = x as Record<string, unknown>;
   if (o.app !== 'onlybudget' || o.format !== 'encrypted-backup' || o.cipher !== 'xchacha20poly1305') return false;
-  if (typeof o.ciphertext !== 'string' || !B64_RE.test(o.ciphertext) || o.ciphertext.length > 200 * 1024 * 1024) return false;
+  if (typeof o.ciphertext !== 'string' || !B64_RE.test(o.ciphertext) || o.ciphertext.length > 70 * 1024 * 1024) return false;
   if (typeof o.nonce !== 'string' || !B64_RE.test(o.nonce) || o.nonce.length !== 32) return false;
   const kdf = o.kdf as Record<string, unknown> | undefined;
   if (!kdf || typeof kdf !== 'object' || kdf.name !== 'scrypt') return false;
