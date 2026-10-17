@@ -3,6 +3,7 @@ import { Switch, View } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { getApiKey, setApiKey } from '@/lib/secrets';
+import { confirmDialog } from '@/lib/dialogs';
 import { LLM_MODEL } from '@/parser/llmFallback';
 import { useT } from '@/i18n';
 import { Button, Card, Field, Row, Screen, SectionTitle, Text } from '@/components/ui';
@@ -21,6 +22,13 @@ export default function SmartParsing() {
   }, []);
   if (!settings) return null;
 
+  // Turning it on sends phrases to a third party, so it is asked for in so many words first; turning it off is one tap.
+  const toggle = async (on: boolean) => {
+    if (!on) { await updateSettings({ smartParseEnabled: false }); return; }
+    const allowed = await confirmDialog(t.smartConsentTitle, t.smartConsentBody, { confirmText: t.allow, cancelText: t.dontAllow });
+    if (allowed) await updateSettings({ smartParseEnabled: true });
+  };
+
   const saveKey = async () => {
     await setApiKey(key.trim() || null);
     setHasKey(!!key.trim());
@@ -36,8 +44,9 @@ export default function SmartParsing() {
           <View style={{ flex: 1, paddingRight: spacing.md }}>
             <Text variant="body">{t.useSmart}</Text>
             <Text variant="small">{t.useSmartSub}</Text>
+            {settings.smartParseEnabled && !hasKey ? <Text variant="small" style={{ marginTop: spacing.xs }}>{t.smartNeedsKey}</Text> : null}
           </View>
-          <Switch value={settings.smartParseEnabled} onValueChange={(v) => updateSettings({ smartParseEnabled: v })} trackColor={{ true: colors.accent }} accessibilityLabel={t.useSmart} />
+          <Switch value={settings.smartParseEnabled} onValueChange={toggle} trackColor={{ true: colors.accent }} accessibilityLabel={t.useSmart} />
         </Row>
       </Card>
 

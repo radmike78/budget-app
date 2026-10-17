@@ -20,7 +20,8 @@ export default function TabsLayout() {
   // label box comes out shorter than the glyphs, so the web build clips the descenders
   // off "Today", "Budget" and "Settings".
   const label = (title: string) => ({ color }: { color: ColorValue }) => (
-    <Text style={{ color: color as string, fontSize: Math.round(11 * scale), lineHeight: Math.round(16 * scale), fontWeight: '600', textAlign: 'center', includeFontPadding: false }}>{title}</Text>
+    // The tab bar has a fixed height, so the label grows with the phone's text size only so far.
+    <Text maxFontSizeMultiplier={1.3} style={{ color: color as string, fontSize: Math.round(11 * scale), lineHeight: Math.round(16 * scale), fontWeight: '600', textAlign: 'center', includeFontPadding: false }}>{title}</Text>
   );
   return (
     <>

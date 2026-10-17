@@ -5,7 +5,7 @@
  */
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { bytesToUtf8, utf8ToBytes } from '@noble/ciphers/utils.js';
-import { scrypt } from '@noble/hashes/scrypt.js';
+import { scryptAsync } from '@noble/hashes/scrypt.js';
 
 export interface EncryptedBackupFile {
   app: 'onlybudget';
@@ -51,11 +51,12 @@ export function base64ToBytes(s: string): Uint8Array {
   return new Uint8Array(out);
 }
 
-export function encryptBackup(plaintextJson: string, passphrase: string, randomBytes: (n: number) => Uint8Array): EncryptedBackupFile {
+/** Async so the screen keeps drawing (and the spinner keeps turning) while the key is derived. */
+export async function encryptBackup(plaintextJson: string, passphrase: string, randomBytes: (n: number) => Uint8Array): Promise<EncryptedBackupFile> {
   if (!passphrase) throw new Error('A passphrase is required.');
   const salt = randomBytes(16);
   const nonce = randomBytes(24);
-  const key = scrypt(utf8ToBytes(passphrase.normalize('NFKC')), salt, SCRYPT);
+  const key = await scryptAsync(utf8ToBytes(passphrase.normalize('NFKC')), salt, SCRYPT);
   const ciphertext = xchacha20poly1305(key, nonce).encrypt(utf8ToBytes(plaintextJson));
   return {
     app: 'onlybudget',
@@ -97,11 +98,11 @@ export function isEncryptedBackupFile(x: unknown): x is EncryptedBackupFile {
   return true;
 }
 
-/** Throws if the passphrase is wrong or the file was tampered with. */
-export function decryptBackup(file: EncryptedBackupFile, passphrase: string): string {
+/** Rejects if the passphrase is wrong or the file was tampered with. */
+export async function decryptBackup(file: EncryptedBackupFile, passphrase: string): Promise<string> {
   if (!isEncryptedBackupFile(file)) throw new Error('Not an OnlyBudget encrypted backup');
   const salt = base64ToBytes(file.kdf.salt);
-  const key = scrypt(utf8ToBytes(passphrase.normalize('NFKC')), salt, { N: file.kdf.N, r: file.kdf.r, p: file.kdf.p, dkLen: 32 });
+  const key = await scryptAsync(utf8ToBytes(passphrase.normalize('NFKC')), salt, { N: file.kdf.N, r: file.kdf.r, p: file.kdf.p, dkLen: 32 });
   const nonce = base64ToBytes(file.nonce);
   const plaintext = xchacha20poly1305(key, nonce).decrypt(base64ToBytes(file.ciphertext));
   return bytesToUtf8(plaintext);

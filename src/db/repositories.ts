@@ -30,9 +30,10 @@ const toRule = (r: RuleRow): RecurringRule => ({
   id: r.id, amount: r.amount, type: r.type, categoryId: r.category_id, frequency: r.frequency, nextOccurrence: r.next_occurrence, note: r.note, active: r.active === 1, anchorDay: r.anchor_day ?? null,
 });
 
-type GoalRow = { id: string; name: string; kind: string | null; target_amount: number; current_amount: number; target_date: string | null; created_at: string; completed: number };
+type GoalRow = { id: string; name: string; kind: string | null; target_amount: number; current_amount: number; target_date: string | null; created_at: string; completed: number; starting_amount?: number | null };
 const toGoal = (r: GoalRow): Goal => ({
   id: r.id, name: r.name, kind: r.kind === 'debt' ? 'debt' : 'saving', targetAmount: r.target_amount, currentAmount: r.current_amount, targetDate: r.target_date, createdAt: r.created_at, completed: r.completed === 1,
+  startingAmount: typeof r.starting_amount === 'number' ? r.starting_amount : null,
 });
 
 type SettingsRow = { currency: string; theme: Settings['theme']; last_backup_at: string | null; starting_balance: number | null; onboarding_done: number; reminder_enabled: number; reminder_hour: number; smart_parse_enabled: number; language: string | null; app_lock: number | null; answer_mode: string | null; budget_period?: string | null; overall_limit?: number | null; voice?: string | null; attitude?: string | null; voice_gender?: string | null; accent?: string | null };
@@ -73,6 +74,17 @@ const toImport = (r: ImportRow): ImportRecord => ({ id: r.id, kind: r.kind === '
 export async function allImports(db: DB): Promise<ImportRecord[]> {
   const rows = await db.getAllAsync<ImportRow>('SELECT * FROM imports ORDER BY imported_at DESC');
   return rows.map(toImport);
+}
+
+/** Takes a statement import back: every entry it added and its record. Returns how many entries went. */
+export async function removeImport(db: DB, id: string): Promise<number> {
+  let removed = 0;
+  await db.withTransactionAsync(async () => {
+    const result = await db.runAsync('DELETE FROM transactions WHERE import_id = ?', [id]);
+    removed = result.changes;
+    await db.runAsync('DELETE FROM imports WHERE id = ?', [id]);
+  });
+  return removed;
 }
 
 export async function insertImport(db: DB, r: ImportRecord): Promise<void> {
@@ -125,9 +137,12 @@ export async function firstSavedAt(db: DB): Promise<string | null> {
   return row?.first ?? null;
 }
 
-/** The entry saved most recently (by when it was saved, not the date it is for), for "make that 14". */
+/**
+ * The entry the person saved most recently (by when it was saved, not the date it is for), for "make that 14"
+ * after a restart. Entries a repeating rule or a statement import logged are not something they just said.
+ */
 export async function latestSavedTransaction(db: DB): Promise<Transaction | null> {
-  const row = await db.getFirstAsync<TxRow>('SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1');
+  const row = await db.getFirstAsync<TxRow>('SELECT * FROM transactions WHERE is_recurring_instance = 0 AND import_id IS NULL ORDER BY created_at DESC LIMIT 1');
   return row ? toTx(row) : null;
 }
 
@@ -298,9 +313,10 @@ export async function allGoals(db: DB): Promise<Goal[]> {
 
 export async function upsertGoal(db: DB, g: Goal): Promise<void> {
   await db.runAsync(
-    `INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    // A new goal remembers what it started with; later saves never change that.
+    `INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed, starting_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET name = excluded.name, kind = excluded.kind, target_amount = excluded.target_amount, current_amount = excluded.current_amount, target_date = excluded.target_date, completed = excluded.completed`,
-    [g.id, g.name, g.kind ?? 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0],
+    [g.id, g.name, g.kind ?? 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0, g.startingAmount ?? g.currentAmount],
   );
 }
 
@@ -402,8 +418,8 @@ export async function replaceAllData(
         [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null]);
     }
     for (const g of data.goals) {
-      await db.runAsync('INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [g.id, g.name, g.kind === 'debt' ? 'debt' : 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0]);
+      await db.runAsync('INSERT INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed, starting_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [g.id, g.name, g.kind === 'debt' ? 'debt' : 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0, g.startingAmount ?? null]);
     }
     for (const k of data.keywords) {
       await db.runAsync('INSERT OR IGNORE INTO keyword_mappings (word, category_id) VALUES (?, ?)', [k.word, k.categoryId]);

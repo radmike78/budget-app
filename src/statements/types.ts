@@ -101,6 +101,8 @@ export interface ParsedStatement {
 export interface ParseOptions {
   /** Locale hints: 'en', 'es', ... Controls month names, day-first dates and decimal comma. */
   language: string;
+  /** The phone's region ('GB', 'US'), for "03/04" when the statement itself does not show the order. */
+  region?: string | null;
   /** YYYY-MM-DD, for year inference when the statement gives none. */
   today: string;
   /** Fingerprints already in the app, to flag duplicates. */

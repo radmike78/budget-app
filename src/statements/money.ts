@@ -13,7 +13,7 @@ export interface MoneyToken {
   raw: string;
 }
 
-const CURRENCY = '(?:[$€£¥₹]|USD|EUR|GBP|CAD|AUD|CHF|MXN|BRL|JPY|CNY|KRW|R\\$|C\\$|A\\$)?';
+const CURRENCY = '(?:[$€£¥₹₩]|円|원|元|USD|EUR|GBP|CAD|AUD|CHF|MXN|BRL|JPY|CNY|KRW|R\\$|C\\$|A\\$)?';
 // Number with optional thousands separators and an optional 2-digit decimal part.
 // A space (or NBSP) only groups thousands when the number ends in a decimal comma ("1 234,56"); "CHECK 123 450.00" is two numbers.
 const NUMBER = '(?:\\d{1,3}(?:[\\s ]\\d{3})+(?=,\\d{2})|\\d{1,3}(?:[,.]\\d{3})+|\\d+)(?:[.,]\\d{2})?';
@@ -48,7 +48,8 @@ export function findMoney(text: string): MoneyToken[] {
     // Bare integers are only money when they have separators or a currency sign; otherwise
     // "2026", account numbers and check numbers would all look like amounts.
     const hasSeparators = /[,.\s ]/.test(numeric);
-    const hasCurrency = /[$€£¥₹]|USD|EUR|GBP/.test(raw);
+    // Yen and won have no cents, so "980円" or "₩4500" is money on its own.
+    const hasCurrency = /[$€£¥₹₩円원元]|USD|EUR|GBP|JPY|KRW|CNY/.test(raw);
     if (!hasDecimals && !hasSeparators && !hasCurrency) continue;
     if (digitsOnly.length > 13) continue;
     const value = toNumber(numeric);

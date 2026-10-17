@@ -235,6 +235,14 @@ await step('repeating entry', async () => {
   const boxes = page.getByRole('textbox');
   await boxes.nth(0).fill('15.49');
   await boxes.nth(1).fill('Netflix').catch(() => {});
+  // The first date comes from a calendar: a day next month, with no typing.
+  await button(/^Today$/).click(); await page.waitForTimeout(500);
+  await expectText('Tomorrow');
+  await shot('date-calendar');
+  await button(/^Next month$/).click(); await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /\b15\b/ }).last().click(); await page.waitForTimeout(500);
+  const nextMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15).toLocaleDateString('en-US', { month: 'short' });
+  await expectText(`${nextMonth} 15`);
   // Two taps in a row must leave one rule, not two: a duplicate would log Netflix twice a month.
   const start = button(/Start repeating/);
   await start.click({ force: true });
@@ -314,6 +322,15 @@ await step('backup export and restore', async () => {
   await shot('after-restore');
   await goto('/history');
   await expectText('Starbucks');
+});
+await step('a statement import is taken back in one go', async () => {
+  await goto('/import');
+  await expectLabel('Earlier imports');
+  await button(/Remove these entries/).click(); await page.waitForTimeout(1000);
+  const b = await bodyText();
+  if (!/Removed \d+ entr/.test(b)) throw new Error('no confirmation that the import was removed');
+  if ((await bodyText()).toLowerCase().includes('earlier imports')) throw new Error('the import is still listed');
+  await shot('import-removed');
 });
 await step('encrypted backup with a short passphrase is refused', async () => {
   await goto('/settings/backup');
@@ -436,7 +453,12 @@ await step('pay-period budgeting needs a repeating income, then follows paydays'
 await step('erase everything leaves the app as it was installed', async () => {
   await goto('/settings');
   await button(/^Erase everything$/).click(); await page.waitForTimeout(1200);
+  // As installed: onboarding again, so the currency and language are asked afresh.
   await goto('/');
+  await expectText('OnlyBudget');
+  if (!(await page.getByText('Next', { exact: true }).count())) throw new Error('expected onboarding after erase');
+  await text('Next').click(); await text('Next').click(); await text('Start').click(); await page.waitForTimeout(500);
+  await text('No thanks, keep it plain').click(); await page.waitForTimeout(1200);
   await expectText('Nothing here yet');
   await goto('/budget');
   await expectNoText('Trader Joe');

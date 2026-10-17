@@ -22,11 +22,22 @@ export async function canUseAppLock(): Promise<boolean> {
 }
 
 export async function authenticate(prompt: string, cancel: string): Promise<boolean> {
-  if (Platform.OS === 'web') return true;
+  return (await authenticateWithReason(prompt, cancel)) === 'ok';
+}
+
+/**
+ * `unavailable` means the phone itself has no lock any more (the passcode was removed, nothing enrolled):
+ * asking again can never succeed, so the caller must not keep the app shut behind it. The data is only
+ * on this phone, so being locked out would mean losing all of it.
+ */
+export async function authenticateWithReason(prompt: string, cancel: string): Promise<'ok' | 'failed' | 'unavailable'> {
+  if (Platform.OS === 'web') return 'ok';
   try {
     const res = await LocalAuthentication.authenticateAsync({ promptMessage: prompt, cancelLabel: cancel, disableDeviceFallback: false });
-    return res.success;
+    if (res.success) return 'ok';
+    if (res.error === 'not_enrolled' || res.error === 'passcode_not_set' || res.error === 'not_available') return 'unavailable';
+    return (await canUseAppLock()) ? 'failed' : 'unavailable';
   } catch {
-    return false;
+    return (await canUseAppLock()) ? 'failed' : 'unavailable';
   }
 }

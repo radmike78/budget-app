@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { radius, spacing, useTheme } from '@/theme';
-import { friendlyDate, longDate, monthLabel, today } from '@/lib/dates';
-import { notify } from '@/lib/dialogs';
+import { friendlyDate, longDate, monthLabel, toDateString, today } from '@/lib/dates';
+import { confirmDialog, notify } from '@/lib/dialogs';
 import { pickPdf, PdfBlockedError, PdfEncryptedError, PdfTooLargeError } from '@/lib/pdfBytes';
-import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
+import { categoryName, deviceRegion, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { parseCreditReport, parseStatement, rowsFromItems, type ParsedStatement, type StatementLine, type Tradeline } from '@/statements';
 import { PdfExtractor, type PdfExtractorHandle } from '@/components/PdfExtractor';
 import { CategoryPicker } from '@/components/pickers';
@@ -33,6 +33,8 @@ export default function ImportScreen() {
   const importStatement = useAppStore((s) => s.importStatement);
   const mergeTradelines = useAppStore((s) => s.mergeTradelines);
   const learnCategory = useAppStore((s) => s.learnCategory);
+  const pastImports = useAppStore((s) => s.imports).filter((i) => i.kind !== 'credit_report' && i.count > 0);
+  const removeImport = useAppStore((s) => s.removeImport);
   const extractor = useRef<PdfExtractorHandle>(null);
 
   const [stage, setStage] = useState<Stage>('idle');
@@ -69,7 +71,7 @@ export default function ImportScreen() {
       if (token !== readToken.current) return; // cancelled while reading
       const rows = rowsFromItems(items);
       const ctx = { categories, goals, keywordMap, today: today(), language };
-      const result = parseStatement(rows, ctx, { language, today: today(), knownFingerprints: fingerprints });
+      const result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints });
       if (result.kind === 'credit_report') {
         const tl = parseCreditReport(rows);
         setTradelines(tl);
@@ -118,6 +120,9 @@ export default function ImportScreen() {
       setStage('idle');
       setParsed(null);
       setLines([]);
+    } catch (e) {
+      // Nothing was added (the import is one transaction): the lines stay on screen to try again.
+      notify(t.didntWork((e as Error).message));
     } finally {
       setBusy(false);
     }
@@ -129,13 +134,26 @@ export default function ImportScreen() {
       const n = await mergeTradelines(tradelines);
       setToast(t.reportSaved(n));
       setStage('idle');
-      router.push('/debts');
+      // Back to the debts screen if the import was opened from it, rather than stacking a second one.
+      router.dismissTo('/debts');
+    } catch (e) {
+      notify(t.didntWork((e as Error).message));
     } finally {
       setBusy(false);
     }
   };
 
   const catRow = pickingCat != null ? lines[pickingCat] : null;
+
+  // A statement read wrongly (the wrong year, money in taken as out) is taken back in one go, not entry by entry.
+  const takeBack = async (id: string, count: number) => {
+    if (!(await confirmDialog(t.removeImportQ(count), t.removeImportBody, { confirmText: t.remove, cancelText: t.keep, destructive: true }))) return;
+    try {
+      setToast(t.importRemoved(await removeImport(id)));
+    } catch (e) {
+      notify(t.didntWork((e as Error).message));
+    }
+  };
 
   return (
     <Screen keyboard>
@@ -146,6 +164,18 @@ export default function ImportScreen() {
         <>
           <Text variant="muted" style={{ marginTop: spacing.md }}>{t.importIntro}</Text>
           <View style={{ marginTop: spacing.lg }}><Button title={t.pickPdf} onPress={choose} /></View>
+          {pastImports.length > 0 ? (
+            <>
+              <SectionTitle>{t.pastImports}</SectionTitle>
+              {pastImports.map((imp) => (
+                <Card key={imp.id} style={{ marginBottom: spacing.sm }}>
+                  <Text variant="body" style={{ fontWeight: '600' }}>{t.importKind[imp.kind]}</Text>
+                  <Text variant="small" style={{ marginTop: 2 }}>{t.importAdded(imp.count, imp.periodStart && imp.periodEnd ? `${longDate(imp.periodStart, today(), fmt)} – ${longDate(imp.periodEnd, today(), fmt)}` : friendlyDate(toDateString(new Date(imp.importedAt)), today(), fmt))}</Text>
+                  <View style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}><Button tone="secondary" small title={t.removeImport} onPress={() => takeBack(imp.id, imp.count)} /></View>
+                </Card>
+              ))}
+            </>
+          ) : null}
         </>
       ) : null}
 
@@ -218,7 +248,7 @@ export default function ImportScreen() {
                         <Text variant="money" color={l.direction === 'in' ? colors.income : colors.text}>{l.direction === 'in' ? '+' : '−'}{money(l.amount, { compact: true })}</Text>
                       </Row>
                       <Row style={{ marginTop: spacing.sm, justifyContent: 'space-between' }}>
-                        <Pressable onPress={() => setPickingCat(i)} accessibilityRole="button" disabled={l.duplicate}>
+                        <Pressable onPress={() => setPickingCat(i)} accessibilityRole="button" disabled={l.duplicate} hitSlop={10}>
                           <Text variant="small" color={colors.accent}>{cat ? `${cat.icon ?? ''} ${categoryName(cat, t)}`.trim() : t.pickCategory}</Text>
                         </Pressable>
                         <Switch value={l.include && !l.duplicate} disabled={l.duplicate} onValueChange={(v) => update(i, { include: v })} trackColor={{ true: colors.accent }} accessibilityLabel={t.includeLine(l.description)} />

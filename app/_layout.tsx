@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { ActivityIndicator, AppState, Platform, Pressable, View } from 'react-native';
+import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -10,7 +10,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useTheme } from '@/theme';
 import { configureNotificationHandler } from '@/lib/reminders';
 import { useT } from '@/i18n';
-import { Text, useIsWide, useTypeScale } from '@/components/ui';
+import { Button, Text, useIsWide, useTypeScale } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -29,13 +29,24 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Fraunces_600SemiBold, Fraunces_700Bold });
   const fontsReady = fontsLoaded || !!fontError;
 
-  useEffect(() => {
-    init().catch((e: Error) => setError(e.message));
-  }, [init]);
+  const start = React.useCallback(() => { setError(null); init().catch((e: Error) => setError(e.message)); }, [init]);
+  useEffect(() => { start(); }, [start]);
 
+  // Back from the background (perhaps days later): log what fell due and move to today's period.
   useEffect(() => {
-    if (ready && fontsReady) SplashScreen.hideAsync().catch(() => {});
-  }, [ready, fontsReady]);
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') useAppStore.getState().resume().catch(() => {}); });
+    return () => sub.remove();
+  }, []);
+
+  // The splash also goes when opening fails, or the error screen would sit under it and the app look frozen.
+  useEffect(() => {
+    if ((ready && fontsReady) || error) SplashScreen.hideAsync().catch(() => {});
+  }, [ready, fontsReady, error]);
+
+  // iOS modal screens otherwise close only by a swipe nobody is told about.
+  const modalClose = Platform.OS === 'ios'
+    ? { headerLeft: () => <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}><Text variant="body" color={colors.accent}>{t.cancel}</Text></Pressable> }
+    : null;
 
   let body: React.ReactNode;
   if (error) {
@@ -43,6 +54,7 @@ export default function RootLayout() {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.bg }}>
         <Text variant="heading">{t.openError}</Text>
         <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{error}</Text>
+        <View style={{ marginTop: 16 }}><Button title={t.tryAgain} onPress={start} /></View>
       </View>
     );
   } else if (!ready || !fontsReady) {
@@ -70,11 +82,11 @@ export default function RootLayout() {
         </Stack.Protected>
         <Stack.Protected guard={onboardingDone}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="entry/[id]" options={{ title: t.editEntry, presentation: 'modal' }} />
-          <Stack.Screen name="category/[id]" options={{ title: t.category, presentation: 'modal' }} />
-          <Stack.Screen name="goal/[id]" options={{ title: t.goalTitle, presentation: 'modal' }} />
+          <Stack.Screen name="entry/[id]" options={{ title: t.editEntry, presentation: 'modal', ...modalClose }} />
+          <Stack.Screen name="category/[id]" options={{ title: t.category, presentation: 'modal', ...modalClose }} />
+          <Stack.Screen name="goal/[id]" options={{ title: t.goalTitle, presentation: 'modal', ...modalClose }} />
           <Stack.Screen name="recurring/index" options={{ title: t.repeatingEntries }} />
-          <Stack.Screen name="recurring/[id]" options={{ title: t.repeatingEntry, presentation: 'modal' }} />
+          <Stack.Screen name="recurring/[id]" options={{ title: t.repeatingEntry, presentation: 'modal', ...modalClose }} />
           <Stack.Screen name="settings/help" options={{ title: t.help }} />
           <Stack.Screen name="settings/voice" options={{ title: t.voice }} />
           <Stack.Screen name="settings/about" options={{ title: t.aboutApp }} />
@@ -97,5 +109,17 @@ export default function RootLayout() {
         {body}
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+/** A screen that throws while drawing shows this instead of closing the app. */
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  const { colors } = useTheme();
+  const t = useT();
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.bg }}>
+      <Text variant="heading" style={{ textAlign: 'center' }}>{t.screenError}</Text>
+      <View style={{ marginTop: 16 }}><Button title={t.tryAgain} onPress={retry} /></View>
+    </View>
   );
 }

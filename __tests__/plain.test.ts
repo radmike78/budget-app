@@ -68,6 +68,17 @@ describe('goalProgress', () => {
     expect(p.status).toBe('ahead');
     expect(p.sentence).toBe("You're $180 away, on pace to hit it 8 weeks early.");
   });
+  it('does not count what the goal started with as pace', () => {
+    // Started with 300 forty days ago and only 20 added since: behind, not "8 weeks early".
+    expect(goalProgress({ ...base, startingAmount: 300 }, 'USD', TODAY).status).toBe('behind');
+    // Nothing added since it was made: no pace to judge yet.
+    expect(goalProgress({ ...base, startingAmount: 320 }, 'USD', TODAY).status).toBe('no_pace');
+  });
+  it('waits a week before judging the pace', () => {
+    const fresh = { ...base, createdAt: '2026-09-08T00:00:00.000Z', startingAmount: 0 };
+    expect(goalProgress(fresh, 'USD', TODAY).status).toBe('no_pace');
+    expect(goalProgress(fresh, 'USD', '2026-09-15').status).not.toBe('no_pace');
+  });
   it('reports behind pace with a weekly suggestion', () => {
     const p = goalProgress({ ...base, currentAmount: 20 }, 'USD', TODAY);
     expect(p.status).toBe('behind');

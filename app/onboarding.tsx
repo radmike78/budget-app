@@ -3,21 +3,26 @@ import { FlatList, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { CURRENCIES, parseMoneyInput } from '@/lib/money';
+import { CURRENCIES, MAX_AMOUNT, parseMoneyInput } from '@/lib/money';
+import { latestOnOrBefore } from '@/lib/recurring';
+import { notify } from '@/lib/dialogs';
 import { daysInMonth, friendlyDate, fromDateString, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
 import type { Frequency } from '@/types';
-import { LANGUAGE_OPTIONS, deviceLanguage, getLocale, useDateFormat, useLocale, useT } from '@/i18n';
+import { LANGUAGE_OPTIONS, deviceCurrency, deviceLanguage, getLocale, useDateFormat, useLanguageCode, useLocale, useT } from '@/i18n';
 import { DatePicker, Sheet } from '@/components/pickers';
 import { Button, Card, CONTENT_MAX_WIDTH, Field, ListItem, Row, Segmented, Text, useTypeScale } from '@/components/ui';
 import { VoicePicker } from '@/components/VoicePicker';
 
-const PAGES = ['why', 'setup', 'money', 'how', 'voice', 'pick'] as const;
+const ALL_PAGES = ['why', 'setup', 'money', 'how', 'voice', 'pick'] as const;
+// The voices' lines exist in English only, so other languages are not offered a voice that would stay quiet.
+const PAGES_WITHOUT_VOICE = ['why', 'setup', 'money', 'how'] as const;
 
 export default function Onboarding() {
   const { colors } = useTheme();
   const t = useT();
   const locale = useLocale();
+  const PAGES: readonly string[] = useLanguageCode() === 'en' ? ALL_PAGES : PAGES_WITHOUT_VOICE;
   const insets = useSafeAreaInsets();
   const updateSettings = useAppStore((s) => s.updateSettings);
   const settings = useAppStore((s) => s.settings);
@@ -37,11 +42,17 @@ export default function Onboarding() {
   const [rentText, setRentText] = useState('');
   const [rentDayText, setRentDayText] = useState('1');
   const listRef = useRef<FlatList<string>>(null);
+  // A field that has text but no amount it can read: said beside the field, and the page waits.
+  const [unreadable, setUnreadable] = useState<'balance' | 'pay' | 'rent' | null>(null);
+  const readable = (text: string) => !text.trim() || parseMoneyInput(text, locale.format.decimal === ',') != null;
   const { width } = useWindowDimensions();
 
-  // Follow the locale's default currency until the user picks one explicitly.
+  // Follow the phone's own currency (a UK phone in English is pounds, not dollars), else the language's,
+  // until the user picks one explicitly.
   useEffect(() => {
-    if (!currencyTouched) setCurrency(locale.defaultCurrency);
+    if (currencyTouched) return;
+    const phone = deviceCurrency();
+    setCurrency(phone && CURRENCIES.some((c) => c.code === phone) ? phone : locale.defaultCurrency);
   }, [locale, currencyTouched]);
 
   const go = (i: number) => {
@@ -54,27 +65,50 @@ export default function Onboarding() {
    * screens follow paydays. Rent becomes a monthly bill on its day this month: logged if that day has passed,
    * counted as still due if not. Both are ordinary repeating entries the person can change or stop.
    */
-  const saveMoney = async () => {
+  const saveMoney = async (): Promise<{ paid: boolean; logged: number }> => {
     const decimalComma = locale.format.decimal === ',';
     const pay = parseMoneyInput(payText, decimalComma);
     const rent = parseMoneyInput(rentText, decimalComma);
-    if (pay != null && pay > 0) {
-      await saveRule({ id: newId(), amount: pay, type: 'income', categoryId: 'salary', frequency: payFrequency, nextOccurrence: lastPayday > today() ? today() : lastPayday, note: t.payNote, active: true });
+    const todayStr = today();
+    // What the setup logs at once (this period's pay, rent already paid this month) is already in the
+    // balance the person just gave, so it is taken back out of it below.
+    let logged = 0;
+    if (pay != null && pay > 0 && pay <= MAX_AMOUNT) {
+      // A payday typed long ago would log every paycheck since; only the latest one up to today counts.
+      // A payday still ahead is the next one: nothing is logged before it comes.
+      const first = lastPayday > todayStr ? lastPayday : latestOnOrBefore(lastPayday, payFrequency, todayStr);
+      await saveRule({ id: newId(), amount: pay, type: 'income', categoryId: 'salary', frequency: payFrequency, nextOccurrence: first, note: t.payNote, active: true });
+      if (first <= todayStr) logged += pay;
     }
-    if (rent != null && rent > 0) {
+    if (rent != null && rent > 0 && rent <= MAX_AMOUNT) {
       const day = Math.min(31, Math.max(1, Math.round(Number(rentDayText) || 1)));
-      const now = fromDateString(today());
+      const now = fromDateString(todayStr);
       const y = now.getFullYear();
       const m = now.getMonth();
       const date = `${y}-${String(m + 1).padStart(2, '0')}-${String(Math.min(day, daysInMonth(y, m))).padStart(2, '0')}`;
-      await saveRule({ id: newId(), amount: rent, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: date, note: t.rentNote, active: true });
+      // The anchor is the day said, so rent "on the 31st" set in a 30-day month comes back to the 31st.
+      await saveRule({ id: newId(), amount: rent, type: 'expense', categoryId: 'rent', frequency: 'monthly', nextOccurrence: date, anchorDay: day, note: t.rentNote, active: true });
+      if (date <= todayStr) logged -= rent;
     }
-    return pay != null && pay > 0;
+    return { paid: pay != null && pay > 0 && pay <= MAX_AMOUNT, logged };
   };
 
+  // One tap only: a second tap while saving would set up pay and rent twice.
+  const finishing = useRef(false);
+  const [finishingNow, setFinishingNow] = useState(false);
   const finish = async (voiceWanted: boolean) => {
-    const paid = await saveMoney();
-    await updateSettings({ ...(paid ? { budgetPeriod: 'pay' as const } : null), currency, startingBalance: parseMoneyInput(balance, locale.format.decimal === ','), onboardingDone: true, ...(voiceWanted ? null : { voice: 'plain' as const }) });
+    if (finishing.current) return;
+    finishing.current = true;
+    setFinishingNow(true);
+    try {
+      const { paid, logged } = await saveMoney();
+      const given = parseMoneyInput(balance, locale.format.decimal === ',');
+      await updateSettings({ ...(paid ? { budgetPeriod: 'pay' as const } : null), currency, startingBalance: given == null ? null : Math.round((given - logged) * 100) / 100, onboardingDone: true, ...(voiceWanted ? null : { voice: 'plain' as const }) });
+    } catch (e) {
+      finishing.current = false;
+      setFinishingNow(false);
+      notify(t.didntWork((e as Error).message));
+    }
   };
 
   const languageName = settings?.language && settings.language !== 'system'
@@ -111,10 +145,10 @@ export default function Onboarding() {
           <Row style={{ marginBottom: spacing.lg }}>
             <Button tone="secondary" title={currency} onPress={() => setShowCurrency(true)} />
           </Row>
-          <Field label={t.startingBalance} value={balance} onChangeText={setBalance} keyboardType="decimal-pad" placeholder={t.startingBalancePlaceholder} hint={t.startingBalanceHint} />
+          <Field label={t.startingBalance} value={balance} onChangeText={(v) => { setBalance(v); setUnreadable(null); }} keyboardType="decimal-pad" placeholder={t.startingBalancePlaceholder} hint={t.startingBalanceHint} error={unreadable === 'balance' ? t.amountUnreadable : null} />
           <Row>
             <Button tone="ghost" title={t.back} onPress={() => go(0)} />
-            <Button title={t.next} onPress={() => go(2)} style={{ flex: 1 }} />
+            <Button title={t.next} onPress={() => (readable(balance) ? go(2) : setUnreadable('balance'))} style={{ flex: 1 }} />
           </Row>
         </View>
         </View>
@@ -127,7 +161,7 @@ export default function Onboarding() {
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
           <Text variant="title">{t.moneySetupTitle}</Text>
           <Text variant="muted" style={{ marginTop: spacing.sm, marginBottom: spacing.xl }}>{t.moneySetupBody}</Text>
-          <Field label={t.takeHomePay} value={payText} onChangeText={setPayText} keyboardType="decimal-pad" placeholder={t.optional} />
+          <Field label={t.takeHomePay} value={payText} onChangeText={(v) => { setPayText(v); setUnreadable(null); }} keyboardType="decimal-pad" placeholder={t.optional} error={unreadable === 'pay' ? t.amountUnreadable : null} />
           <View style={{ marginBottom: spacing.lg }}>
             <Segmented value={payFrequency} onChange={setPayFrequency} options={[{ value: 'weekly', label: t.frequency.weekly }, { value: 'biweekly', label: t.frequency.biweekly }, { value: 'monthly', label: t.frequency.monthly }]} />
           </View>
@@ -135,13 +169,16 @@ export default function Onboarding() {
           <Row style={{ marginBottom: spacing.lg }}>
             <Button tone="secondary" small title={friendlyDate(lastPayday, today(), fmt)} onPress={() => setShowPayday(true)} />
           </Row>
-          <Field label={t.rentOrMortgage} value={rentText} onChangeText={setRentText} keyboardType="decimal-pad" placeholder={t.optional} />
+          <Field label={t.rentOrMortgage} value={rentText} onChangeText={(v) => { setRentText(v); setUnreadable(null); }} keyboardType="decimal-pad" placeholder={t.optional} error={unreadable === 'rent' ? t.amountUnreadable : null} />
           <Field label={t.rentDueDay} value={rentDayText} onChangeText={setRentDayText} keyboardType="number-pad" placeholder="1" />
           <Row>
             <Button tone="ghost" title={t.back} onPress={() => go(1)} />
-            <Button tone="ghost" title={t.skip} onPress={() => { setPayText(''); setRentText(''); go(3); }} />
-            <Button title={t.next} onPress={() => go(3)} style={{ flex: 1 }} />
+            <Button title={t.next} onPress={() => (!readable(payText) ? setUnreadable('pay') : !readable(rentText) ? setUnreadable('rent') : go(3))} style={{ flex: 1 }} />
           </Row>
+          {/* On its own line: three buttons side by side do not fit in German on a small phone. */}
+          <View style={{ marginTop: spacing.sm, alignItems: 'center' }}>
+            <Button tone="ghost" small title={t.skip} onPress={() => { setPayText(''); setRentText(''); setUnreadable(null); go(3); }} />
+          </View>
           <DatePicker visible={showPayday} onClose={() => setShowPayday(false)} value={lastPayday} onPick={setLastPayday} />
         </View>
         </ScrollView>
@@ -163,7 +200,7 @@ export default function Onboarding() {
             ))}
           </Card>
           <View style={{ marginTop: spacing.xxl }}><Button title={t.onboardVoiceYes} onPress={() => { if (settings?.voice === 'plain') updateSettings({ voice: 'friend' }); go(5); }} /></View>
-          <View style={{ marginTop: spacing.md }}><Button tone="secondary" title={t.onboardVoiceNo} onPress={() => finish(false)} /></View>
+          <View style={{ marginTop: spacing.md }}><Button tone="secondary" title={t.onboardVoiceNo} onPress={() => finish(false)} loading={finishingNow} /></View>
           <View style={{ marginTop: spacing.md, alignItems: 'flex-start' }}><Button tone="ghost" title={t.back} onPress={() => go(3)} /></View>
         </View>
         </View>
@@ -178,7 +215,7 @@ export default function Onboarding() {
           <VoicePicker compact />
           <Row style={{ marginTop: spacing.xl }}>
             <Button tone="ghost" title={t.back} onPress={() => go(4)} />
-            <Button title={t.done} onPress={() => finish(true)} style={{ flex: 1 }} />
+            <Button title={t.done} onPress={() => finish(true)} style={{ flex: 1 }} loading={finishingNow} />
           </Row>
         </View>
         </ScrollView>
@@ -195,7 +232,7 @@ export default function Onboarding() {
         <Text variant="muted" style={{ marginTop: spacing.lg }}>{t.onboardLearn}</Text>
         <Row style={{ marginTop: spacing.xxl }}>
           <Button tone="ghost" title={t.back} onPress={() => go(2)} />
-          <Button title={t.start} onPress={() => go(4)} style={{ flex: 1 }} />
+          <Button title={t.start} onPress={() => (PAGES.includes('voice') ? go(4) : finish(false))} style={{ flex: 1 }} loading={!PAGES.includes('voice') && finishingNow} />
         </Row>
       </View>
       </View>

@@ -13,6 +13,8 @@ export function getDb(): Promise<DB> {
       await migrate(db);
       return db;
     })();
+    // A failed open is not kept: "Try again" must really try again.
+    dbPromise.catch(() => { dbPromise = null; });
   }
   return dbPromise;
 }
@@ -164,6 +166,8 @@ const MIGRATIONS: string[] = [
   // and none of them needs a sentence of explanation. "Other" is protected rather than called negotiable.
   `UPDATE categories SET tier = 'needs' WHERE tier = 'comforts' AND id = 'other_expense';
   UPDATE categories SET tier = 'wants' WHERE tier = 'comforts';`,
+  // v15: what a goal started with, so money already saved before it was made is not read as a fast pace.
+  `ALTER TABLE goals ADD COLUMN starting_amount REAL;`,
 ];
 
 async function migrate(db: DB): Promise<void> {
@@ -193,13 +197,13 @@ async function seedDefaultCategories(db: DB): Promise<void> {
 
 /**
  * Wipes every table and puts the settings row back to its defaults, so the app is
- * as it was on the day it was installed. `onboarding_done` is the one thing kept:
- * someone erasing their data has already met the app and does not need meeting again.
+ * as it was on the day it was installed, onboarding included: the currency goes back
+ * to a default, so it has to be asked again (a yen user would otherwise land on "$").
  */
 export async function resetDatabase(db: DB): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.execAsync('DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers; DELETE FROM app_state;');
-    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', app_lock=0, answer_mode='auto', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female', accent='sage' WHERE id=1");
+    await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', app_lock=0, answer_mode='auto', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female', accent='sage', onboarding_done=0 WHERE id=1");
   });
   await seedDefaultCategories(db);
 }

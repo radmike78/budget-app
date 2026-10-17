@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -89,7 +91,7 @@ export function Screen({ children, scroll = true, padded = true, style, contentS
   if (!scroll) {
     return <View style={[base, pad, column, { paddingBottom: insets.bottom }, style]}>{children}</View>;
   }
-  return (
+  const body = (
     <ScrollView
       style={[base, style]}
       contentContainerStyle={[pad, column, { paddingBottom: insets.bottom + spacing.xxl, paddingTop: spacing.sm }, contentStyle]}
@@ -100,6 +102,9 @@ export function Screen({ children, scroll = true, padded = true, style, contentS
       {children}
     </ScrollView>
   );
+  // iOS insets the scroll view for the keyboard itself; Android 15+ draws edge-to-edge and no longer shrinks
+  // the window, so a form there makes room on its own.
+  return keyboard && Platform.OS === 'android' ? <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>{body}</KeyboardAvoidingView> : body;
 }
 
 export function Card({ children, style, tone = 'default' }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; tone?: 'default' | 'accent' | 'alt' }) {
@@ -171,7 +176,8 @@ export function Button({ title, tone = 'primary', loading, disabled, style, smal
       {loading ? <ActivityIndicator color={fg} /> : (
         <Row gap={6}>
           {icon}
-          <RNText style={[styles.buttonText, { fontSize: (small ? 14 : 16) * scale, color: fg }]}>{title}</RNText>
+          {/* Shrinks and wraps inside its row: a long label in German or at a large text size stays on the button. */}
+          <RNText style={[styles.buttonText, { fontSize: (small ? 14 : 16) * scale, color: fg, flexShrink: 1, textAlign: 'center' }]} maxFontSizeMultiplier={2}>{title}</RNText>
         </Row>
       )}
     </Pressable>
@@ -209,7 +215,8 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
 
 // ---------- Inputs ----------
 
-export function Field({ label, hint, style, inputStyle, ...rest }: TextInputProps & { label?: string; hint?: string; style?: StyleProp<ViewStyle>; inputStyle?: StyleProp<TextStyle> }) {
+/** `error` replaces the hint while it is set (a value that cannot be used), and is read out by screen readers. */
+export function Field({ label, hint, error, style, inputStyle, ...rest }: TextInputProps & { label?: string; hint?: string; error?: string | null; style?: StyleProp<ViewStyle>; inputStyle?: StyleProp<TextStyle> }) {
   const { colors } = useTheme();
   const scale = useTypeScale();
   return (
@@ -222,7 +229,7 @@ export function Field({ label, hint, style, inputStyle, ...rest }: TextInputProp
         {...rest}
         style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text, fontSize: 17 * scale }, inputStyle]}
       />
-      {hint ? <Text variant="small" style={{ marginTop: 6 }}>{hint}</Text> : null}
+      {error ? <Text variant="small" color={colors.danger} style={{ marginTop: 6 }} accessibilityLiveRegion="polite">{error}</Text> : hint ? <Text variant="small" style={{ marginTop: 6 }}>{hint}</Text> : null}
     </View>
   );
 }

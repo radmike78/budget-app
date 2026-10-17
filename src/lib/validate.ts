@@ -14,7 +14,8 @@ export const MAX_ENTRY_LENGTH = 400;
 export const MAX_TEXT_FIELD = 200;
 export const MAX_NOTE_LENGTH = 500;
 export const MAX_ROWS = 200_000;
-export const MAX_AMOUNT = 1_000_000_000_000;
+export { MAX_AMOUNT } from './money';
+import { MAX_AMOUNT } from './money';
 /** Backup files above this are refused before JSON.parse runs. */
 export const MAX_BACKUP_BYTES = 50 * 1024 * 1024;
 export const MIN_PASSPHRASE_LENGTH = 8;
@@ -255,6 +256,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       targetDate: optDay(raw.targetDate, 'goal'),
       createdAt: stamp(raw.createdAt, now),
       completed: bool(raw.completed),
+      startingAmount: raw.startingAmount == null ? null : money(raw.startingAmount, 'goal start'),
     });
   }
 

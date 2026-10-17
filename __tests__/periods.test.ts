@@ -25,6 +25,17 @@ describe('payDates', () => {
   });
 });
 
+describe('paydays come from the main pay only', () => {
+  it('a small side income never splits the period', () => {
+    const rules = [rule({}), rule({ id: 'gig', amount: 80, frequency: 'weekly', nextOccurrence: '2026-09-19' })];
+    expect(periodContaining('pay', rules, TODAY)).toEqual({ start: '2026-09-11', end: '2026-09-24' });
+  });
+  it('two incomes of about the same size both count', () => {
+    const rules = [rule({ frequency: 'monthly', nextOccurrence: '2026-10-01', anchorDay: 1 }), rule({ id: 'b', amount: 1800, frequency: 'monthly', nextOccurrence: '2026-09-15', anchorDay: 15 })];
+    expect(periodContaining('pay', rules, TODAY)).toEqual({ start: '2026-09-15', end: '2026-09-30' });
+  });
+});
+
 describe('periodContaining', () => {
   it('is the calendar month by default', () => {
     expect(periodContaining('month', [rule({})], TODAY)).toEqual({ start: '2026-09-01', end: '2026-09-30' });

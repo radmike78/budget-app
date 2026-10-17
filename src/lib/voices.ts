@@ -48,6 +48,9 @@ export function pickVoice(voices: TtsVoice[], speechTag: string, gender: VoiceGe
   for (const v of voices) {
     const lang = sameLanguage(v.language ?? '', speechTag);
     if (lang === 0) continue;
+    // Android's "-network" voices synthesise on Google's servers: an answer read aloud (amounts, places) would
+    // leave the phone. Only voices that run on the device are used.
+    if (/-network\b/i.test(v.identifier)) continue;
     const g = genderOf(v.name ?? '');
     const enhanced = v.quality && /enhanced|premium/i.test(v.quality) ? 1 : 0;
     const score = lang * 10 + (g === gender ? 20 : g === null ? 5 : 0) + enhanced;

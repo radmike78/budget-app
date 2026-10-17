@@ -7,17 +7,11 @@
     "icon": "./assets/icon.png",
     "scheme": "onlybudget",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F7F6F3"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.onlybudget",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": true
       }
     },
     "android": {
@@ -30,8 +24,28 @@
       },
       "predictiveBackGestureEnabled": false,
       "allowBackup": false,
-      "usesCleartextTraffic": false,
-      "blockedPermissions": []
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.READ_APP_BADGE",
+        "com.sec.android.provider.badge.permission.READ",
+        "com.sec.android.provider.badge.permission.WRITE",
+        "com.htc.launcher.permission.READ_SETTINGS",
+        "com.htc.launcher.permission.UPDATE_SHORTCUT",
+        "com.sonyericsson.home.permission.BROADCAST_BADGE",
+        "com.sonymobile.home.permission.PROVIDER_INSERT_BADGE",
+        "com.anddoes.launcher.permission.UPDATE_COUNT",
+        "com.majeur.launcher.permission.UPDATE_BADGE",
+        "com.huawei.android.launcher.permission.CHANGE_BADGE",
+        "com.huawei.android.launcher.permission.READ_SETTINGS",
+        "com.huawei.android.launcher.permission.WRITE_SETTINGS",
+        "com.oppo.launcher.permission.READ_SETTINGS",
+        "com.oppo.launcher.permission.WRITE_SETTINGS",
+        "me.everything.badger.permission.BADGE_COUNT_READ",
+        "me.everything.badger.permission.BADGE_COUNT_WRITE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -45,13 +59,14 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "OnlyBudget uses the microphone so you can speak an entry like \"spent 12 on lunch\". Audio is processed on your device.",
+          "microphonePermission": "OnlyBudget uses the microphone while you speak an entry like \"spent 12 on lunch\". Your phone's speech recognizer turns it into text; OnlyBudget never records or stores audio.",
           "speechRecognitionPermission": "OnlyBudget uses speech recognition to turn what you say into a budget entry. Nothing is sent to us."
         }
       ],
       [
         "expo-notifications",
         {
+          "icon": "./assets/android-icon-monochrome.png",
           "color": "#3D6B5E",
           "defaultChannel": "reminders"
         }
@@ -72,6 +87,17 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "OnlyBudget can use Face ID to unlock the app if you turn the app lock on."
+        }
+      ],
+      "expo-font",
+      "expo-localization",
+      "expo-sharing",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
         }
       ]
     ],

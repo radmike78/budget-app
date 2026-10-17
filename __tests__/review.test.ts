@@ -97,3 +97,13 @@ describe('a place keeps the capitals it was said with', () => {
     expect(parseInput("spent 40 at Fleming's Steakhouse", ctx).note).toBe("Fleming's Steakhouse");
   });
 });
+
+describe('answers are never read by a network voice', () => {
+  it('skips Android voices that synthesise on Google servers', () => {
+    const voices = [
+      { identifier: 'en-us-x-tpf-network', name: 'en-us-x-tpf-network', language: 'en-US', quality: 'Enhanced' },
+      { identifier: 'en-us-x-sfg#female_1-local', name: 'en-us-x-sfg#female_1-local', language: 'en-US', quality: 'Default' },
+    ];
+    expect(pickVoice(voices, 'en-US', 'female')).toBe('en-us-x-sfg#female_1-local');
+  });
+});

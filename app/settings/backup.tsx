@@ -84,7 +84,7 @@ export default function Backup() {
     if (pass.length < MIN_PASSPHRASE_LENGTH) throw new Error(t.passphraseShort);
     if (pass !== pass2) throw new Error(t.passphraseMismatch);
     const payload = await snapshot();
-    const file = encryptBackup(JSON.stringify(payload), pass, (n) => Crypto.getRandomBytes(n));
+    const file = await encryptBackup(JSON.stringify(payload), pass, (n) => Crypto.getRandomBytes(n));
     await shareTextFile(`onlybudget-backup-${timestampForFilename()}.onlybudget.json`, JSON.stringify(file));
     await updateSettings({ lastBackupAt: nowIso() });
     setAskPass(null); setPass(''); setPass2('');
@@ -134,7 +134,7 @@ export default function Backup() {
     if (!askPass || askPass.mode !== 'decrypt') return '';
     let json: string;
     try {
-      json = decryptBackup(askPass.file as Parameters<typeof decryptBackup>[0], pass);
+      json = await decryptBackup(askPass.file as Parameters<typeof decryptBackup>[0], pass);
     } catch {
       setPass('');
       throw new Error(t.wrongPassphrase);
@@ -168,7 +168,7 @@ export default function Backup() {
 
       {status ? <Text variant="body" color={status.error ? colors.danger : colors.text} style={{ marginTop: spacing.lg }}>{status.text}</Text> : null}
 
-      <Sheet visible={!!askPass} onClose={closePassphrase} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase}>
+      <Sheet visible={!!askPass} onClose={closePassphrase} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase} scroll>
         <Field label={t.passphrase} value={pass} onChangeText={setPass} secureTextEntry autoCapitalize="none" autoFocus />
         {askPass?.mode === 'encrypt' ? <Field label={t.repeatPassphrase} value={pass2} onChangeText={setPass2} secureTextEntry autoCapitalize="none" /> : null}
         <View>

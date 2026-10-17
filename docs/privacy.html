@@ -52,7 +52,7 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <body>
 <main>
 <h1>Privacy Policy — OnlyBudget</h1>
-<p><strong>Last updated: 4 October 2026</strong></p>
+<p><strong>Last updated: 16 October 2026</strong></p>
 <p>OnlyBudget is a budgeting app that runs entirely on your phone. It has no server and no account. We do not receive your budget, and there is no "we" that could: nothing you enter is transmitted to the developer of this app, at any point, for any reason.</p>
 <p>This policy explains that in full, including the two cases where something does leave your device and exactly what they involve.</p>
 <h2 id="the-short-version">The short version</h2>
@@ -84,7 +84,8 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
   <li>The phrase you typed or spoke is sent to <code>api.anthropic.com</code>, along with the names of your categories, so the model can pick one.</li>
   <li><strong>Card, account, routing and IBAN numbers are stripped out of the phrase before it is sent.</strong> The app applies the same redaction it uses before writing anything to its own database.</li>
   <li>Nothing else is sent. Not your history, not your totals, not your goals, not any identifier for you or your device.</li>
-  <li>The request goes directly from your phone to Anthropic, using your key and your account with them. Anthropic's terms and privacy policy apply to it. The developer of this app is not a party to it and cannot see it.</li>
+  <li>The request goes directly from your phone to Anthropic, using your key and your account with them. Like any web request, it also carries your phone's IP address. Anthropic's terms and privacy policy (<a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a>) apply to it, including how long Anthropic keeps it. The developer of this app is not a party to it and cannot see it.</li>
+  <li>Turning the feature on asks you first, in so many words, before anything is sent.</li>
   <li>Your API key is held in the device keychain (iOS) or keystore (Android), and in browser storage on the web version. It is never sent anywhere but to Anthropic, as the credential for your own request.</li>
 </ul>
 <p>Turning the feature off stops this entirely. Removing the key deletes it from the device.</p>

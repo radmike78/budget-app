@@ -101,14 +101,14 @@ describe('backup round trip', () => {
     for (const patch of bad) expect(() => validateBackup({ ...payload, ...patch }, NOW)).toThrow(/Invalid backup/);
   });
 
-  it('encrypts and decrypts with the right passphrase', () => {
+  it('encrypts and decrypts with the right passphrase', async () => {
     let seed = 1;
     const random = (n: number) => new Uint8Array(Array.from({ length: n }, () => (seed = (seed * 16807) % 2147483647) & 255));
     const json = JSON.stringify(payload);
-    const file = encryptBackup(json, 'correct horse', random);
+    const file = await encryptBackup(json, 'correct horse', random);
     expect(file.ciphertext).not.toContain('onlybudget');
-    expect(decryptBackup(file, 'correct horse')).toBe(json);
-    expect(() => decryptBackup(file, 'wrong')).toThrow();
+    expect(await decryptBackup(file, 'correct horse')).toBe(json);
+    await expect(decryptBackup(file, 'wrong')).rejects.toThrow();
   });
 });
 

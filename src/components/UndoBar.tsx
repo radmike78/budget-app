@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { AccessibilityInfo, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import { radius, spacing, useTheme } from '@/theme';
@@ -24,8 +24,11 @@ export function UndoBar({ bottomOffset = 0 }: { bottomOffset?: number }) {
   useEffect(() => {
     if (!lastDeleted) { setVisible(false); return; }
     setVisible(true);
+    // Someone using a screen reader would not otherwise know the bar appeared.
+    AccessibilityInfo.announceForAccessibility?.(t.entryRemovedUndo);
     const timer = setTimeout(() => setVisible(false), UNDO_WINDOW_MS);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastDeleted]);
 
   if (!visible || !lastDeleted) return null;

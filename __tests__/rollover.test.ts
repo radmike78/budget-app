@@ -28,6 +28,15 @@ describe('carryInto', () => {
     // Switched on in the current period: nothing from before, no question either.
     expect(carryInto(cat({ rollover: 'ask', rolloverSince: '2026-09-01' }), current, past(0, 0, 0), none)).toEqual({ amount: 0, pendingLeftover: null });
   });
+  it('keeps what had carried when the plan changes part-way', () => {
+    // 150 had carried into September when the plan went from 300 to 100; it was saved for September.
+    const changed = cat({ monthlyLimit: 100, rolloverSince: '2026-09-01' });
+    const saved = new Map([['2026-09-01', 150]]);
+    expect(carryInto(changed, current, past(250, 300, 200), saved)).toEqual({ amount: 150, pendingLeftover: null });
+    // October: September's plan was 100 + 150, and 180 went out, so 70 carries on.
+    const sept: PastPeriod[] = [...past(250, 300, 200), { period: P(9), spent: 180 }];
+    expect(carryInto(changed, P(10), sept, saved)).toEqual({ amount: 70, pendingLeftover: null });
+  });
   it('rounds to cents', () => {
     expect(carryInto(cat({ monthlyLimit: 100 }), current, past(33.33, 33.33, 33.33), none).amount).toBe(200.01);
   });

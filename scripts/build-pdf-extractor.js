@@ -10,8 +10,8 @@ const fs = require('fs');
 const path = require('path');
 
 const dist = path.dirname(require.resolve('pdfjs-dist/package.json'));
-const lib = fs.readFileSync(path.join(dist, 'build/pdf.min.mjs'), 'utf8');
-const worker = fs.readFileSync(path.join(dist, 'build/pdf.worker.min.mjs'), 'utf8');
+const lib = fs.readFileSync(path.join(dist, 'legacy/build/pdf.min.mjs'), 'utf8');
+const worker = fs.readFileSync(path.join(dist, 'legacy/build/pdf.worker.min.mjs'), 'utf8');
 const version = require('pdfjs-dist/package.json').version;
 const { FONT_DIR, listStandardFonts } = require('./pdf-standard-fonts');
 
@@ -106,5 +106,7 @@ ${app}
 </body></html>`;
 
 const out = path.resolve(__dirname, '../assets/pdf/extractor.html');
+// The folder holds only this generated file, which git ignores, so a fresh checkout (an EAS build) has no folder yet.
+fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
 console.log(`wrote ${out} (${(html.length / 1024).toFixed(0)} KB, pdfjs ${version})`);

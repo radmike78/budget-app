@@ -3,18 +3,18 @@ import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping,
 import type { StatementLine, Tradeline } from '@/statements';
 import { getDb, type DB } from '@/db/database';
 import * as repo from '@/db/repositories';
-import { addDays, nowIso, today } from '@/lib/dates';
+import { addDays, nowIso, toDateString, today } from '@/lib/dates';
 import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
 import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
 import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
 import { isReviewTime, periodReview, type PeriodReview } from '@/lib/review';
 import { newId } from '@/lib/ids';
-import { dueOccurrences } from '@/lib/recurring';
+import { dueOccurrences, resumeFrom } from '@/lib/recurring';
 import { learnableWords } from '@/parser';
 import { redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
-import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, nextOccurrence, notificationPermissionState, scheduleReminderNotification, type PermissionState } from '@/lib/reminders';
+import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, isDailyReminderScheduled, needsRearm, nextOccurrence, notificationPermissionState, scheduleDailyReminder, scheduleReminderNotification, scheduledReminderIds, type PermissionState } from '@/lib/reminders';
 import { sweepExportCache } from '@/lib/files';
 import { getLocale, resolveLanguage } from '@/i18n';
 
@@ -44,7 +44,10 @@ interface AppState {
   carryovers: CarryDecision[];
   /** The entry removed most recently, kept so it can be put back. */
   lastDeleted: { tx: Transaction; at: number } | null;
-  /** The entry saved last in this session, so "make that 14" changes the one just said. */
+  /**
+   * The entry saved last in this session, so "make that 14" changes the one just said. '' when the last thing
+   * saved was not an entry (a goal, a reminder, an import): a fix by voice must not reach back past it.
+   */
   lastSavedId: string | null;
   /** Last week and the week before, for the recap card at the start of a week. */
   recap: WeekRecap | null;
@@ -80,6 +83,8 @@ interface AppState {
 
   /** Saves the chosen lines from a statement as entries. Returns how many were added. */
   importStatement: (lines: StatementLine[], meta: { kind: 'bank' | 'card' | 'credit_report'; periodStart: string | null; periodEnd: string | null }) => Promise<number>;
+  /** Removes every entry a statement import added (the lines can be imported again afterwards). */
+  removeImport: (id: string) => Promise<number>;
   saveDebt: (d: Debt) => Promise<void>;
   removeDebt: (id: string) => Promise<void>;
   /** Adds or refreshes debts from a credit report or card statement (matched by creditor name). */
@@ -88,6 +93,8 @@ interface AppState {
   saveRule: (r: RecurringRule) => Promise<void>;
   removeRule: (id: string) => Promise<void>;
   runRecurringCatchUp: () => Promise<number>;
+  /** Coming back to the app: what fell due meanwhile is logged and the screens move to today's period. */
+  resume: () => Promise<void>;
 
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   learnCategory: (rawInput: string, categoryId: string) => Promise<void>;
@@ -134,6 +141,39 @@ async function computeCarry(db: DB, settings: Settings, rules: RecurringRule[], 
 async function showPeriod(period: Period): Promise<void> {
   useAppStore.setState({ period });
   await useAppStore.getState().refresh();
+}
+
+/** Logs every repeating entry that has fallen due. Run through `runRecurringCatchUp`, never twice at once. */
+let catchUpRun: Promise<number> | null = null;
+async function catchUp(): Promise<number> {
+  const db = await getDb();
+  const rules = await repo.allRules(db);
+  const todayStr = today();
+  let created = 0;
+  for (const rule of rules) {
+    if (!rule.active) continue;
+    const { due, nextOccurrence } = dueOccurrences(rule, todayStr);
+    if (due.length === 0) continue;
+    await db.withTransactionAsync(async () => {
+      for (const date of due) {
+        await repo.insertTransaction(db, {
+          id: newId(),
+          amount: rule.amount,
+          type: rule.type,
+          categoryId: rule.categoryId,
+          note: rule.note,
+          rawInput: null,
+          occurredAt: date,
+          createdAt: nowIso(),
+          isRecurringInstance: true,
+          recurringRuleId: rule.id,
+        });
+        created += 1;
+      }
+      await repo.upsertRule(db, { ...rule, nextOccurrence });
+    });
+  }
+  return created;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -203,15 +243,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const stats = await repo.periodStats(db, period);
     const carry = await computeCarry(db, settings, rules, categories, carryovers, period);
     const todayStr = today();
-    // Looking back only makes sense once the app was in use before what it looks back on: on a new phone,
-    // entries dated earlier (rent the setup logged for the 1st) are not a week or a period someone lived with it.
-    const firstSaved = await repo.firstSavedAt(db);
-    const usedBefore = (date: string) => firstSaved != null && firstSaved.slice(0, 10) < date;
-    const recap = isRecapDay(todayStr) && usedBefore(weekRange(todayStr, 0).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
+    // Looking back only makes sense once the app was in use from the start of what it looks back on: on a new
+    // phone, entries dated earlier (rent the setup logged for the 1st) are not a week or a period someone lived with it.
+    // (Saved times are UTC; the day they were saved on is the phone's own.)
+    const firstSavedIso = await repo.firstSavedAt(db);
+    const firstSaved = firstSavedIso && !Number.isNaN(Date.parse(firstSavedIso)) ? toDateString(new Date(firstSavedIso)) : null;
+    const usedSince = (date: string) => firstSaved != null && firstSaved <= date;
+    const recap = isRecapDay(todayStr) && usedSince(weekRange(todayStr, -1).from) ? weekRecap(await repo.expenseTotalsByDay(db, weekRange(todayStr, -2).from, weekRange(todayStr, -1).to), todayStr) : null;
     const current = periodContaining(settings.budgetPeriod, rules, todayStr);
     let review: PeriodReview | null = null;
-    if (isReviewTime(current, todayStr) && usedBefore(current.start)) {
-      const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
+    const last = shiftPeriod(settings.budgetPeriod, rules, current, -1);
+    if (isReviewTime(current, todayStr) && usedSince(last.start)) {
       const before = shiftPeriod(settings.budgetPeriod, rules, last, -1);
       const [lastStats, beforeStats] = await Promise.all([repo.periodStats(db, last), repo.periodStats(db, before)]);
       review = periodReview(lastStats, beforeStats.expenses > 0 || beforeStats.income > 0 ? beforeStats : null);
@@ -281,7 +323,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveCategory: async (c) => {
     const db = await getDb();
-    await repo.upsertCategory(db, c);
+    const { settings, rules, carryovers, categories } = get();
+    const before = categories.find((x) => x.id === c.id);
+    let next = c;
+    // A new plan on a carrying category keeps what has carried so far: it is saved for this period and carrying
+    // goes on from here with the new plan, rather than recounting every earlier period as if it had always applied.
+    if (settings && before && before.rollover === 'carry' && c.rollover === 'carry' && (before.monthlyLimit ?? 0) > 0 && before.monthlyLimit !== c.monthlyLimit) {
+      const current = periodContaining(settings.budgetPeriod, rules, today());
+      const carried = (await computeCarry(db, settings, rules, [before], carryovers, current))[before.id]?.amount ?? 0;
+      await repo.upsertCarryover(db, { categoryId: c.id, period: current.start, amount: carried });
+      next = { ...c, rolloverSince: current.start };
+    }
+    await repo.upsertCategory(db, next);
     await get().refresh();
   },
 
@@ -293,6 +346,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   saveGoal: async (g) => {
     const db = await getDb();
+    set({ lastSavedId: '' });
     // Money on a goal is never negative. A typed "-50" would otherwise be stored, and the
     // backup validator (rightly) refuses negative amounts, so every later restore would fail.
     const nonNegative = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
@@ -312,10 +366,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!goal) return;
     const current = Math.max(0, goal.currentAmount + amount);
     await repo.upsertGoal(db, { ...goal, currentAmount: current, completed: goal.completed || current >= goal.targetAmount });
+    // "delete that" right after means the transfer just logged, or (with none logged) nothing to change by voice.
+    let transferId = '';
     if (opts.logTransfer && amount > 0) {
       const savings = get().categories.find((c) => c.id === (goal.kind === 'debt' ? 'debt' : 'savings') && !c.archived);
+      transferId = newId();
       await repo.insertTransaction(db, {
-        id: newId(),
+        id: transferId,
         amount,
         type: 'expense',
         categoryId: savings?.id ?? null,
@@ -327,11 +384,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         recurringRuleId: null,
       });
     }
+    set({ lastSavedId: transferId });
     await get().refresh();
   },
 
   addReminder: async (input) => {
     const db = await getDb();
+    set({ lastSavedId: '' });
     const strings = getLocale(resolveLanguage(get().settings?.language)).s;
     const rem: Reminder = { ...input, text: redactSensitive(input.text) || input.text, id: newId(), createdAt: nowIso(), notificationId: null };
     // Saved first: a failure in the notification layer must not lose the reminder (rearmReminders retries later).
@@ -361,7 +420,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = await notificationPermissionState();
     set({ notifications: state });
     const strings = getLocale(resolveLanguage(get().settings?.language)).s;
+    const scheduled = await scheduledReminderIds();
     let changed = false;
+    // The evening nudge is lost with a move to a new phone too.
+    const settings = get().settings;
+    if (state === 'granted' && settings?.reminderEnabled && !(await isDailyReminderScheduled())) {
+      await scheduleDailyReminder(settings.reminderHour, { title: strings.reminderTitle, body: strings.reminderBody, channelName: strings.reminderChannelDaily }).catch(() => false);
+    }
     for (const rem of get().reminders) {
       if (rem.repeat === 'none' && !nextOccurrence(rem)) {
         await cancelReminderNotification(rem.notificationId);
@@ -370,7 +435,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         continue;
       }
       if (state !== 'granted') continue;
-      if (rem.notificationId && rem.repeat !== 'monthly') continue;
+      // Kept when it is still on the phone's schedule and needs no re-arming; anything else (a new phone,
+      // a dated series running out, a repeat whose start date has come) is scheduled again.
+      if (rem.notificationId && scheduled.has(rem.notificationId) && !needsRearm(rem)) continue;
       const id = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders);
       if (id !== rem.notificationId) { await repo.upsertReminder(db, { ...rem, notificationId: id }); changed = true; }
     }
@@ -379,10 +446,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   importStatement: async (lines, meta) => {
     const db = await getDb();
+    set({ lastSavedId: '' });
     const importId = newId();
-    const known = get().fingerprints;
+    // A copy: if the import fails and rolls back, the lines must not be remembered as already imported.
+    const known = new Set(get().fingerprints);
     let count = 0;
     await db.withTransactionAsync(async () => {
+      count = 0;
       for (const l of lines) {
         if (!l.include || known.has(l.fingerprint)) continue;
         const type = l.direction === 'in' ? 'income' : 'expense';
@@ -398,6 +468,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     await get().refresh();
     return count;
+  },
+
+  removeImport: async (id) => {
+    const db = await getDb();
+    const removed = await repo.removeImport(db, id);
+    // An entry from this import waiting on the Undo bar would otherwise come back on its own.
+    if (get().lastDeleted?.tx.importId === id) set({ lastDeleted: null });
+    await get().refresh();
+    return removed;
   },
 
   saveDebt: async (d) => {
@@ -458,8 +537,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     // The date the user picked is the anchor day, so a rule set for the 31st returns to the 31st after February.
     // Editing only the amount while the next date sits on the 28th must not move the anchor.
     const existing = get().rules.find((x) => x.id === r.id);
+    // Resuming a paused rule starts from the next date ahead: what fell due while it was paused was not paid.
+    const resumed = !!existing && !existing.active && r.active && existing.nextOccurrence === r.nextOccurrence && r.nextOccurrence < today();
+    if (resumed) r = { ...r, nextOccurrence: resumeFrom({ ...r, anchorDay: existing.anchorDay }, today()) };
     const dateChanged = !existing || existing.nextOccurrence !== r.nextOccurrence;
-    const anchorDay = dateChanged || existing.anchorDay == null ? Number(r.nextOccurrence.slice(8, 10)) || null : existing.anchorDay;
+    // A new rule may bring its own anchor (rent "on the 31st" first set in a 30-day month); otherwise the
+    // picked date's day is the anchor, and a resumed rule keeps the one it had.
+    const anchorDay = !existing && r.anchorDay != null ? r.anchorDay
+      : resumed && existing?.anchorDay != null ? existing.anchorDay
+      : dateChanged || existing?.anchorDay == null ? Number(r.nextOccurrence.slice(8, 10)) || null
+      : existing.anchorDay;
     await repo.upsertRule(db, { ...r, anchorDay });
     await get().runRecurringCatchUp();
     await get().refresh();
@@ -472,35 +559,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   /** Logs every due occurrence of every active rule. Returns how many entries were created. */
-  runRecurringCatchUp: async () => {
-    const db = await getDb();
-    const rules = await repo.allRules(db);
-    const todayStr = today();
-    let created = 0;
-    for (const rule of rules) {
-      if (!rule.active) continue;
-      const { due, nextOccurrence } = dueOccurrences(rule, todayStr);
-      if (due.length === 0) continue;
-      await db.withTransactionAsync(async () => {
-        for (const date of due) {
-          await repo.insertTransaction(db, {
-            id: newId(),
-            amount: rule.amount,
-            type: rule.type,
-            categoryId: rule.categoryId,
-            note: rule.note,
-            rawInput: null,
-            occurredAt: date,
-            createdAt: nowIso(),
-            isRecurringInstance: true,
-            recurringRuleId: rule.id,
-          });
-          created += 1;
-        }
-        await repo.upsertRule(db, { ...rule, nextOccurrence });
-      });
-    }
-    return created;
+  runRecurringCatchUp: () => {
+    // One run at a time: two overlapping runs (a launch and a save) would both log the same due dates.
+    if (!catchUpRun) catchUpRun = catchUp().finally(() => { catchUpRun = null; });
+    return catchUpRun;
+  },
+
+  resume: async () => {
+    if (!get().ready) return;
+    const created = await get().runRecurringCatchUp();
+    const { settings, rules, period } = get();
+    const current = periodContaining(settings?.budgetPeriod ?? 'month', rules, today());
+    if (!samePeriod(current, period)) await showPeriod(current);
+    else if (created > 0 || get().stats?.period.end !== period.end) await get().refresh();
+    get().rearmReminders().catch(() => {});
   },
 
   updateSettings: async (patch) => {
@@ -531,9 +603,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreAll: async (data) => {
     const db = await getDb();
-    // Notifications scheduled for the reminders being replaced would otherwise keep firing.
-    await cancelAllReminderNotifications();
     await repo.replaceAllData(db, data);
+    // Only once the data is in (a failed restore keeps everything, alarms included): notifications for the
+    // reminders just replaced would otherwise keep firing, and the evening nudge follows the restored setting.
+    await cancelAllReminderNotifications().catch(() => {});
+    await cancelDailyReminder().catch(() => {});
+    // The undo bar and "make that 14" pointed at entries that are gone.
+    set({ lastDeleted: null, lastSavedId: null });
     await get().runRecurringCatchUp();
     await get().refresh();
     // Restored reminders carry no notification id; this schedules them on this phone.

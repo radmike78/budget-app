@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { AccessibilityInfo, Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
@@ -56,6 +56,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!toast) return;
+    // The toast is how a save is confirmed; a screen reader hears it too.
+    AccessibilityInfo.announceForAccessibility?.(toastLine ? `${toast} ${toastLine}` : toast);
     const timer = setTimeout(() => { setToast(null); setToastLine(null); }, toastLine ? 6000 : 3500);
     return () => clearTimeout(timer);
   }, [toast, toastLine]);
@@ -135,14 +137,16 @@ export default function HomeScreen() {
           {activeGoals.map((g) => {
             const p = goalProgress(g, currency, todayStr, locale);
             return (
-              <Card key={g.id} style={{ marginBottom: spacing.sm }}>
+              <Pressable key={g.id} accessibilityRole="button" onPress={() => router.push(`/goal/${g.id}`)}>
+              <Card style={{ marginBottom: spacing.sm }}>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text variant="body" style={{ fontWeight: '600', flex: 1 }} numberOfLines={1}>{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
-                  <Text variant="small">{{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone, no_date: '' }[p.status]}</Text>
+                  <Text variant="small">{{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone, no_date: '', no_pace: '' }[p.status]}</Text>
                 </Row>
                 <Text variant="muted" style={{ marginTop: 2 }}>{t.goalShort(money(g.currentAmount, { compact: true }), money(g.targetAmount, { compact: true }), money(p.remaining, { compact: true }))}</Text>
                 <View style={{ marginTop: spacing.sm }}><ProgressBar fraction={p.fraction} /></View>
               </Card>
+              </Pressable>
             );
           })}
         </>

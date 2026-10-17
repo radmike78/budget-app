@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, type AppStateStatus, Modal, StyleSheet, View } from 'react-native';
+import { AppState, type AppStateStatus, Modal, Platform, StyleSheet, View } from 'react-native';
+import { FullWindowOverlay } from 'react-native-screens';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { authenticate } from '@/lib/appLock';
+import { authenticateWithReason } from '@/lib/appLock';
 import { useT } from '@/i18n';
 import { Button, Text } from './ui';
 
@@ -17,6 +18,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   const t = useT();
   const enabled = useAppStore((s) => s.settings?.appLockEnabled ?? false);
+  const updateSettings = useAppStore((s) => s.updateSettings);
   const ready = useAppStore((s) => s.ready);
   const [locked, setLocked] = useState(enabled);
   const [covered, setCovered] = useState(false);
@@ -27,17 +29,26 @@ export function LockGate({ children }: { children: React.ReactNode }) {
     if (busy) return;
     setBusy(true);
     try {
-      const ok = await authenticate(t.unlockPrompt, t.cancel);
-      if (ok) setLocked(false);
+      const result = await authenticateWithReason(t.unlockPrompt, t.cancel);
+      if (result === 'ok') setLocked(false);
+      else if (result === 'unavailable') {
+        // The phone has no passcode or biometrics any more: the lock has nothing left to ask, so it turns off.
+        setLocked(false);
+        await updateSettings({ appLockEnabled: false });
+      }
     } finally {
       setBusy(false);
     }
-  }, [busy, t]);
+  }, [busy, t, updateSettings]);
 
+  // Locked when the app opens with the lock on; turning it on in Settings has just asked, so it does not lock again.
+  const wasEnabled = useRef<boolean | null>(null);
   useEffect(() => {
-    if (!enabled) { setLocked(false); setCovered(false); return; }
+    if (!enabled) { setLocked(false); setCovered(false); wasEnabled.current = ready ? false : wasEnabled.current; return; }
+    if (wasEnabled.current === false) { wasEnabled.current = true; return; }
+    wasEnabled.current = true;
     setLocked(true);
-  }, [enabled]);
+  }, [enabled, ready]);
 
   useEffect(() => {
     if (ready && enabled && locked) unlock().catch(() => {});
@@ -61,17 +72,22 @@ export function LockGate({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [enabled]);
 
-  // The cover is a Modal of its own so it also sits above sheets and modal screens the OS presents
-  // over the root view; a plain overlay would leave an open editor visible in the app switcher.
+  const show = enabled && (locked || covered);
+  const cover = (
+    <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
+      <Text variant="heading">{t.lockedTitle}</Text>
+      {locked ? <View style={{ marginTop: spacing.lg }}><Button title={t.unlock} onPress={unlock} loading={busy} /></View> : null}
+    </View>
+  );
+  // On iOS the cover is a window of its own above everything: a Modal is refused while a sheet or modal
+  // screen is already presented, which would leave an open card visible in the app switcher. Android
+  // stacks Modals, so one there sits above sheets too.
   return (
     <View style={{ flex: 1 }}>
       {children}
-      <Modal visible={enabled && (locked || covered)} animationType="none" statusBarTranslucent presentationStyle="fullScreen" onRequestClose={() => {}}>
-        <View style={[StyleSheet.absoluteFill, styles.cover, { backgroundColor: colors.bg }]} accessibilityViewIsModal>
-          <Text variant="heading">{t.lockedTitle}</Text>
-          {locked ? <View style={{ marginTop: spacing.lg }}><Button title={t.unlock} onPress={unlock} loading={busy} /></View> : null}
-        </View>
-      </Modal>
+      {Platform.OS === 'ios'
+        ? (show ? <FullWindowOverlay>{cover}</FullWindowOverlay> : null)
+        : <Modal visible={show} animationType="none" statusBarTranslucent presentationStyle="fullScreen" onRequestClose={() => {}}>{cover}</Modal>}
     </View>
   );
 }

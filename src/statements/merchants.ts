@@ -106,6 +106,14 @@ export function lookupMerchant(rawLower: string): { categoryId: string; phrase: 
   return best;
 }
 
+/** On a card statement, a line with no sign or column that reads like a payment or a refund is money onto the card. */
+export function looksLikeCardCredit(rawDescription: string): boolean {
+  const text = rawDescription.toLowerCase();
+  // Only the plain phrases: "autopay" also appears on subscriptions charged to the card.
+  return CARD_PAYMENT_RE.test(text) || REFUND_RE.test(text);
+}
+const CARD_PAYMENT_RE = /\b(payment\s*[-–]?\s*thank you|thank you for your payment|payment received|online payment|mobile payment|electronic payment)\b/i;
+
 /**
  * Decides what the line is. `direction` is money in/out of this account;
  * `statement` tells us whether a credit on the account is a refund (card) or income (bank).

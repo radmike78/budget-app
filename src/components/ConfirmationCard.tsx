@@ -14,6 +14,7 @@ import type { GoalKind, ReminderRepeat, TxType } from '@/types';
 import { CategoryPicker, DatePicker, Sheet, TimePicker } from './pickers';
 import { notify } from '@/lib/dialogs';
 import { reminderSentence } from '@/lib/plain';
+import { reminderDateTime } from '@/lib/reminders';
 import { Button, Field, Row, Segmented, Text } from './ui';
 
 /**
@@ -88,6 +89,8 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
     if (!result) return;
     if (result.kind === 'reminder') {
       if (!reminderText.trim()) { setError(t.giveReminderText); return; }
+      // A one-off for a time already gone would be saved but never ring.
+      if (reminderRepeat === 'none' && reminderDateTime(date, reminderTime) <= new Date()) { setError(t.reminderInPast); return; }
       setSaving(true);
       try {
         const state = await addReminder({ text: reminderText.trim(), date, time: reminderTime, repeat: reminderRepeat });
@@ -138,7 +141,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   const catLabel = category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.pickCategory;
 
   return (
-    <Sheet visible={!!result} onClose={onCancel} tall>
+    <Sheet visible={!!result} onClose={onCancel} tall scroll>
       <Row style={{ justifyContent: 'space-between', marginBottom: spacing.sm }}>
         <Text variant="heading">{title}</Text>
         <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel} hitSlop={12}><Text variant="muted">{t.cancel}</Text></Pressable>
@@ -157,13 +160,13 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
         onChangeText={setAmountText}
         keyboardType="decimal-pad"
         placeholder={locale.format.decimal === ',' ? '0,00' : '0.00'}
-        autoFocus={amount == null}
+        autoFocus={result.amount == null}
         inputStyle={{ fontSize: 28, fontWeight: '700' }}
       /> : null}
 
       {result.kind === 'reminder' ? (
         <>
-          <Field label={t.reminderWhat} value={reminderText} onChangeText={setReminderText} placeholder={t.optional} autoFocus={!reminderText} />
+          <Field label={t.reminderWhat} value={reminderText} onChangeText={setReminderText} placeholder={t.reminderExample} autoFocus={!result.reminderText} />
           <Text variant="label" style={{ marginBottom: 6 }}>{t.categoryDate}</Text>
           <Row style={{ marginBottom: spacing.lg, flexWrap: 'wrap' }}>
             <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />

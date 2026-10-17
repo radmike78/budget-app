@@ -18,7 +18,7 @@ export const ja: LanguagePack = {
   tokenizer: 'cjk',
   decimalComma: false,
   // "一番" is "the most", never an amount: it stays a word so a question about the most is not taken for an entry of 1.
-  numberWords: (t) => cjkNumeralsToDigits(expandK(t.replace(/一番/gu, 'いちばん').replace(/(\d),(\d{3})(?!\d)/g, '$1$2'))),
+  numberWords: (t) => cjkNumeralsToDigits(expandK(t.replace(/一番/gu, 'いちばん').replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, '')))),
   currencyMarkers: /¥|￥|\$|円|ドル|ユーロ|(?<!還)元|ウォン|jpy|usd/i,
   currencyWords: /(?:円|ドル|ユーロ|ウォン|jpy|usd|銭)/giu,
   incomeVerbs: ['給料', '給与', '月給', '賞与', 'ボーナス', 'もらった', '貰った', 'もらいました', '受け取った', '受け取りました', '入金', '振り込まれた', '振込があった', '稼いだ', '収入', '副収入', '返金', '払い戻し', '還付', '返ってきた', '戻ってきた', '売った', '売れた', '報酬', '謝礼', '手当', '年金', '配当', '利息', 'お小遣い', 'お年玉', 'くれた', '送ってくれた', '精算', '経費精算', 'チップ', 'バイト代', '給料日', '臨時収入', '入った', '受領'],

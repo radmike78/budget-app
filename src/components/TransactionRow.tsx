@@ -43,7 +43,15 @@ export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transacti
 
   return (
     <ReanimatedSwipeable ref={ref} renderRightActions={renderRight} overshootRight={false} friction={2} rightThreshold={40}>
-      <Pressable accessibilityRole="button" onPress={onPress} onLongPress={confirmDelete} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.cardAlt : colors.card, borderColor: colors.border }]}>
+      {/* No long-press delete: a slow tap while scrolling would remove an entry. Screen readers, which cannot
+          swipe, get the same two actions from the actions menu. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${title}, ${tx.type === 'income' ? '+' : '−'}${money(tx.amount)}${subtitleParts.length ? `, ${subtitleParts.join(', ')}` : ''}`}
+        accessibilityActions={[...(onPress ? [{ name: 'edit', label: t.edit }] : []), { name: 'delete', label: t.delete }]}
+        onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'delete') confirmDelete(); else if (e.nativeEvent.actionName === 'edit') onPress?.(); }}
+        onPress={onPress}
+        style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.cardAlt : colors.card, borderColor: colors.border }]}>
         <Icon glyph={category?.icon} size={22} />
         <View style={{ flex: 1, marginLeft: spacing.md }}>
           <Text variant="body" numberOfLines={1}>{title}</Text>

@@ -71,6 +71,8 @@ export default function HistoryScreen() {
   useEffect(() => { setShown(PAGE); }, [search, type, categoryId, range]);
 
   const category = categories.find((c) => c.id === categoryId);
+  // A category deleted while it was the filter would leave an empty list behind a chip that says "Any category".
+  useEffect(() => { if (categoryId && !category) setCategoryId(null); }, [categoryId, category]);
 
   // A category of the other kind would leave an empty list, so the filter drops with the type.
   const changeType = (next: TxType | null) => {

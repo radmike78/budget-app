@@ -12,6 +12,7 @@ import { HINT, type ParseResult } from '@/parser';
 import type { GoalKind, ReminderRepeat, TxType } from '@/types';
 import { CategoryPicker, DatePicker, Sheet, TimePicker } from './pickers';
 import { notify } from '@/lib/dialogs';
+import { reminderDateTime } from '@/lib/reminders';
 import { Button, Field, Row, Segmented, Text } from './ui';
 
 interface Draft {
@@ -118,6 +119,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
     const amounts = drafts.map((d) => (d.kind === 'reminder' ? 1 : parseMoneyInput(d.amountText, decimalComma)));
     if (amounts.some((a) => a == null || a <= 0)) { setError(t.enterAmount); return; }
     if (drafts.some((d) => d.kind === 'reminder' && !d.reminderText.trim())) { setError(t.giveReminderText); return; }
+    if (drafts.some((d) => d.kind === 'reminder' && d.reminderRepeat === 'none' && reminderDateTime(d.date, d.reminderTime) <= new Date())) { setError(t.reminderInPast); return; }
     if (drafts.some((d) => d.kind === 'goal' && !d.goalName.trim())) { setError(t.giveGoalName); return; }
     setSaving(true);
     setError(null);
@@ -203,7 +205,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
               /> : null}
               {d.kind === 'reminder' ? (
                 <>
-                  <Field label={t.reminderWhat} value={d.reminderText} onChangeText={(v) => update(i, { reminderText: v })} placeholder={t.optional} style={{ marginBottom: spacing.md }} />
+                  <Field label={t.reminderWhat} value={d.reminderText} onChangeText={(v) => update(i, { reminderText: v })} placeholder={t.reminderExample} style={{ marginBottom: spacing.md }} />
                   <Row style={{ marginBottom: spacing.md, flexWrap: 'wrap' }}>
                     <Button tone="secondary" small title={friendlyDate(d.date, today(), fmt)} onPress={() => setPickingDate(i)} />
                     <Button tone="secondary" small title={d.reminderTime} onPress={() => setPickingTime(i)} />

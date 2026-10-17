@@ -52,12 +52,17 @@ export interface GoalProgress {
   /** 0..1 */
   fraction: number;
   sentence: string;
-  status: 'ahead' | 'behind' | 'on_track' | 'done' | 'no_date';
+  /** `no_pace`: too soon, or nothing added yet, to say whether it will be reached in time. */
+  status: 'ahead' | 'behind' | 'on_track' | 'done' | 'no_date' | 'no_pace';
 }
+
+/** Days a goal needs before its pace is worth reading. */
+const PACE_AFTER_DAYS = 7;
 
 /**
  * "You're $180 away, on pace to hit it 2 weeks early."
- * Pace is the average saved per day since the goal was created.
+ * Pace is the average added per day since the goal was created (what it started with does not count),
+ * and is only judged after a week: one deposit on day one says nothing about the months ahead.
  */
 export function goalProgress(goal: Goal, currency: string, todayStr: string, locale: LocaleDef = en): GoalProgress {
   const money = moneyFn(currency, locale);
@@ -70,7 +75,8 @@ export function goalProgress(goal: Goal, currency: string, todayStr: string, loc
 
   const createdDay = goal.createdAt.slice(0, 10);
   const elapsedDays = Math.max(1, daysBetween(createdDay, todayStr));
-  const perDay = goal.currentAmount / elapsedDays;
+  const added = Math.max(0, goal.currentAmount - (goal.startingAmount ?? 0));
+  const perDay = elapsedDays < PACE_AFTER_DAYS ? 0 : added / elapsedDays;
 
   if (!goal.targetDate) {
     if (goal.currentAmount === 0) return { remaining, fraction, status: 'no_date', sentence: S.goalNoDateEmpty(money(goal.targetAmount)) };
@@ -84,7 +90,7 @@ export function goalProgress(goal: Goal, currency: string, todayStr: string, loc
 
   if (perDay <= 0) {
     if (daysLeft === 0) return { remaining, fraction, status: 'behind', sentence: S.goalDueToday(money(remaining)) };
-    return { remaining, fraction, status: 'on_track', sentence: S.goalNoPace(money(remaining), money(Math.ceil(neededPerWeek)), dateText) };
+    return { remaining, fraction, status: 'no_pace', sentence: S.goalNoPace(money(remaining), money(Math.ceil(neededPerWeek)), dateText) };
   }
 
   const daysToFinish = Math.ceil(remaining / perDay);

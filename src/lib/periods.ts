@@ -7,7 +7,17 @@ import type { BudgetPeriodMode, Frequency, Period, RecurringRule } from '@/types
 import { addDays, addMonths, addYears, fromDateString, longDate, monthKey, monthRange, type DateFormat, EN_DATE_FORMAT } from './dates';
 import { advance } from './recurring';
 
-type PayRule = Pick<RecurringRule, 'type' | 'active' | 'frequency' | 'nextOccurrence' | 'anchorDay'>;
+type PayRule = Pick<RecurringRule, 'type' | 'active' | 'frequency' | 'nextOccurrence' | 'anchorDay' | 'amount'>;
+
+/** An income at least this share of the largest one is pay; anything smaller (a side gig, interest) never splits a period. */
+const MAIN_PAY_SHARE = 0.5;
+
+/** The active income rules that set paydays: the largest, and any about as large (pay split over the 1st and 15th). */
+export function mainPayRules<R extends PayRule>(rules: R[]): R[] {
+  const income = rules.filter((r) => r.active && r.type === 'income');
+  const largest = income.reduce((max, r) => Math.max(max, r.amount), 0);
+  return income.filter((r) => r.amount >= largest * MAIN_PAY_SHARE);
+}
 
 /** Steps one occurrence back; the mirror of `advance`. */
 function retreat(date: string, frequency: Frequency, anchorDay?: number): string {
@@ -27,12 +37,11 @@ export function hasPayRules(rules: PayRule[]): boolean {
   return rules.some((r) => r.active && r.type === 'income');
 }
 
-/** Every payday from active income rules within [from, to], sorted, no duplicates. */
+/** Every payday from the main income rules within [from, to], sorted, no duplicates. */
 export function payDates(rules: PayRule[], from: string, to: string): string[] {
   const dates = new Set<string>();
   const GUARD = 1200;
-  for (const r of rules) {
-    if (!r.active || r.type !== 'income') continue;
+  for (const r of mainPayRules(rules)) {
     const anchor = r.anchorDay ?? fromDateString(r.nextOccurrence).getDate();
     let d = r.nextOccurrence;
     let guard = 0;

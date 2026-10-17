@@ -1,6 +1,6 @@
 # Privacy Policy — OnlyBudget
 
-**Last updated: 4 October 2026**
+**Last updated: 16 October 2026**
 
 OnlyBudget is a budgeting app that runs entirely on your phone. It has no server
 and no account. We do not receive your budget, and there is no "we" that could:
@@ -77,8 +77,13 @@ When, and only when, you have turned it on and supplied a key:
 - Nothing else is sent. Not your history, not your totals, not your goals, not
   any identifier for you or your device.
 - The request goes directly from your phone to Anthropic, using your key and
-  your account with them. Anthropic's terms and privacy policy apply to it. The
-  developer of this app is not a party to it and cannot see it.
+  your account with them. Like any web request, it also carries your phone's IP
+  address. Anthropic's terms and privacy policy
+  ([anthropic.com/legal/privacy](https://www.anthropic.com/legal/privacy)) apply
+  to it, including how long Anthropic keeps it. The developer of this app is not
+  a party to it and cannot see it.
+- Turning the feature on asks you first, in so many words, before anything is
+  sent.
 - Your API key is held in the device keychain (iOS) or keystore (Android), and
   in browser storage on the web version. It is never sent anywhere but to
   Anthropic, as the credential for your own request.

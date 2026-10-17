@@ -40,13 +40,12 @@ export default function GoalsScreen() {
           return (
             <Pressable key={g.id} accessibilityRole="button" onPress={() => router.push(`/goal/${g.id}`)}>
               <Card style={{ marginBottom: spacing.sm }}>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Text variant="heading" style={{ flex: 1 }} numberOfLines={1}>{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
-                  <Text variant="money">{money(g.currentAmount, { compact: true })} / {money(g.targetAmount, { compact: true })}</Text>
-                </Row>
+                {/* Name and amounts on their own lines: side by side, a long name or large text squeezes one of them away. */}
+                <Text variant="heading" numberOfLines={2}>{g.kind === 'debt' ? `${t.goalKindDebt} · ${g.name}` : g.name}</Text>
+                <Text variant="money" style={{ marginTop: 2 }}>{money(g.currentAmount, { compact: true })} / {money(g.targetAmount, { compact: true })}</Text>
                 {deadline ? <Text variant="small" style={{ marginTop: 2 }}>{deadline}</Text> : null}
                 <View style={{ marginVertical: spacing.md }}><ProgressBar fraction={p.fraction} /></View>
-                <Text variant="muted">{t.toGoShort(money(p.remaining, { compact: true }))}{p.status !== 'no_date' ? ` · ${{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone }[p.status]}` : ''}</Text>
+                <Text variant="muted">{t.toGoShort(money(p.remaining, { compact: true }))}{p.status !== 'no_date' && p.status !== 'no_pace' ? ` · ${{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone }[p.status]}` : ''}</Text>
               </Card>
             </Pressable>
           );
@@ -55,7 +54,7 @@ export default function GoalsScreen() {
 
       {done.length > 0 ? (
         <>
-          <SectionTitle>{t.done}</SectionTitle>
+          <SectionTitle>{t.doneGoals}</SectionTitle>
           {done.map((g) => (
             <Pressable key={g.id} accessibilityRole="button" onPress={() => router.push(`/goal/${g.id}`)}>
               <Card tone="alt" style={{ marginBottom: spacing.sm }}>

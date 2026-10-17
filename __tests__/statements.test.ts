@@ -8,7 +8,7 @@ import path from 'path';
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import type { ParseContext } from '@/parser';
 import {
-  cleanDescription, debtsFromTradelines, detectKind, findDates, findMoney, findPeriod, fingerprintOf, guessKind, lookupMerchant, parseCreditReport, parseStatement,
+  cleanDescription, debtsFromTradelines, defaultDateOrder, detectKind, findDates, numericDateOrder, findMoney, findPeriod, fingerprintOf, guessKind, lookupMerchant, parseCreditReport, parseStatement,
   planPayoff, recommendStrategy, resolveDate, rowsFromItems, rowsFromText, toNumber,
 } from '@/statements';
 
@@ -113,6 +113,27 @@ describe('money and dates on statements', () => {
     expect(findDates('2026年1月5日', 'zh')[0]).toMatchObject({ month: 0, day: 5, year: 2026 });
     expect(findDates('13/01', 'en')[0]).toMatchObject({ month: 0, day: 13 });
   });
+  it('reads day-first dates on an English statement from the UK or Australia', () => {
+    // The statement shows its order itself: 15/03 can only be the 15th of March, so 03/04 is the 3rd of April.
+    const uk = parseStatement(rowsFromText('Statement period 01/03/2026 to 31/03/2026\n03/03 TESCO STORES 3021 12.40\n15/03 PRET A MANGER 4.50'), ctx('en'), { language: 'en', today: TODAY });
+    expect(uk.period).toEqual({ start: '2026-03-01', end: '2026-03-31' });
+    expect(uk.lines.map((l) => l.date)).toEqual(['2026-03-03', '2026-03-15']);
+    // Nothing on the page decides it: the phone's region does.
+    const rows = rowsFromText('03/04 TESCO STORES 3021 12.40');
+    expect(parseStatement(rows, ctx('en'), { language: 'en', region: 'GB', today: TODAY }).lines[0].date).toBe('2025-04-03');
+    expect(parseStatement(rows, ctx('en'), { language: 'en', region: 'US', today: TODAY }).lines[0].date).toBe('2025-03-04');
+    expect(parseStatement(rows, ctx('en'), { language: 'en', today: TODAY }).lines[0].date).toBe('2025-03-04');
+    // Amounts never count as dates when reading the order.
+    expect(numericDateOrder(rowsFromText('01/05 COFFEE 4.50\n01/06 LUNCH 12.25'))).toBeNull();
+    expect(defaultDateOrder('en', 'AU')).toBe('dmy');
+    expect(defaultDateOrder('de', 'US')).toBe('dmy');
+    expect(defaultDateOrder('ja', 'JP')).toBe('mdy');
+  });
+  it('reads yen and won amounts, which have no cents', () => {
+    expect(findMoney('01/05 ローソン 980円').map((m) => m.value)).toEqual([980]);
+    expect(findMoney('01/05 스타벅스 ₩4500').map((m) => m.value)).toEqual([4500]);
+    expect(findMoney('01/05 STORE 4500').length).toBe(0);
+  });
   it('puts a December line on a January statement into the previous year', () => {
     const period = { start: '2025-12-20', end: '2026-01-19' };
     expect(resolveDate({ month: 11, day: 22, year: null, start: 0, end: 5, raw: '12/22' }, period, TODAY)).toBe('2025-12-22');
@@ -166,6 +187,13 @@ describe('card statement', () => {
     expect(p.kind).toBe('card');
     expect(p.period).toEqual({ start: '2025-12-15', end: '2026-01-14' });
     expect(p.tradelines[0]).toMatchObject({ creditor: 'Chase Sapphire Preferred', type: 'credit_card', balance: 1352.43, monthlyPayment: 40, creditLimit: 12000, apr: 24.99, consumer: true });
+  });
+  it('reads unsigned payments and refunds on a card statement with no sections as credits', () => {
+    const plain = CARD.replace('PAYMENTS AND OTHER CREDITS\n', '').replace('PURCHASES\n', '').replace('-500.00', '500.00').replace('-35.20', '35.20');
+    const byDesc = Object.fromEntries(parse(plain).lines.map((l) => [l.description, l]));
+    expect(byDesc['Payment Thank You-Mobile']).toMatchObject({ kind: 'payment', include: false });
+    expect(byDesc['AMZN Mktp US Return']).toMatchObject({ kind: 'refund', direction: 'in' });
+    expect(byDesc['Spotify']).toMatchObject({ direction: 'out' });
   });
   it('treats payments as excluded, refunds as income, purchases and interest as expenses', () => {
     const byDesc = Object.fromEntries(p.lines.map((l) => [l.description, l]));
