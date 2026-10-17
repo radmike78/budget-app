@@ -163,10 +163,15 @@ reviewer. The copy is English; translate per locale before submission.
 
 ## 4. Known, and deliberate
 
-- `npm audit` reports advisories in `brace-expansion`, `braces`, `node-forge`,
-  `decode-uri-component` and `uuid`. All of them arrive through Expo's CLI and
-  build tooling, not through anything in the shipped bundle, and they clear when
-  Expo bumps them. Re-check with `npm audit --omit=dev` after an SDK upgrade.
+- `npm audit` reports advisories (`brace-expansion`, `braces`, `node-forge`,
+  `shell-quote`) that arrive through Expo's CLI, Metro and Jest, none of which
+  ships. `npm run audit:shipped` (what CI runs) exports the Android bundle with
+  source maps and fails only when a package with a high or critical advisory is
+  in it; the rest are printed for information.
+- Android reminders are not exact alarms: the app does not ask for
+  `SCHEDULE_EXACT_ALARM`, so under Doze a 9:00 reminder can arrive some minutes
+  late. That is the calm choice; a budgeting nudge does not need the alarm
+  permission that clock apps request.
 - The voices (`friend`, `coach`, `roaster`) only have English lines. In any other
   app language the app stays quiet rather than speaking English at someone who
   did not ask for it.

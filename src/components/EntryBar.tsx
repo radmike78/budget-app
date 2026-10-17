@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { MAX_ENTRY_LENGTH } from '@/lib/validate';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { radius, spacing, useTheme } from '@/theme';
 import { useVoiceInput } from '@/lib/speech';
 import { useT } from '@/i18n';
@@ -45,7 +45,7 @@ export function EntryBar({ onSubmit, busy, autoFocus }: { onSubmit: (text: strin
       voice.stop();
     } else {
       inputRef.current?.blur();
-      await voice.start();
+      await voice.start().catch(() => {});
     }
   };
 

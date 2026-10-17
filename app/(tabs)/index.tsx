@@ -51,7 +51,7 @@ export default function HomeScreen() {
 
   // Today always shows the period that contains today, even after browsing older ones on the Budget tab.
   useFocusEffect(useCallback(() => {
-    if (settings && !samePeriod(period, periodContaining(settings.budgetPeriod, rules, today()))) goToCurrentPeriod();
+    if (settings && !samePeriod(period, periodContaining(settings.budgetPeriod, rules, today()))) goToCurrentPeriod().catch(() => {});
   }, [settings, period, rules, goToCurrentPeriod]));
 
   useEffect(() => {

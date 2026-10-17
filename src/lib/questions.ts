@@ -13,25 +13,26 @@ import { safeToSpend } from '@/lib/safeToSpend';
 export interface DateRange { from: string; to: string }
 
 /**
- * Calendar range for a period. Weeks start on Sunday and run to today.
+ * Calendar range for a period. Weeks start on the locale's first day (`firstDay`, Sunday by default) and run to today.
  * `budget` is the current budget period (`current`, from periodContaining) up to today;
  * without one it is the month.
  */
-export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7): DateRange {
+export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7, firstDay = 0): DateRange {
   const d = fromDateString(todayStr);
-  const dow = d.getDay(); // Sunday = 0
+  const dow = (d.getDay() - firstDay + 7) % 7; // 0 on the first day of the week
+  const sun = d.getDay(); // Sunday = 0, for the weekend
   switch (period) {
     case 'today': return { from: todayStr, to: todayStr };
     case 'yesterday': { const y = addDays(todayStr, -1); return { from: y, to: y }; }
     case 'week': return { from: addDays(todayStr, -dow), to: todayStr };
-    case 'lastWeek': { const sunday = addDays(todayStr, -dow - 7); return { from: sunday, to: addDays(sunday, 6) }; }
+    case 'lastWeek': { const first = addDays(todayStr, -dow - 7); return { from: first, to: addDays(first, 6) }; }
     case 'budget': if (current) return { from: current.start, to: todayStr < current.end ? todayStr : current.end }; return { from: monthRange(monthKey(todayStr)).start, to: todayStr };
     case 'month': return { from: monthRange(monthKey(todayStr)).start, to: todayStr };
     // The most recent Saturday and Sunday: this one while it is under way, else the one just gone.
     case 'weekend': {
-      if (dow === 6) return { from: todayStr, to: todayStr };
-      if (dow === 0) return { from: addDays(todayStr, -1), to: todayStr };
-      const saturday = addDays(todayStr, -(dow + 1));
+      if (sun === 6) return { from: todayStr, to: todayStr };
+      if (sun === 0) return { from: addDays(todayStr, -1), to: todayStr };
+      const saturday = addDays(todayStr, -(sun + 1));
       return { from: saturday, to: addDays(saturday, 1) };
     }
     case 'recentDays': return { from: addDays(todayStr, -(Math.max(1, Math.min(366, Math.round(days))) - 1)), to: todayStr };
@@ -171,11 +172,11 @@ export interface CompareRanges {
  * the same day, the week so far against last week to the same weekday, the pay period so far against the same
  * number of days into the one before (`previous`, from shiftPeriod).
  */
-export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period): CompareRanges {
+export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0): CompareRanges {
   const d = fromDateString(todayStr);
   const clamp = (from: string, to: string, end: string): DateRange => ({ from, to: to > end ? end : to });
   if (period === 'week') {
-    const now = periodRange('week', todayStr);
+    const now = periodRange('week', todayStr, undefined, 7, firstDay);
     return { now, before: { from: addDays(now.from, -7), to: addDays(todayStr, -7) } };
   }
   if (period === 'year') {

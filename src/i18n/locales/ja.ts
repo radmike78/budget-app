@@ -13,6 +13,7 @@ export const ja: LocaleDef = {
     months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
     monthsShort: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
     weekdaysShort: ['日', '月', '火', '水', '木', '金', '土'],
+    firstDay: 0 as 0 | 1,
     longDate: (day, month, year) => (year ? `${year}年${month}${day}日` : `${month}${day}日`),
     shortDate: (day, monthShort, weekdayShort, year) => (year ? `${year}年${monthShort}${day}日` : `${monthShort}${day}日（${weekdayShort}）`),
     monthYear: (month, year) => `${year}年${month}`,

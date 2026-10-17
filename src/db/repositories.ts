@@ -224,12 +224,13 @@ export async function periodStats(db: DB, period: Period): Promise<MonthStats> {
     'SELECT category_id, SUM(amount) AS total, COUNT(*) AS count FROM transactions WHERE occurred_at BETWEEN ? AND ? AND type = \'expense\' GROUP BY category_id',
     [start, end],
   );
-  const byCategory: CategoryTotal[] = byCategoryRows.map((r) => ({ categoryId: r.category_id, total: r.total, count: r.count }));
+  // Sums of cents in floating point can come back as 100.00000000000001; a plan of 100 must read as met, not past.
+  const byCategory: CategoryTotal[] = byCategoryRows.map((r) => ({ categoryId: r.category_id, total: cents(r.total), count: r.count }));
   return {
     month: monthKey(start),
     period: { start, end },
-    income: totals.find((t) => t.type === 'income')?.total ?? 0,
-    expenses: totals.find((t) => t.type === 'expense')?.total ?? 0,
+    income: cents(totals.find((t) => t.type === 'income')?.total ?? 0),
+    expenses: cents(totals.find((t) => t.type === 'expense')?.total ?? 0),
     byCategory,
   };
 }
@@ -240,8 +241,10 @@ export async function expenseTotalsByDay(db: DB, from: string, to: string): Prom
     "SELECT category_id, occurred_at, SUM(amount) AS total FROM transactions WHERE type = 'expense' AND occurred_at BETWEEN ? AND ? GROUP BY category_id, occurred_at",
     [from, to],
   );
-  return rows.map((r) => ({ categoryId: r.category_id, occurredAt: r.occurred_at, total: r.total }));
+  return rows.map((r) => ({ categoryId: r.category_id, occurredAt: r.occurred_at, total: cents(r.total) }));
 }
+
+const cents = (n: number) => Math.round(n * 100) / 100;
 
 // ---------- carry-over answers ----------
 

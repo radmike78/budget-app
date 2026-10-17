@@ -16,6 +16,8 @@ export const en = {
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     weekdaysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    /** The day a week starts on: 0 Sunday (US, Japan, Korea), 1 Monday (most of Europe, China). Weeks in questions, the recap and the calendar follow it. */
+    firstDay: 0 as 0 | 1,
     /** "September 3" / "September 3, 2027" */
     longDate: (day: number, month: string, year: number | null) => (year ? `${month} ${day}, ${year}` : `${month} ${day}`),
     /** "Mon, Sep 3" / "Sep 3, 2025" */

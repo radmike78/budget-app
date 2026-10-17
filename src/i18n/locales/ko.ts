@@ -13,6 +13,7 @@ export const ko: LocaleDef = {
     months: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
     monthsShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
     weekdaysShort: ['일', '월', '화', '수', '목', '금', '토'],
+    firstDay: 0 as 0 | 1,
     longDate: (day, month, year) => (year ? `${year}년 ${month} ${day}일` : `${month} ${day}일`),
     shortDate: (day, monthShort, weekdayShort, year) => (year ? `${year}년 ${monthShort} ${day}일` : `${monthShort} ${day}일 (${weekdayShort})`),
     monthYear: (month, year) => `${year}년 ${month}`,

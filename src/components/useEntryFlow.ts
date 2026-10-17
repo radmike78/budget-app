@@ -61,7 +61,7 @@ export function useEntryFlow() {
       // The period so far against the same point in the one before, so half a month never meets a whole one.
       const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
       const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);
-      const r = compareRanges(kind, todayStr, current, previous);
+      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: r.before.from, to: r.now.to, limit: 100000 });
       const spentQ = { ...q, ask: 'spent' as const };
@@ -74,7 +74,7 @@ export function useEntryFlow() {
       text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev);
     } else if (q.ask === 'top') {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
       const periodName = period === 'recentDays' ? t.periodLastDays(q.days ?? 7) : period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
@@ -115,7 +115,7 @@ export function useEntryFlow() {
       }
     } else {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
       const a = answerQuestion(q, rows, range, categories);

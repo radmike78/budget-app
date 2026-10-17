@@ -18,6 +18,8 @@ export interface DateFormat {
   longDate: (day: number, month: string, year: number | null) => string;
   shortDate: (day: number, monthShort: string, weekdayShort: string | null, year: number | null) => string;
   monthYear: (month: string, year: number) => string;
+  /** The day a week starts on: 0 Sunday (US, Japan, Korea), 1 Monday (most of Europe, China). */
+  firstDay?: 0 | 1;
   today?: string;
   yesterday?: string;
 }

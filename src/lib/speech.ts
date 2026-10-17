@@ -137,7 +137,8 @@ export function useVoiceInput(onFinal: (text: string) => void) {
     setState((s) => ({ ...s, error: null }));
     // An answer still being read aloud would be heard by the mic.
     await stopSpeaking().catch(() => {});
-    const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    // Asking for the microphone can itself fail (a work profile that forbids it): said like any other error.
+    const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync().catch(() => ({ granted: false }));
     if (!perm.granted) {
       startingRef.current = false;
       setState((s) => ({ ...s, error: t.voiceErrors.notAllowed }));
