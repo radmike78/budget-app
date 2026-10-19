@@ -34,7 +34,7 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 
 **What you never get**
 - Bank linking. Not now, not later, not as an upgrade. OnlyBudget never asks for bank credentials.
-- Ads, trackers or analytics. There is no server. Your data lives on your phone. (The one exception is optional: Smart parsing, off unless you turn it on with your own key, sends only phrases the app couldn't read to Anthropic.)
+- Ads, trackers or analytics. There is no server. Your data lives on your phone and nothing is sent anywhere.
 - Accounts. You never sign up.
 - Subscriptions or trials that turn into subscriptions. The price you see is the price, and nothing you entered is ever put behind a paywall.
 - Guilt. No streaks, no badges, no "you failed".
@@ -57,35 +57,31 @@ First release.
 Full policy: `docs/PRIVACY.md`, rendered to `docs/privacy.html`. Host it and put the URL in both consoles (see `docs/RELEASE.md`).
 
 ### Apple privacy nutrition label
-Because the optional Smart parsing can send a phrase off the phone, the label is not "Data Not Collected" while that feature ships. Declare:
-- **User Content → Other User Content** and **Financial Info → Other Financial Info** (a phrase like "got paid 2400").
-- Purpose: **App Functionality**. Used for tracking: **No**.
-- Linked to the user: **Yes** is the safer answer (each request carries the user's own API key, so Anthropic can tie it to their Anthropic account).
+**Data Not Collected.** Nothing leaves the phone: there is no server, no analytics and no network feature in 1.0 (Smart parsing is held back by `SMART_ASSIST` in `src/lib/features.ts`).
 - Speech recognition uses Apple's Speech framework (on the device where supported); that is Apple's processing, not OnlyBudget's, and is not declared.
-- Turning Smart parsing on asks first, in so many words, who receives what (Guideline 5.1.2(i)).
-- If Smart parsing is left out of 1.0, the label becomes **Data Not Collected**.
+- Backups and exports are files the user writes and keeps themselves; they are not collection.
+- If Smart parsing ships in a later version, the label changes to **User Content → Other User Content** and **Financial Info → Other Financial Info**, purpose App Functionality, not used for tracking, linked to the user (the request carries their own API key), and the feature's consent dialog covers Guideline 5.1.2(i).
 
 ### Google Play data safety
-- Does the app collect or share user data? **Yes, collects** (Play counts any data sent off the device, including through an optional feature; "No by default" is not an answer the form offers).
-- Data types: *Other user-generated content*, and *Financial info → Purchase history* ("spent 32 at Joe's"). Purpose: *App functionality*. Optional: *Yes*. Encrypted in transit: *Yes*. Ephemeral: *No* (Anthropic keeps requests under its own terms).
-- Shared: *No* (sent only after the user's explicit permission, which Play treats as user-initiated).
-- Deletion request mechanism: *No* (the developer holds no data; Erase everything clears the phone).
-- If Smart parsing is left out of 1.0: *No data collected*.
-- Data is stored on the device only. Users can delete all of it at any time with Settings → Erase everything, which also clears the optional Smart Assist key, or by uninstalling the app.
+- Does the app collect or share user data? **No.**
+- Is all of the user data collected by the app encrypted in transit? Not asked when nothing is collected.
+- Deletion request mechanism: not asked; the developer holds no data. Settings → Erase everything clears the phone, and so does uninstalling.
+- Security practices: data is stored on the device only; the user can request deletion by erasing it themselves.
+- If Smart parsing ships in a later version: *Yes, collects* (Play counts data sent off the device through an optional feature), types *Other user-generated content* and *Financial info → Purchase history*, purpose App functionality, optional, encrypted in transit, not shared, not ephemeral.
 
 ### Permissions
 - **Microphone**: to hear a spoken entry. Only while the mic button is active.
 - **Speech recognition**: to turn speech into text for an entry.
 - **Notifications** (optional): reminders the user sets (one-off or repeating) and the optional evening nudge. Rescheduled after a restart. No badges (launcher-badge permissions are blocked in `app.json`).
 - **Face ID / fingerprint** (optional): only if the user turns on the app lock.
-- **Internet**: only for the optional Smart parsing.
+- **Internet**: declared by the framework. Nothing in 1.0 sends data; the Android speech recognizer may use it for languages whose offline model is not installed, which is the system's own processing.
 
 ## Review notes (App Store / Play)
 - There is no login. Reviewers can use the app immediately after onboarding.
 - No financial account data of any kind is accessed. All amounts are entered manually by the user.
 - Try: tap the mic, say "spent twelve dollars on lunch", confirm. Or type "goal: save 500 for a trip by December".
-- The optional "Smart parsing assist" in Settings requires the reviewer's own API key and is not needed to exercise any feature. Turning it on first asks for explicit permission to send unclear phrases to Anthropic.
+- The app makes no network requests. There is no server, no account and no analytics; speech is recognised by the phone's own recognizer.
 - Bank or card statement PDFs (Settings → Import a statement) are read on the device in a sandboxed view with no network access, and are never uploaded.
 
 ## Pricing
-One-time purchase (suggested $4.99–$9.99), or free with a single optional one-time "supporter" unlock for cosmetic extras (icons, themes). No subscriptions. No trial periods.
+Paid, one-time. No in-app purchases, no subscription, no trial. Suggested $4.99 (Apple tier and Play price both rounded per country by the store); $6.99 or $7.99 is defensible against the subscription apps, but a first release with no reviews is easier to try at the lower price, and both stores let a paid price change later. On Play a paid app can later become free but never the other way round, so a paid 1.0 keeps both doors open. Set the same price on both stores and let each store localise it.

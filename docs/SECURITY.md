@@ -2,7 +2,7 @@
 
 OnlyBudget holds personal money data on the phone and nowhere else. This page lists what the app does to protect it, mapped to the OWASP Mobile Top 10 (2024) and the OWASP Mobile Application Security Verification Standard (MASVS), and how each point is tested.
 
-The short version: there is no server, no account, no bank link and no analytics, so the classic remote attacks have nothing to reach. What remains is the phone itself, files the user imports, the optional Smart Assist reply, and the web build's browser sandbox. Each of those is a trust boundary with validation on it and a test behind it.
+The short version: there is no server, no account, no bank link and no analytics, so the classic remote attacks have nothing to reach. What remains is the phone itself, files the user imports, the optional Smart Assist reply (held back in 1.0 by `SMART_ASSIST` in `src/lib/features.ts`, so the first release makes no network request at all; the controls below stay in place for when it ships), and the web build's browser sandbox. Each of those is a trust boundary with validation on it and a test behind it.
 
 ## Threat model
 

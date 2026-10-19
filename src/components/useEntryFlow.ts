@@ -5,6 +5,7 @@ import { periodContaining, shiftPeriod } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
 import { parseEntries, type Correction, type ParseResult } from '@/parser';
 import type { Transaction } from '@/types';
+import { SMART_ASSIST } from '@/lib/features';
 import { llmParse } from '@/parser/llmFallback';
 import { categoryName, resolveLanguage, useDateFormat, useMoney, useT } from '@/i18n';
 import { HINT } from '@/parser';
@@ -281,7 +282,7 @@ export function useEntryFlow() {
     }
     let result = entries[0];
 
-    if (result.needsReview && settings?.smartParseEnabled) {
+    if (SMART_ASSIST && result.needsReview && settings?.smartParseEnabled) {
       setBusy(true);
       try {
         const key = await getApiKey();

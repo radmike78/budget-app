@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, Switch, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { SMART_ASSIST } from '@/lib/features';
 import { getApiKey } from '@/lib/secrets';
 import Constants from 'expo-constants';
 import type { Accent, AnswerMode, BudgetPeriodMode, ThemeSetting } from '@/types';
@@ -169,7 +170,7 @@ export default function SettingsScreen() {
       {Platform.OS === 'android' ? (
         <ListItem title={t.offlineVoice} subtitle={t.offlineVoiceSub} onPress={async () => notify(t.voiceModel, await triggerOfflineModelDownload(languageCode, { ready: t.voiceModelReady, status: t.voiceModelStatus, failed: t.voiceModelFailed }))} />
       ) : null}
-      <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? (hasKey === false ? t.smartNeedsKey : t.smartParseOn) : t.smartParseOff} onPress={() => router.push('/settings/smart')} />
+      {SMART_ASSIST ? <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? (hasKey === false ? t.smartNeedsKey : t.smartParseOn) : t.smartParseOff} onPress={() => router.push('/settings/smart')} /> : null}
 
       <SectionTitle>{t.about}</SectionTitle>
       <ListItem title={t.help} subtitle={t.helpSub} onPress={() => router.push('/settings/help')} />

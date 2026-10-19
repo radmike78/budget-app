@@ -52,9 +52,9 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <body>
 <main>
 <h1>Privacy Policy — OnlyBudget</h1>
-<p><strong>Last updated: 16 October 2026</strong></p>
+<p><strong>Last updated: 19 October 2026</strong></p>
 <p>OnlyBudget is a budgeting app that runs entirely on your phone. It has no server and no account. We do not receive your budget, and there is no "we" that could: nothing you enter is transmitted to the developer of this app, at any point, for any reason.</p>
-<p>This policy explains that in full, including the two cases where something does leave your device and exactly what they involve.</p>
+<p>This policy explains that in full, including the one case where something can leave your device and exactly what it involves.</p>
 <h2 id="the-short-version">The short version</h2>
 <ul>
   <li><strong>No account.</strong> You never sign up, and there is nothing to sign in to.</li>
@@ -68,7 +68,7 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <p>On iOS and Android this storage is private to the app and is covered by the device's own encryption. On iOS the files are locked whenever the device is locked with a passcode. On the web version it is stored in your browser, under the origin the app is served from.</p>
 <p>OnlyBudget never makes a copy of this data anywhere else; you make one yourself by exporting it (see <strong>Backups and exports</strong>). On Android the app is left out of Google's automatic backup and of transfers to a new phone. On iOS, a backup of the whole iPhone that you make to iCloud or to a computer includes the data of the apps on it, OnlyBudget's too, as for any app; that backup is yours and Apple's terms cover it, and OnlyBudget cannot read or reach it.</p>
 <h2 id="what-leaves-your-device-and-when">What leaves your device, and when</h2>
-<p>Two features involve a network, and only two. Both are described here in full.</p>
+<p>One feature involves a network, and only one. It is described here in full.</p>
 <h3 id="1-speech-recognition-when-you-use-the-microphone">1. Speech recognition, when you use the microphone</h3>
 <p>When you tap the microphone, your phone's own speech recognizer turns what you say into text. OnlyBudget never records audio, never stores audio, and never sends audio anywhere itself.</p>
 <p>The recognizer is part of your operating system, not part of this app:</p>
@@ -77,19 +77,8 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
   <li>Where it does not, the platform's recognizer may send the audio to Apple or Google for processing. That is a function of your operating system, and <strong>their</strong> privacy policy governs it, not this one. Your device settings control it.</li>
 </ul>
 <p>Microphone and speech-recognition permissions are requested the first time you use the mic, and the microphone is active only while you are speaking an entry. You can use every feature of the app by typing instead.</p>
-<h3 id="2-smart-parsing-assist-off-by-default-your-own-key">2. Smart parsing assist — off by default, your own key</h3>
-<p>OnlyBudget includes an optional feature that asks a language model for help when its own parser could not understand a phrase. It is <strong>off when you install the app</strong>, and turning it on requires you to paste in your own Anthropic API key.</p>
-<p>When, and only when, you have turned it on and supplied a key:</p>
-<ul>
-  <li>The phrase you typed or spoke is sent to <code>api.anthropic.com</code>, along with the names of your categories, so the model can pick one.</li>
-  <li><strong>Card, account, routing and IBAN numbers are stripped out of the phrase before it is sent.</strong> The app applies the same redaction it uses before writing anything to its own database.</li>
-  <li>Nothing else is sent. Not your history, not your totals, not your goals, not any identifier for you or your device.</li>
-  <li>The request goes directly from your phone to Anthropic, using your key and your account with them. Like any web request, it also carries your phone's IP address. Anthropic's terms and privacy policy (<a href="https://www.anthropic.com/legal/privacy">anthropic.com/legal/privacy</a>) apply to it, including how long Anthropic keeps it. The developer of this app is not a party to it and cannot see it.</li>
-  <li>Turning the feature on asks you first, in so many words, before anything is sent.</li>
-  <li>Your API key is held in the device keychain (iOS) or keystore (Android), and in browser storage on the web version. It is never sent anywhere but to Anthropic, as the credential for your own request.</li>
-</ul>
-<p>Turning the feature off stops this entirely. Removing the key deletes it from the device.</p>
-<p><code>api.anthropic.com</code> is the only outbound host this app will ever contact. The web version enforces that with a Content Security Policy.</p>
+<h3 id="2-nothing-else">2. Nothing else</h3>
+<p>This version of the app has no feature that sends anything off your phone. It makes no network requests of its own: there is no server, no account, no analytics and no crash reporting. The only outbound connection the app is built to be capable of, an optional parsing assist that would send a single unclear phrase to a language model with your own API key, is switched off in the code for this release and cannot be turned on from the app. If a later version offers it, this policy will describe it before it ships, it will be off by default, and turning it on will ask you first.</p>
 <h2 id="statements-you-import">Statements you import</h2>
 <p>If you import a bank or card statement, or a credit report, as a PDF:</p>
 <ul>
@@ -107,7 +96,7 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <p>You can export your data at any time, as a CSV file, a readable summary, or a full backup. An export goes wherever <strong>you</strong> send it through your phone's own share sheet. Once it leaves the app it is an ordinary file in your control, and this policy no longer governs it — if you put it in a cloud drive, that provider's terms apply.</p>
 <p>Full backups can be encrypted with a passphrase you choose. Encryption uses scrypt for key derivation and XChaCha20-Poly1305 for the data. The passphrase is never stored and cannot be recovered: if you lose it, that backup cannot be opened, by us or by anyone.</p>
 <h2 id="deleting-your-data">Deleting your data</h2>
-<p>Settings → <strong>Erase everything</strong> removes every entry, goal, reminder, debt, import record and learned word from the device, clears your saved Smart Assist key, and returns the app to the state it was in when you installed it. It takes effect immediately and cannot be undone.</p>
+<p>Settings → <strong>Erase everything</strong> removes every entry, goal, reminder, debt, import record and learned word from the device, and returns the app to the state it was in when you installed it. It takes effect immediately and cannot be undone.</p>
 <p>Uninstalling the app also removes everything on the device. (An iPhone backup you made earlier keeps what was there when it was made, until you delete that backup.)</p>
 <p>Because OnlyBudget keeps no copy of your data off your device, there is nothing to request deletion of from us, and no request to make.</p>
 <h2 id="children">Children</h2>

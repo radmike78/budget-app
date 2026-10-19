@@ -531,7 +531,7 @@ export const es: LocaleDef = {
     ] as [string, string][],
     commitments: [
       ['Sin vincular bancos. Nunca.', 'OnlyBudget nunca pide credenciales bancarias y nunca lo hará, ni como función ni como extra de pago. Tú cuentas lo que pasó.'],
-      ['Sin anuncios. Sin rastreo.', 'No hay SDK de analítica, ni identificador publicitario, ni datos compartidos con terceros. Nada tuyo sale de este teléfono a menos que lo exportes tú. La lectura inteligente, si la activas, solo envía a Anthropic las frases que no puede leer.'],
+      ['Sin anuncios. Sin rastreo.', 'No hay SDK de analítica, ni identificador publicitario, ni datos compartidos con terceros. Nada tuyo sale de este teléfono a menos que lo exportes tú.'],
       ['Sin cuentas.', 'Nunca te registras. No hay ningún servidor con tus datos. Las copias son archivos tuyos.'],
       ['Sin suscripciones ni pruebas.', 'Lo que cueste OnlyBudget se dice de antemano y no cambia después de comprar. Nada de lo que ya has introducido se pone nunca tras un muro de pago.'],
       ['Tranquilo por diseño.', 'Sin rachas, sin insignias rojas, sin "has fallado". Solo frases sencillas sobre a dónde fue tu dinero.'],
@@ -575,6 +575,7 @@ export const es: LocaleDef = {
     useSmart: 'Usar la ayuda inteligente',
     useSmartSub: 'Solo cuando el analizador integrado no está seguro.',
     smartNeedsKey: 'No se envía nada hasta que añadas tu clave de API abajo.',
+    smartNotYet: 'No está en esta versión. Todo lo que dices o escribes se lee en tu teléfono y no se envía a ningún sitio.',
     howItWorks: 'Cómo funciona',
     smartHow1: (model) => `Casi todo se entiende en tu teléfono, al instante y sin conexión. De vez en cuando una frase es demasiado rara. Con esto activado, esa frase (más los nombres de tus categorías) se envía a Claude de Anthropic (${model}) y vuelve como importe, tipo, categoría y nota para que lo confirmes.`,
     smartHow2: 'Nunca funciona sin conexión, nunca guarda nada por sí sola, y siempre puedes corregir los campos tú. Usa tu propia clave de API, así que el coste es tuyo y suele ser una fracción de céntimo por frase.',

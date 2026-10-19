@@ -531,7 +531,7 @@ export const de: LocaleDef = {
     ] as [string, string][],
     commitments: [
       ['Keine Bankverbindung. Nie.', 'OnlyBudget fragt nie nach Bankzugangsdaten und wird es nie tun, weder als Funktion noch als Zusatzkauf. Du erzählst, was passiert ist.'],
-      ['Keine Werbung. Kein Tracking.', 'Kein Analyse-SDK, keine Werbe-ID, keine Datenweitergabe an Dritte. Nichts von dir verlässt dieses Telefon, außer du exportierst es selbst. Das smarte Lesen schickt, wenn du es einschaltest, nur die Sätze an Anthropic, die es selbst nicht versteht.'],
+      ['Keine Werbung. Kein Tracking.', 'Kein Analyse-SDK, keine Werbe-ID, keine Datenweitergabe an Dritte. Nichts von dir verlässt dieses Telefon, außer du exportierst es selbst.'],
       ['Keine Konten.', 'Du registrierst dich nie. Kein Server hält deine Daten. Backups sind Dateien, die dir gehören.'],
       ['Keine Abos, keine Testphasen.', 'Was OnlyBudget kostet, steht vorher fest und ändert sich nach dem Kauf nicht. Nichts, was du eingetragen hast, landet je hinter einer Bezahlschranke.'],
       ['Ruhig gestaltet.', 'Keine Serien, keine roten Badges, kein „Du hast versagt“. Nur klare Sätze darüber, wo dein Geld geblieben ist.'],
@@ -575,6 +575,7 @@ export const de: LocaleDef = {
     useSmart: 'Smarte Hilfe verwenden',
     useSmartSub: 'Nur wenn die eingebaute Erkennung unsicher ist.',
     smartNeedsKey: 'Es wird nichts gesendet, bis du unten deinen API-Schlüssel einträgst.',
+    smartNotYet: 'Nicht in dieser Version. Alles, was du sagst oder tippst, wird auf deinem Telefon gelesen, und nichts wird irgendwohin gesendet.',
     howItWorks: 'So funktioniert es',
     smartHow1: (model) => `Fast alles wird direkt auf deinem Telefon verstanden, sofort und offline. Ab und zu ist ein Satz zu ungewöhnlich. Ist das eingeschaltet, wird genau dieser Satz (plus deine Kategorienamen) an Claude von Anthropic (${model}) gesendet und kommt als Betrag, Art, Kategorie und Notiz zur Bestätigung zurück.`,
     smartHow2: 'Es läuft nie ohne Verbindung, speichert nie etwas von allein, und du kannst die Felder immer selbst korrigieren. Es nutzt deinen eigenen API-Schlüssel, die Kosten trägst also du, meist ein Bruchteil eines Cents pro Satz.',
