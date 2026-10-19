@@ -50,3 +50,28 @@ describe('no seeded information in the app', () => {
     }
   });
 });
+
+describe('release switches', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { SMART_ASSIST } = require('@/lib/features') as typeof import('@/lib/features');
+  it('1.0 ships with Smart parsing held back, so no network feature is reachable and the privacy forms say nothing is collected', () => {
+    expect(SMART_ASSIST).toBe(false);
+    // The only call into the assist module, the Settings row and the About section all sit behind the flag.
+    expect(read('src/components/useEntryFlow.ts')).toMatch(/if \(SMART_ASSIST && result\.needsReview && settings\?\.smartParseEnabled\)/);
+    expect(read('app/(tabs)/settings.tsx')).toMatch(/\{SMART_ASSIST \? <ListItem title=\{t\.smartParse\}/);
+    expect(read('app/settings/about.tsx')).toMatch(/\{SMART_ASSIST \? \(\s*<>\s*<SectionTitle>\{t\.smartSection\}/);
+    expect(read('app/settings/smart.tsx')).toMatch(/if \(!SMART_ASSIST\) \{/);
+    // The listing and the policy match the flag.
+    expect(read('store/listing.md')).toMatch(/\*\*Data Not Collected\.\*\*/);
+    expect(read('store/listing.md')).toMatch(/collect or share user data\? \*\*No\.\*\*/);
+    expect(read('docs/PRIVACY.md')).toMatch(/switched off in the code\s+for this release/);
+    expect(read('docs/PRIVACY.md')).not.toMatch(/api\.anthropic\.com/);
+  });
+  it('the locales no longer promise the Smart parsing exception in the About commitments', () => {
+    for (const l of ['en', 'es', 'fr', 'de', 'it', 'ja', 'ko', 'zh']) {
+      const src = read(`src/i18n/locales/${l}.ts`);
+      const commitments = src.slice(src.indexOf('commitments: ['), src.indexOf('],', src.indexOf('commitments: [')));
+      expect(commitments).not.toMatch(/Anthropic/);
+    }
+  });
+});

@@ -150,12 +150,23 @@ A page next to the privacy policy (GitHub Pages works) is enough. Fill the
 requires 13-inch iPad screenshots too. Turning it off removes that, but the app
 then runs as a scaled-up phone app on iPads.
 
-**Price.** On Google Play a free app can never become paid; a paid app can
-become free. Decide before the first production release.
+**Price.** Paid, one-time, the same on both stores; `store/listing.md` has the
+suggested tier. On Google Play a free app can never become paid; a paid app can
+become free. Apple needs the Paid Applications agreement signed and banking and
+tax forms filled in App Store Connect before a paid app can go on sale; Google
+needs a payments profile in the Play Console. Both take days to clear, so start
+them with the accounts.
 
-**Smart parsing.** If it ships, the privacy label and data-safety answers in
-`store/listing.md` include what it sends to Anthropic. If it is held back for
-1.0, hide the Settings entry and drop those answers to "no data collected".
+**Smart parsing** is held back for 1.0 (`SMART_ASSIST` in `src/lib/features.ts`),
+so the app has no network feature and both privacy forms are "no data
+collected", as drafted in `store/listing.md`. Flipping the flag for a later
+release means redoing those answers and the policy; the flag's comment lists
+the places.
+
+**The name.** `npm run rename -- "New Name" com.example.newname` changes the
+display name, slug, URL scheme, Android package and iOS bundle identifier and
+every mention in the locales, docs and web manifest in one go (`--dry-run`
+first). Do it before the first upload, for the reasons in the next item.
 
 **The listing copy** is drafted in `store/listing.md`, including the answers for
 Apple's privacy nutrition label and Play's data-safety form, and notes for the
@@ -177,5 +188,8 @@ reviewer. The copy is English; translate per locale before submission.
   did not ask for it.
 - The calendar picks single days; there is no typed date any more. A date years
   away is reached month by month, which suits a budget and nothing else needs.
-- There is no purchase code. `store/listing.md` proposes a one-time purchase;
-  shipping free is a decision, not a gap.
+- There is no purchase code, and none is needed: the price is the store's
+  up-front price, and the app has no in-app purchases.
+- Smart parsing exists in the code but is off for 1.0 (`SMART_ASSIST`), with
+  its screen reachable only by deep link, where it says it is not in this
+  version.

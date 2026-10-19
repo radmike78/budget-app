@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { getApiKey, setApiKey } from '@/lib/secrets';
 import { confirmDialog } from '@/lib/dialogs';
+import { SMART_ASSIST } from '@/lib/features';
 import { LLM_MODEL } from '@/parser/llmFallback';
 import { useT } from '@/i18n';
 import { Button, Card, Field, Row, Screen, SectionTitle, Text } from '@/components/ui';
@@ -21,6 +22,14 @@ export default function SmartParsing() {
     getApiKey().then((k) => { setHasKey(!!k); });
   }, []);
   if (!settings) return null;
+  // Held back for this release: reachable only by a deep link, and says so instead of offering the switch.
+  if (!SMART_ASSIST) {
+    return (
+      <Screen>
+        <Card style={{ marginTop: spacing.sm }}><Text variant="muted">{t.smartNotYet}</Text></Card>
+      </Screen>
+    );
+  }
 
   // Turning it on sends phrases to a third party, so it is asked for in so many words first; turning it off is one tap.
   const toggle = async (on: boolean) => {

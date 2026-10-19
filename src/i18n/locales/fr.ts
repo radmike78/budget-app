@@ -531,7 +531,7 @@ export const fr: LocaleDef = {
     ] as [string, string][],
     commitments: [
       ['Pas de banque liée. Jamais.', 'OnlyBudget ne demande jamais vos identifiants bancaires et ne le fera jamais, ni comme fonctionnalité ni comme option payante. C’est vous qui racontez ce qui s’est passé.'],
-      ['Pas de pub. Pas de pistage.', 'Pas de SDK d’analyse, pas d’identifiant publicitaire, pas de partage de données. Rien ne quitte ce téléphone sauf si vous l’exportez vous-même. La lecture intelligente, si vous l’activez, n’envoie à Anthropic que les phrases qu’elle ne sait pas lire.'],
+      ['Pas de pub. Pas de pistage.', 'Pas de SDK d’analyse, pas d’identifiant publicitaire, pas de partage de données. Rien ne quitte ce téléphone sauf si vous l’exportez vous-même.'],
       ['Pas de compte.', 'Vous ne vous inscrivez jamais. Aucun serveur ne détient vos données. Les sauvegardes sont des fichiers qui vous appartiennent.'],
       ['Pas d’abonnement ni d’essai.', 'Le prix d’OnlyBudget est annoncé d’avance et ne change jamais après l’achat. Rien de ce que vous avez saisi n’est mis derrière un paywall.'],
       ['Serein par conception.', 'Pas de séries, pas de badges rouges, pas de « vous avez échoué ». Juste des phrases simples sur où est passé votre argent.'],
@@ -575,6 +575,7 @@ export const fr: LocaleDef = {
     useSmart: 'Utiliser l’assistance intelligente',
     useSmartSub: 'Seulement quand l’analyseur intégré hésite.',
     smartNeedsKey: 'Rien n’est envoyé tant que vous n’avez pas ajouté votre clé d’API ci-dessous.',
+    smartNotYet: 'Pas dans cette version. Tout ce que vous dites ou tapez est lu sur votre téléphone, et rien n’est envoyé nulle part.',
     howItWorks: 'Comment ça marche',
     smartHow1: (model) => `Presque tout est compris sur votre téléphone, instantanément et hors ligne. De temps en temps, une phrase est trop inhabituelle. Avec cette option, cette phrase (plus les noms de vos catégories) est envoyée à Claude d’Anthropic (${model}) et revient sous forme de montant, type, catégorie et note à confirmer.`,
     smartHow2: 'Elle ne fonctionne jamais sans connexion, n’enregistre jamais rien toute seule, et vous pouvez toujours corriger les champs vous-même. Elle utilise votre propre clé d’API : le coût est à votre charge et représente en général une fraction de centime par phrase.',

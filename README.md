@@ -38,7 +38,7 @@ Chinese, Japanese, and Korean use substring matching instead of word tokens, con
 - `expo-sqlite` for storage, `zustand` for state, `expo-localization` for the phone's language
 - `expo-speech-recognition` (platform-native, on-device where supported) for voice
 - `expo-file-system` + `expo-sharing` for export; `@noble/ciphers` + `@noble/hashes` for passphrase-encrypted backups
-- No backend. Optional Tier 2 parsing assist calls the Anthropic API directly with the user's own key, off by default.
+- No backend. An optional Tier 2 parsing assist (the user's own Anthropic key, off by default) exists in the code but is held back from 1.0 by `SMART_ASSIST` in `src/lib/features.ts`, so the shipped app makes no network request.
 
 ## Layout
 
@@ -129,7 +129,7 @@ The sample data used by these scripts never ships: it exists only in `scripts/li
 
 Every parse produces a confidence and plain hints ("Not sure about the category. Tap it to change."). Nothing is saved without the confirmation card.
 
-**Tier 2 (optional)**: if the user turns on *Smart parsing assist* in Settings and adds their own Anthropic API key, a low-confidence phrase is sent to the API with a strict JSON schema. It runs with an 8-second timeout and any failure (offline, bad key) falls back to "review manually". Off by default; nothing leaves the device unless the user opts in.
+**Tier 2 (optional, held back from 1.0 by `SMART_ASSIST`)**: if the user turns on *Smart parsing assist* in Settings and adds their own Anthropic API key, a low-confidence phrase is sent to the API with a strict JSON schema. It runs with an 8-second timeout and any failure (offline, bad key) falls back to "review manually". Off by default; nothing leaves the device unless the user opts in.
 
 **Learning**: when the user changes the category on the confirmation card, the meaningful words of the phrase are stored in `keyword_mappings` and take priority next time. They can be reviewed and removed under Settings → Learned words.
 

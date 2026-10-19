@@ -554,7 +554,7 @@ export const en = {
     ] as [string, string][],
     commitments: [
       ['No bank linking. Ever.', 'OnlyBudget never asks for bank credentials and never will, not as a feature and not as an upsell. You tell it what happened.'],
-      ['No ads. No tracking.', 'There is no analytics SDK, no advertising ID, no third-party data sharing. Nothing about you leaves this phone unless you export it yourself. Smart parsing, if you turn it on, sends only the phrases it cannot read to Anthropic.'],
+      ['No ads. No tracking.', 'There is no analytics SDK, no advertising ID, no third-party data sharing. Nothing about you leaves this phone unless you export it yourself.'],
       ['No accounts.', 'You never sign up. There is no server holding your data. Backups are files you own.'],
       ['No subscriptions or trials.', 'Whatever OnlyBudget costs is disclosed up front and never changes after you buy. Nothing you already entered is ever put behind a paywall.'],
       ['Calm by design.', 'No streaks, no red badges, no "you failed". Just plain sentences about where your money went.'],
@@ -600,6 +600,7 @@ export const en = {
     useSmart: 'Use smart parsing assist',
     useSmartSub: 'Only when the built-in parser is unsure.',
     smartNeedsKey: 'Nothing is sent until you add your API key below.',
+    smartNotYet: 'Not in this version. Everything you say or type is read on your phone, and nothing is sent anywhere.',
     howItWorks: 'How it works',
     smartHow1: (model: string) => `Almost everything is understood on your phone, instantly and offline. Now and then a phrase is too unusual. With this on, that one phrase (plus your category names) is sent to Anthropic's Claude (${model}) and comes back as amount, type, category and note for you to confirm.`,
     smartHow2: 'It never runs without a connection, never saves anything on its own, and you can always just fix the fields yourself. This uses your own API key, so the cost is yours and typically a fraction of a cent per phrase.',

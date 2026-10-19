@@ -2,6 +2,7 @@ import React from 'react';
 import { Linking } from 'react-native';
 import { spacing } from '@/theme';
 import { useT } from '@/i18n';
+import { SMART_ASSIST } from '@/lib/features';
 import { PRIVACY_URL } from '@/lib/links';
 import { Button, Card, Screen, SectionTitle, Text } from '@/components/ui';
 
@@ -20,8 +21,12 @@ export default function About() {
       ))}
       <SectionTitle>{t.voiceSection}</SectionTitle>
       <Card><Text variant="muted">{t.voiceBody}</Text></Card>
-      <SectionTitle>{t.smartSection}</SectionTitle>
-      <Card><Text variant="muted">{t.smartBody}</Text></Card>
+      {SMART_ASSIST ? (
+        <>
+          <SectionTitle>{t.smartSection}</SectionTitle>
+          <Card><Text variant="muted">{t.smartBody}</Text></Card>
+        </>
+      ) : null}
       {PRIVACY_URL ? (
         <Button tone="secondary" title={t.privacyPolicy} style={{ marginTop: spacing.lg }} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})} />
       ) : null}

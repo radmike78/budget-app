@@ -1,14 +1,14 @@
 # Privacy Policy — OnlyBudget
 
-**Last updated: 16 October 2026**
+**Last updated: 19 October 2026**
 
 OnlyBudget is a budgeting app that runs entirely on your phone. It has no server
 and no account. We do not receive your budget, and there is no "we" that could:
 nothing you enter is transmitted to the developer of this app, at any point, for
 any reason.
 
-This policy explains that in full, including the two cases where something does
-leave your device and exactly what they involve.
+This policy explains that in full, including the one case where something can
+leave your device and exactly what it involves.
 
 ## The short version
 
@@ -45,7 +45,7 @@ Apple's terms cover it, and OnlyBudget cannot read or reach it.
 
 ## What leaves your device, and when
 
-Two features involve a network, and only two. Both are described here in full.
+One feature involves a network, and only one. It is described here in full.
 
 ### 1. Speech recognition, when you use the microphone
 
@@ -66,38 +66,16 @@ Microphone and speech-recognition permissions are requested the first time you
 use the mic, and the microphone is active only while you are speaking an entry.
 You can use every feature of the app by typing instead.
 
-### 2. Smart parsing assist — off by default, your own key
+### 2. Nothing else
 
-OnlyBudget includes an optional feature that asks a language model for help when
-its own parser could not understand a phrase. It is **off when you install the
-app**, and turning it on requires you to paste in your own Anthropic API key.
-
-When, and only when, you have turned it on and supplied a key:
-
-- The phrase you typed or spoke is sent to `api.anthropic.com`, along with the
-  names of your categories, so the model can pick one.
-- **Card, account, routing and IBAN numbers are stripped out of the phrase
-  before it is sent.** The app applies the same redaction it uses before writing
-  anything to its own database.
-- Nothing else is sent. Not your history, not your totals, not your goals, not
-  any identifier for you or your device.
-- The request goes directly from your phone to Anthropic, using your key and
-  your account with them. Like any web request, it also carries your phone's IP
-  address. Anthropic's terms and privacy policy
-  ([anthropic.com/legal/privacy](https://www.anthropic.com/legal/privacy)) apply
-  to it, including how long Anthropic keeps it. The developer of this app is not
-  a party to it and cannot see it.
-- Turning the feature on asks you first, in so many words, before anything is
-  sent.
-- Your API key is held in the device keychain (iOS) or keystore (Android), and
-  in browser storage on the web version. It is never sent anywhere but to
-  Anthropic, as the credential for your own request.
-
-Turning the feature off stops this entirely. Removing the key deletes it from
-the device.
-
-`api.anthropic.com` is the only outbound host this app will ever contact. The
-web version enforces that with a Content Security Policy.
+This version of the app has no feature that sends anything off your phone. It
+makes no network requests of its own: there is no server, no account, no
+analytics and no crash reporting. The only outbound connection the app is built
+to be capable of, an optional parsing assist that would send a single unclear
+phrase to a language model with your own API key, is switched off in the code
+for this release and cannot be turned on from the app. If a later version
+offers it, this policy will describe it before it ships, it will be off by
+default, and turning it on will ask you first.
 
 ## Statements you import
 
@@ -141,8 +119,7 @@ opened, by us or by anyone.
 ## Deleting your data
 
 Settings → **Erase everything** removes every entry, goal, reminder, debt,
-import record and learned word from the device, clears your saved Smart Assist
-key, and returns the app to the state it was in when you installed it. It takes
+import record and learned word from the device, and returns the app to the state it was in when you installed it. It takes
 effect immediately and cannot be undone.
 
 Uninstalling the app also removes everything on the device. (An iPhone backup
