@@ -5,7 +5,7 @@ resources:
   - ../../base
   - hpa.yaml
 images:
-  - name: ghcr.io/radmike78/onlybudget-web
+  - name: ghcr.io/mradsoftware/onlybudget-web
     newTag: "1.0.0"
 replicas:
   - name: onlybudget-web

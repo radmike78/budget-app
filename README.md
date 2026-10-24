@@ -171,3 +171,7 @@ Everything in the v1 must-have list is implemented, in eight languages: voice + 
 Not built (v1.5 candidates): household sharing between two devices, home-screen widget, multi-currency entries, trend charts. The non-English copy was written in one pass and should get a native-speaker review before release.
 
 Verified in this environment: unit tests, TypeScript, and a Metro/Hermes bundle. Not verified here: running on a physical device or simulator (no macOS/Android toolchain in the build container). Do that first with `npx expo run:ios` / `run:android`, and test voice on a real device since simulators have no on-device recognizer.
+
+## Licence
+
+Copyright MRAD Software Solutions LLC, all rights reserved. The source is public so anyone can check what the app does with their data; it is not open source, and `LICENSE` says exactly what is and is not permitted.

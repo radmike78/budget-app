@@ -17,7 +17,7 @@ RUN npx expo export --platform web --output-dir dist && node scripts/postbuild-w
 FROM docker.io/nginxinc/nginx-unprivileged:1.27-alpine
 LABEL org.opencontainers.image.title="OnlyBudget" \
       org.opencontainers.image.description="Only a budget. Nothing else. Web build of the OnlyBudget app." \
-      org.opencontainers.image.source="https://github.com/radmike78/budget-app"
+      org.opencontainers.image.source="https://github.com/mradsoftware/budget-app"
 COPY deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # nginx-unprivileged already runs as uid 101 and listens on 8080; OpenShift may

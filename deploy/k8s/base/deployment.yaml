@@ -20,8 +20,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          # Replace with your registry, e.g. ghcr.io/radmike78/onlybudget-web:1.0.0
-          image: ghcr.io/radmike78/onlybudget-web:latest
+          # Replace with your registry, e.g. ghcr.io/mradsoftware/onlybudget-web:1.0.0
+          image: ghcr.io/mradsoftware/onlybudget-web:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
