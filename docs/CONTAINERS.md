@@ -62,7 +62,7 @@ Deploy the base:
 
 ```bash
 # 1. Point the Deployment at your image
-sed -i 's|ghcr.io/radmike78/onlybudget-web:latest|ghcr.io/<you>/onlybudget-web:1.0.0|' deploy/k8s/base/deployment.yaml
+sed -i 's|ghcr.io/mradsoftware/onlybudget-web:latest|ghcr.io/<you>/onlybudget-web:1.0.0|' deploy/k8s/base/deployment.yaml
 # 2. Set your hostname in the Ingress
 sed -i 's|budget.example.com|budget.your-domain.com|g' deploy/k8s/base/ingress.yaml
 # 3. Apply
