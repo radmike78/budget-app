@@ -100,12 +100,17 @@ iOS still needs its three values:
 }
 ```
 
-**A privacy policy at a public URL.** The policy is written: `docs/privacy.html`
-is a self-contained page, `docs/PRIVACY.md` the same text in Markdown. The
-quickest way to a URL is GitHub Pages — repository Settings → Pages → Deploy
-from a branch → `main` / `/docs`, which serves it at
-`https://<user>.github.io/<repo>/privacy.html`. Any static host works; both
-stores only need a link that resolves.
+**A privacy policy and a support page at public URLs.** Both are written:
+`docs/PRIVACY.md` and `docs/SUPPORT.md`, rendered to self-contained HTML by
+`npm run build:privacy`. The `Pages` workflow (`.github/workflows/pages.yml`)
+publishes them with GitHub Pages on every push to `main` that changes them:
+
+- privacy policy: `https://radmike78.github.io/budget-app/privacy.html`
+- support page: `https://radmike78.github.io/budget-app/` (also `support.html`)
+
+GitHub Pages serves a private repository only on a paid GitHub plan; on the
+free plan either make the repository public or put the two HTML files on any
+static host, and change the two addresses here and `PRIVACY_URL`.
 
 **Store screenshots** from a device or simulator, at the sizes Apple and Google
 ask for. `npm run ui:gallery` is for reviewing the app, not for submitting:
@@ -148,9 +153,9 @@ file that declaration or leave France out of the territories.
 
 **A support URL and contact.** Both stores require a support URL and an email.
 The email is support@mradsoftware.com and the publisher is MRAD Software
-Solutions LLC, both already in `docs/PRIVACY.md`. A page next to the privacy
-policy (GitHub Pages works) is enough for the URL. Host the page and set
-`PRIVACY_URL` in `src/lib/links.ts` so the About screen links to it.
+Solutions LLC, both already in `docs/PRIVACY.md`; the support URL is the Pages
+site above, and `PRIVACY_URL` in `src/lib/links.ts` is the policy's address, so
+the About screen links to it.
 
 **iPad.** `supportsTablet` is on and the screens have a tablet layout, so Apple
 requires 13-inch iPad screenshots too. Turning it off removes that, but the app

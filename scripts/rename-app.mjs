@@ -38,7 +38,7 @@ if (name === 'OnlyBudget' && id === 'app.onlybudget') { console.log('Nothing to 
 
 const OLD = { id: 'app.onlybudget', name: 'OnlyBudget', slug: 'onlybudget' };
 const NEW = { id, name, slug };
-const SKIP = new Set(['docs/privacy.html']); // generated: rebuilt below
+const SKIP = new Set(['docs/privacy.html', 'docs/support.html']); // generated: rebuilt below
 const BINARY = /\.(png|jpe?g|gif|webp|ico|ttf|otf|woff2?|wasm|pdf|zip|jar|keystore|p8|p12|mp3|mp4|db)$/i;
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');

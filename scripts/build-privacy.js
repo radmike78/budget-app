@@ -1,18 +1,23 @@
 /**
- * Renders docs/PRIVACY.md into docs/privacy.html, a single self-contained page
- * with no external requests, so it can be hosted anywhere (GitHub Pages, any
- * static host) as the privacy-policy URL both stores ask for.
+ * Renders the public pages from Markdown into single self-contained HTML files
+ * with no external requests, so they can be hosted anywhere (GitHub Pages, any
+ * static host) as the privacy-policy and support URLs both stores ask for:
+ *
+ *   docs/PRIVACY.md → docs/privacy.html
+ *   docs/SUPPORT.md → docs/support.html
  *
  *   node scripts/build-privacy.js
  *
- * The Markdown file is the source. Edit that, never the HTML.
+ * The Markdown files are the source. Edit those, never the HTML.
  */
 const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const SRC = path.join(ROOT, 'docs/PRIVACY.md');
-const OUT = path.join(ROOT, 'docs/privacy.html');
+const PAGES = [
+  { src: 'docs/PRIVACY.md', out: 'docs/privacy.html', description: 'How OnlyBudget handles your data: it stays on your phone. No account, no server, no analytics, no bank linking.' },
+  { src: 'docs/SUPPORT.md', out: 'docs/support.html', description: 'Help and contact for OnlyBudget, the budget you talk to.' },
+];
 
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -67,6 +72,9 @@ function render(md) {
   return out.join('\n');
 }
 
+for (const page of PAGES) {
+const SRC = path.join(ROOT, page.src);
+const OUT = path.join(ROOT, page.out);
 const md = fs.readFileSync(SRC, 'utf8');
 const title = (md.match(/^#\s+(.*)$/m) || [, 'Privacy Policy'])[1];
 const body = render(md);
@@ -78,7 +86,7 @@ const html = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="index, follow">
 <title>${escapeHtml(title)}</title>
-<meta name="description" content="How OnlyBudget handles your data: it stays on your phone. No account, no server, no analytics, no bank linking.">
+<meta name="description" content="${escapeHtml(page.description)}">
 <style>
 :root {
   --bg: #F7F6F3; --panel: #FFFFFF; --line: #E1DED8;
@@ -132,3 +140,4 @@ ${body}
 
 fs.writeFileSync(OUT, html);
 console.log(`Wrote ${path.relative(ROOT, OUT)} (${(html.length / 1024).toFixed(1)} KB) from ${path.relative(ROOT, SRC)}`);
+}
