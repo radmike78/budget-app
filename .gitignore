@@ -17,6 +17,10 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+# store credentials never belong in the repo (the Play key is uploaded to EAS once)
+*service-account*.json
+play-*.json
+AuthKey_*.p8
 
 # Metro
 .metro-health-check*

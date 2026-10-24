@@ -87,17 +87,16 @@ Fill these in; nothing here can be guessed.
 **`app.json`** — `version` is what people see, and `appVersionSource: "remote"`
 in `eas.json` means EAS owns the build number, so you never edit it by hand.
 
-**`eas.json` → `submit.production`** — empty on purpose:
+**`eas.json` → `submit.production`** — Android is filled in (internal track,
+uploaded as a draft release). The Play service-account key is uploaded to EAS
+once (section 5) and never sits in the repo; `.gitignore` refuses it anyway.
+iOS still needs its three values:
 
 ```jsonc
 "ios": {
   "appleId": "you@example.com",
   "ascAppId": "0000000000",      // App Store Connect app ID
   "appleTeamId": "XXXXXXXXXX"
-},
-"android": {
-  "serviceAccountKeyPath": "./play-service-account.json",  // never commit this
-  "track": "internal"
 }
 ```
 
@@ -193,3 +192,50 @@ reviewer. The copy is English; translate per locale before submission.
 - Smart parsing exists in the code but is off for 1.0 (`SMART_ASSIST`), with
   its screen reachable only by deep link, where it says it is not in this
   version.
+
+## 5. Google Play, in order
+
+With an organization account there is no 14-day closed test. The order below
+means no step waits on one that comes after it.
+
+1. **Play Console → Create app.** Name, default language English (US), *App*,
+   *Paid*. Accept the policy and US export-law declarations. The package name is
+   taken from the first bundle you upload, so run the rename first if the name
+   is changing.
+2. **Payments profile** (Play Console → Setup → Payments profile) so a paid app
+   can be sold. Google verifies it; start it now.
+3. **Service account for EAS Submit**, once:
+   - In Google Cloud, create a project (or use any), enable the *Google Play
+     Android Developer API*, create a service account, and download a JSON key.
+   - In Play Console → Users and permissions → Invite new users, add the
+     service account's email with the *Release to testing tracks* and
+     *Release to production* permissions for this app. Google's own steps are
+     at <https://expo.fyi/creating-google-service-account>.
+   - `eas credentials --platform android` → production → Google Service
+     Account → upload the JSON. Then delete the file from your computer.
+4. **First upload.** `eas build --profile production --platform android`, then
+   `eas submit --profile production --platform android --latest`. It lands on
+   the internal testing track as a draft. Play App Signing is set up on this
+   first upload and is the only option for new apps; keep the upload key EAS
+   generates (`eas credentials` shows it).
+5. **Main store listing**: the copy in this file, the icon (512×512), the
+   feature graphic (1024×500, `out/store/google/feature-graphic.png` is a
+   draft), and at least two phone screenshots from the device, 16:9 or 9:16,
+   1080 px or more on the short side. Add the seven-inch and ten-inch tablet
+   sets if you have a tablet or emulator handy; they are optional on Play.
+6. **App content** (Policy and programs): the table in `store/listing.md`
+   answers every declaration. The privacy policy URL is the hosted page.
+7. **Pricing and distribution**: set the price once; Play converts it per
+   country and lets you adjust. Pick the countries (all is fine for a
+   local-only app). Answer the EU trader question.
+8. **Internal testing**: add yourself as a tester, install from the opt-in
+   link, and run section 2 on that exact bundle. This is the build that goes
+   to production, so there is nothing to rebuild afterwards.
+9. **Promote to production** from the internal release (Release → Production →
+   Create release → *Add from library*). Turn on **managed publishing** first
+   if you want to pick the day it goes live after review; first reviews of a
+   new app take from a day to a week.
+10. After approval, the listing is live immediately or on the day you chose.
+    Later releases are `eas build` + `eas submit` again; with
+    `releaseStatus: draft` nothing goes out until you promote it.
+

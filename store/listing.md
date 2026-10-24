@@ -76,6 +76,27 @@ Full policy: `docs/PRIVACY.md`, rendered to `docs/privacy.html`. Host it and put
 - **Face ID / fingerprint** (optional): only if the user turns on the app lock.
 - **Internet**: declared by the framework. Nothing in 1.0 sends data; the Android speech recognizer may use it for languages whose offline model is not installed, which is the system's own processing.
 
+## Play Console declarations (App content page)
+
+Every answer follows from the app having no server, no ads and no login.
+
+| Declaration | Answer |
+| --- | --- |
+| Privacy policy | the hosted `privacy.html` URL (required: the app asks for the microphone) |
+| Ads | No, the app contains no ads |
+| App access | All functionality is available without special access (no login) |
+| Content rating (IARC) | category *Utility, Productivity, Communication or Other*; every question No; this rates Everyone / PEGI 3 |
+| Target audience | 18 and over (the app is not designed for children; choosing any younger group brings the Families policy with it) |
+| News app | No |
+| COVID-19 contact tracing | No |
+| Data safety | Does not collect or share user data (see above) |
+| Government app | No |
+| Financial features | *My app doesn't provide any financial features* (the list is banking, loans, payments, wallets, crypto, trading, credit monitoring, financial advice, insurance; a manual budget is none of them) |
+| Health | No health features |
+| Advertising ID | No, the app does not use the advertising ID (`com.google.android.gms.permission.AD_ID` is in `blockedPermissions`) |
+
+Store settings: category **Finance**, tags *budget* and *expense tracker*; contact email and website the same as on the policy page; the EU DSA trader question is answered yes for a paid app, with the organization's address shown.
+
 ## Review notes (App Store / Play)
 - There is no login. Reviewers can use the app immediately after onboarding.
 - No financial account data of any kind is accessed. All amounts are entered manually by the user.
