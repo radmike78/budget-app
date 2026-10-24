@@ -140,9 +140,10 @@ whether you will distribute in **France**, which needs its own declaration. Eith
 file that declaration or leave France out of the territories.
 
 **A support URL and contact.** Both stores require a support URL and an email.
-A page next to the privacy policy (GitHub Pages works) is enough. Fill the
-`[ADD A CONTACT EMAIL…]` and `[ADD THE PUBLISHER NAME…]` placeholders in
-`docs/PRIVACY.md`, run `npm run build:privacy`, host the page, and set
+The email is support@mradsoftware.com, already in `docs/PRIVACY.md`. A page
+next to the privacy policy (GitHub Pages works) is enough for the URL. Fill the
+`[ADD THE PUBLISHER NAME…]` placeholder in `docs/PRIVACY.md` with the legal
+entity's name, run `npm run build:privacy`, host the page, and set
 `PRIVACY_URL` in `src/lib/links.ts` so the About screen links to it.
 
 **iPad.** `supportsTablet` is on and the screens have a tablet layout, so Apple

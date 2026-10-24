@@ -95,7 +95,7 @@ Every answer follows from the app having no server, no ads and no login.
 | Health | No health features |
 | Advertising ID | No, the app does not use the advertising ID (`com.google.android.gms.permission.AD_ID` is in `blockedPermissions`) |
 
-Store settings: category **Finance**, tags *budget* and *expense tracker*; contact email and website the same as on the policy page; the EU DSA trader question is answered yes for a paid app, with the organization's address shown.
+Store settings: category **Finance**, tags *budget* and *expense tracker*; contact email support@mradsoftware.com and the website the policy page lives on; the EU DSA trader question is answered yes for a paid app, with the organization's address shown.
 
 ## App Store Connect forms
 

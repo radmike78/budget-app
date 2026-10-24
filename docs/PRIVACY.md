@@ -1,6 +1,6 @@
 # Privacy Policy — OnlyBudget
 
-**Last updated: 19 October 2026**
+**Last updated: 24 October 2026**
 
 OnlyBudget is a budgeting app that runs entirely on your phone. It has no server
 and no account. We do not receive your budget, and there is no "we" that could:
@@ -162,7 +162,7 @@ device will also be described in the app's release notes.
 
 Questions about this policy or about the app:
 
-**[ADD A CONTACT EMAIL BEFORE PUBLISHING]**
+**[support@mradsoftware.com](mailto:support@mradsoftware.com)**
 
 ---
 
