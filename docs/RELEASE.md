@@ -102,15 +102,16 @@ iOS still needs its three values:
 
 **A privacy policy and a support page at public URLs.** Both are written:
 `docs/PRIVACY.md` and `docs/SUPPORT.md`, rendered to self-contained HTML by
-`npm run build:privacy`. The `Pages` workflow (`.github/workflows/pages.yml`)
-publishes them with GitHub Pages on every push to `main` that changes them:
+`npm run build:privacy`. They are hosted from a separate public repository,
+`mradsoftware/mradsoftware.github.io`, which holds no source code, so the
+addresses never change whatever happens to this repository:
 
-- privacy policy: `https://radmike78.github.io/budget-app/privacy.html`
-- support page: `https://radmike78.github.io/budget-app/` (also `support.html`)
+- privacy policy: `https://mradsoftware.github.io/privacy.html`
+- support page: `https://mradsoftware.github.io/` (also `support.html`)
 
-GitHub Pages serves a private repository only on a paid GitHub plan; on the
-free plan either make the repository public or put the two HTML files on any
-static host, and change the two addresses here and `PRIVACY_URL`.
+`npm run build:site` writes `out/site/` (the two pages, an index, and a
+workflow that turns Pages on and publishes on every push); push its contents
+to that repository's `main`. Do the same after any change to the policy.
 
 **Store screenshots** from a device or simulator, at the sizes Apple and Google
 ask for. `npm run ui:gallery` is for reviewing the app, not for submitting:

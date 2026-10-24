@@ -13,6 +13,7 @@
     "icons": "node scripts/generate-icons.js",
     "build:privacy": "node scripts/build-privacy.js",
     "rename": "node scripts/rename-app.mjs",
+    "build:site": "node scripts/build-site.mjs",
     "build:web": "node scripts/copy-pdf-worker.js && expo export --platform web --output-dir dist && node scripts/postbuild-web.js dist",
     "check:web-security": "node scripts/web-security-check.mjs dist",
     "ui:shots": "node scripts/ui-screenshots.mjs dist out/shots",
