@@ -97,6 +97,20 @@ Every answer follows from the app having no server, no ads and no login.
 
 Store settings: category **Finance**, tags *budget* and *expense tracker*; contact email and website the same as on the policy page; the EU DSA trader question is answered yes for a paid app, with the organization's address shown.
 
+## App Store Connect forms
+
+| Form | Answer |
+| --- | --- |
+| App Privacy | **Data Not Collected** (see above) |
+| Age rating questionnaire | every item None or No; no unrestricted web access, no gambling, no user-generated content; this rates 4+ |
+| Content rights | the app contains no third-party content |
+| Export compliance | uses encryption (the encrypted backup), standard algorithms only, not proprietary, exempt from documentation; France: file the declaration or leave France out of the territories |
+| Sign-in | not required; nothing in the app needs an account |
+| Advertising identifier (IDFA) | not used |
+| Primary category | Finance; secondary Productivity |
+| Price | the same tier as Play; paid apps need the Paid Applications agreement, banking and tax forms signed under Agreements, Tax, and Banking first |
+| App Review notes | the two review-note lines below |
+
 ## Review notes (App Store / Play)
 - There is no login. Reviewers can use the app immediately after onboarding.
 - No financial account data of any kind is accessed. All amounts are entered manually by the user.
