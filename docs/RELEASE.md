@@ -239,3 +239,57 @@ means no step waits on one that comes after it.
     Later releases are `eas build` + `eas submit` again; with
     `releaseStatus: draft` nothing goes out until you promote it.
 
+## 6. Apple, in order
+
+Apple is the long pole: organization enrollment is reviewed by hand and takes
+anywhere from a few days to several weeks, so start it before anything else on
+this list and ship Android while it runs. Nothing on Play waits for Apple.
+
+1. **D-U-N-S number** for the legal entity (not a DBA or trade name). Check
+   the record at <https://developer.apple.com/support/D-U-N-S/>: the legal
+   name and address must match the company's registration exactly, because a
+   mismatch is the usual cause of a stalled enrollment. A new number takes up
+   to five business days through Apple's form.
+2. **Enroll in the Apple Developer Program as an organization** ($99/year):
+   the person enrolling must be an owner or have signing authority, and Apple
+   may phone them to confirm it. Have a website on the company's domain and a
+   work email on it. Enrollment IDs can be checked under *Account* while it is
+   pending; if it goes quiet for more than two weeks, contact developer
+   support with the enrollment ID.
+3. **Agreements, Tax, and Banking** in App Store Connect, the day the account
+   opens: accept the Paid Applications agreement and fill in the bank account
+   and the tax forms. A paid app cannot be submitted until these show *Active*.
+4. **App Store Connect → Apps → New App**: iOS, the name, primary language,
+   the bundle identifier from `app.json`, and an SKU (any string, `budget-1`).
+   Copy the *Apple ID* number from App Information into `eas.json`
+   (`submit.production.ios.ascAppId`) with your Apple ID email and the team ID
+   from <https://developer.apple.com/account>.
+5. **API key for EAS Submit**, once, so uploads need no password or two-factor
+   prompt: `eas credentials --platform ios` → production → *App Store Connect:
+   Manage your API Key* → *Set up your project to use an API Key for EAS
+   Submit*. EAS creates and stores the key (App Manager role).
+6. **Build and upload.** Certificates and the provisioning profile are made by
+   EAS on the first production build.
+
+   ```sh
+   eas build --profile production --platform ios
+   eas submit --profile production --platform ios --latest
+   ```
+
+   The build shows up in TestFlight after ten to fifteen minutes of
+   processing. Because `ITSAppUsesNonExemptEncryption` is true, App Store
+   Connect asks the export-compliance questions once per build; the answers are
+   in `store/listing.md`.
+7. **TestFlight** on your own iPhone (internal testing needs no review):
+   section 2 again on this exact build, plus Face ID for the app lock and the
+   audio session hand-back after a spoken entry.
+8. **The App Store listing**: copy from `store/listing.md`, 6.9-inch iPhone
+   screenshots (three or more; `out/store/apple` holds drafts at the right
+   size) and 13-inch iPad screenshots (required because `supportsTablet` is
+   on), the App Privacy answers, the age rating, the price and territories.
+9. **Submit for review** from the version page, picking the TestFlight build.
+   Add the two review-note lines. First reviews commonly take one to three
+   days; choose *Manually release this version* if you want to set the day.
+10. Later releases: bump `version` in `app.json`, build, submit, and create the
+    new version in App Store Connect with its What's New text.
+
