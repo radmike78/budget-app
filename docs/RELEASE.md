@@ -129,8 +129,15 @@ listing shows the company as the seller rather than your own name:
   An internal test track is still the right first step.
 
 **EU trader status.** Both stores ask whether you are a trader under the EU
-Digital Services Act. If you charge for the app you are almost certainly one, and the
-organization's address, phone and email are then shown on the EU listing.
+Digital Services Act. A paid app makes you one. Answer yes with these details,
+which each store verifies with a code and then shows on the EU listing (Play
+may show them elsewhere too):
+
+- Legal name: MRAD Software Solutions LLC (must match the D-U-N-S record and
+  the business registration exactly)
+- Phone: 725-900-8131
+- Email: support@mradsoftware.com
+- Address: the one on the D-U-N-S record; Apple fills it in from there
 
 **Export compliance.** `ITSAppUsesNonExemptEncryption` is `true` because the
 encrypted backup uses XChaCha20-Poly1305. In App Store Connect answer that the
@@ -140,10 +147,9 @@ whether you will distribute in **France**, which needs its own declaration. Eith
 file that declaration or leave France out of the territories.
 
 **A support URL and contact.** Both stores require a support URL and an email.
-The email is support@mradsoftware.com, already in `docs/PRIVACY.md`. A page
-next to the privacy policy (GitHub Pages works) is enough for the URL. Fill the
-`[ADD THE PUBLISHER NAME…]` placeholder in `docs/PRIVACY.md` with the legal
-entity's name, run `npm run build:privacy`, host the page, and set
+The email is support@mradsoftware.com and the publisher is MRAD Software
+Solutions LLC, both already in `docs/PRIVACY.md`. A page next to the privacy
+policy (GitHub Pages works) is enough for the URL. Host the page and set
 `PRIVACY_URL` in `src/lib/links.ts` so the About screen links to it.
 
 **iPad.** `supportsTablet` is on and the screens have a tablet layout, so Apple
