@@ -166,6 +166,6 @@ Questions about this policy or about the app:
 
 ---
 
-*OnlyBudget is published by [ADD THE PUBLISHER NAME BEFORE PUBLISHING]. This
+*OnlyBudget is published by MRAD Software Solutions LLC. This
 document describes the app's behaviour as implemented; it is not legal advice,
 and you should have it reviewed before you rely on it for a store submission.*
