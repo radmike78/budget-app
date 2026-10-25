@@ -115,6 +115,7 @@ export const en = {
       'hint.reminderDate': 'No day said, so I picked the next one that fits. Tap the date to change it.',
       'hint.goalName': 'What is this goal for?',
       'hint.goalNoDate': 'No target date yet. You can add one, or leave it open.',
+      'hint.goalPace': "That's an amount per month or week, not the total. How much do you want to save altogether?",
       'hint.contributionAmount': 'How much did you add?',
       'hint.stillNoAmount': "I still couldn't find an amount.",
       'hint.assistUnavailable': 'Smart assist is unavailable right now, so please check the fields.',

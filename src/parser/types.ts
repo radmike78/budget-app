@@ -40,6 +40,10 @@ export interface LanguagePack {
   goalIntent: RegExp;
   /** Past-tense saving verbs that turn a phrase into a contribution rather than a new goal. */
   goalPastVerbs: RegExp;
+  /** "200 a month", "50 a week": an amount said per period is a pace, not a goal's total. */
+  perPeriod?: RegExp;
+  /** Words that may follow a bare number without making it a count ("12 on lunch" is money; "2 coffees 8" is two coffees). */
+  countStop?: RegExp;
   /** Verbs that mean paying down a debt ("pay off", "rembourser", "还清"). Present or future forms only. */
   debtIntent: RegExp;
   /** Nouns that name a debt ("credit card", "loan", "借金"). */

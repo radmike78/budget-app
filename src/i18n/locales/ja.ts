@@ -105,6 +105,7 @@ export const ja: LocaleDef = {
       'hint.reminderDate': '日付が聞き取れなかったので、直近の日にしました。日付をタップして変更できます。',
       'hint.goalName': 'この目標は何のためですか？',
       'hint.goalNoDate': '目標日はまだありません。設定しても、なしのままでも大丈夫です。',
+      'hint.goalPace': 'それは月ごと・週ごとの金額で、合計ではありません。合計でいくら貯めたいですか？',
       'hint.contributionAmount': 'いくら入れましたか？',
       'hint.stillNoAmount': 'やはり金額が見つかりません。',
       'hint.assistUnavailable': 'スマート補助が今は使えないので、各項目を確認してください。',

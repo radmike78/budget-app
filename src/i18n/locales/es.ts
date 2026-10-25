@@ -105,6 +105,7 @@ export const es: LocaleDef = {
       'hint.reminderDate': 'No dijiste el día, así que elegí el próximo que encaja. Toca la fecha para cambiarla.',
       'hint.goalName': '¿Para qué es esta meta?',
       'hint.goalNoDate': 'Sin fecha objetivo por ahora. Puedes añadir una o dejarla abierta.',
+      'hint.goalPace': 'Eso es una cantidad por mes o por semana, no el total. ¿Cuánto quieres ahorrar en total?',
       'hint.contributionAmount': '¿Cuánto has añadido?',
       'hint.stillNoAmount': 'Sigo sin encontrar un importe.',
       'hint.assistUnavailable': 'La ayuda inteligente no está disponible ahora; revisa los campos.',
