@@ -68,7 +68,7 @@ export function PeriodCard({ stats, settings, categories, rules, today, onBarPre
 
   return (
     <Card>
-      <Text variant="display" color={tone} style={{ fontSize: 40 * scale, lineHeight: 48 * scale }} accessibilityLabel={`${money(headline)} ${label}`}>{money(shown, { compact: true })}</Text>
+      <Text variant="display" color={tone} style={{ fontSize: 40 * scale, lineHeight: 48 * scale }} accessibilityLabel={`${money(headline)} ${label}`} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{money(shown, { compact: true })}</Text>
       <Text variant="muted">{label}{detail ? ` · ${detail}` : ''}</Text>
       <Row gap={spacing.lg} style={{ marginTop: spacing.md }}>
         <Text variant="body"><Text variant="label">{t.inShort}</Text> {money(stats.income, { compact: true })}</Text>
@@ -76,7 +76,7 @@ export function PeriodCard({ stats, settings, categories, rules, today, onBarPre
       </Row>
       {stats.expenses > 0 ? (
         <View style={{ marginTop: spacing.md }}>
-          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} restLabel={t.spendRest} onPress={onBarPress} />
+          <SpendBar stats={stats} categories={categories} nameOf={(c) => categoryName(c, t)} otherLabel={t.otherSpending} restLabel={t.spendRest} onPress={onBarPress} accessibilityLabel={t.spendBarOpens} />
         </View>
       ) : null}
     </Card>

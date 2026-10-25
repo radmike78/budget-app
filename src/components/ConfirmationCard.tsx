@@ -144,7 +144,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
     <Sheet visible={!!result} onClose={onCancel} tall scroll>
       <Row style={{ justifyContent: 'space-between', marginBottom: spacing.sm }}>
         <Text variant="heading">{title}</Text>
-        <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel} hitSlop={12}><Text variant="muted">{t.cancel}</Text></Pressable>
+        <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel} hitSlop={12} style={{ minHeight: 44, justifyContent: 'center' }}><Text variant="muted">{t.cancel}</Text></Pressable>
       </Row>
       <Text variant="small" style={{ marginBottom: spacing.md }} numberOfLines={2}>"{result.raw}"</Text>
 

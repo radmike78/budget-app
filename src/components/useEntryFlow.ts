@@ -156,7 +156,11 @@ export function useEntryFlow() {
     const what = tx.note ?? (cat ? categoryName(cat, t) : null);
     if (fix.remove) {
       await useAppStore.getState().deleteTransaction(tx.id);
-      await reply(t.correctionRemoved(money(tx.amount), what), source, language);
+      // The undo bar is the receipt on screen; a spoken request also gets the sentence aloud.
+      setAnswer(null);
+      const settings = useAppStore.getState().settings;
+      const mode = settings?.answerMode ?? 'auto';
+      if (mode === 'speak' || (mode === 'auto' && source === 'voice')) await speak(t.correctionRemoved(money(tx.amount), what), language, settings?.voiceGender ?? 'female');
       return;
     }
     setAnswer(null);
@@ -224,11 +228,11 @@ export function useEntryFlow() {
     }
     const lastId = useAppStore.getState().lastSavedId;
     // '' means the last thing saved was not an entry (a goal, a reminder, an import): nothing to reach back to.
-    if (lastId === '') { await reply(t.correctionNothing, source, language); return; }
+    if (lastId === '') { await reply(fix.remove ? t.correctionNothingToRemove : t.correctionNothing, source, language); return; }
     // Only the entry saved last; once it is gone, "fix that" never reaches for an older one the person did not mean.
     // (No id at all is a fresh launch, where the newest entry they saved is the one.)
     const tx = lastId ? await getTransaction(db, lastId) : await latestSavedTransaction(db);
-    if (!tx) { await reply(t.correctionNothing, source, language); return; }
+    if (!tx) { await reply(fix.remove ? t.correctionNothingToRemove : t.correctionNothing, source, language); return; }
     await applyToSaved(tx, fix, result, source, language);
   }, [t, reply, applyToSaved]);
 

@@ -165,7 +165,7 @@ export default function ImportScreen() {
       {stage === 'idle' ? (
         <>
           <Text variant="muted" style={{ marginTop: spacing.md }}>{t.importIntro}</Text>
-          {adding ? <View style={{ marginTop: spacing.lg }}><Button title={t.pickPdf} onPress={choose} /></View> : <TrialEnded />}
+          {adding ? <View style={{ marginTop: spacing.lg }}><Button title={t.pickPdf} onPress={choose} /><Text variant="small" style={{ marginTop: spacing.sm }}>{t.importLimits}</Text></View> : <TrialEnded />}
           {pastImports.length > 0 ? (
             <>
               <SectionTitle>{t.pastImports}</SectionTitle>
