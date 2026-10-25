@@ -162,7 +162,7 @@ Backups: CSV (entries), a readable text summary, a full JSON backup, and a passp
 
 ## Monetization
 
-One-time purchase or a free app with one optional one-time "supporter" unlock for cosmetics only. Never gated: recurring entries, goals, exports, or any tracking. No subscriptions, no trials, no ads.
+Free to install, the whole app for 30 days, then one one-time purchase through the store (`src/lib/trial.ts`, `src/lib/purchases.ts`). After the month, everything already entered stays readable, askable and exportable; only adding new things waits for the purchase. No subscription, no renewal, no ads, and nothing a person entered is ever behind the paywall.
 
 ## Status
 

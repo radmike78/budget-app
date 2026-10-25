@@ -108,7 +108,7 @@ Store settings: category **Finance**, tags *budget* and *expense tracker*; conta
 | Sign-in | not required; nothing in the app needs an account |
 | Advertising identifier (IDFA) | not used |
 | Primary category | Finance; secondary Productivity |
-| Price | the same tier as Play; paid apps need the Paid Applications agreement, banking and tax forms signed under Agreements, Tax, and Banking first |
+| Price | the app is free; the in-app purchase `full_unlock` (and the free `trial_30`) need the Paid Applications agreement, banking and tax forms signed under Agreements, Tax, and Banking first |
 | App Review notes | the two review-note lines below |
 
 ## Review notes (App Store / Play)
@@ -116,7 +116,20 @@ Store settings: category **Finance**, tags *budget* and *expense tracker*; conta
 - No financial account data of any kind is accessed. All amounts are entered manually by the user.
 - Try: tap the mic, say "spent twelve dollars on lunch", confirm. Or type "goal: save 500 for a trip by December".
 - The app makes no network requests. There is no server, no account and no analytics; speech is recognised by the phone's own recognizer.
+- The app is free for 30 days from first open, then a one-time in-app purchase (`full_unlock`) is offered under Settings → Your purchase. A fresh install is inside the trial, so every feature can be exercised without buying; the purchase sheet is the store's own and works in the sandbox. Nothing already entered is ever locked.
 - Bank or card statement PDFs (Settings → Import a statement) are read on the device in a sandboxed view with no network access, and are never uploaded.
 
 ## Pricing
-Paid, one-time. No in-app purchases, no subscription, no trial. Suggested $4.99 (Apple tier and Play price both rounded per country by the store); $6.99 or $7.99 is defensible against the subscription apps, but a first release with no reviews is easier to try at the lower price, and both stores let a paid price change later. On Play a paid app can later become free but never the other way round, so a paid 1.0 keeps both doors open. Set the same price on both stores and let each store localise it.
+Free to install, with a 30-day trial of the whole app and one one-time in-app purchase after it. No subscription, no renewal, no other products.
+
+- **Product `full_unlock`** (non-consumable, both stores): the one-time purchase. Suggested $4.99; both stores localise it per country. Same product id and the same price tier on both.
+- **Product `trial_30`** (App Store only, non-consumable at price tier 0, display name "30-day Trial"): Apple's way of recording a time-based trial for non-subscription apps (Guideline 3.1.1). The app takes it quietly on first run; if the person declines the sheet, the trial runs on local dates anyway.
+- The trial: the whole app for 30 days from the first open. After it, everything already entered stays readable, askable and exportable, and adding new entries, goals, reminders, repeating entries, debts or imports needs the purchase. Erasing the app's data does not restart the month, and a clock set back does not stretch it.
+- The listing text must say so (Apple: the trial's length, what stops, and the price, before the trial starts). The first onboarding page states it, and so does Settings → Your purchase.
+- On Play a free app can never become paid, which is the point: this stays free to install for good.
+
+### App Store listing text about the trial (add under the description)
+"Free for 30 days. After that, a single purchase keeps it going; no subscription. Everything you entered stays yours to read and export whether you buy or not."
+
+### Play: in-app products
+Monetize → Products → In-app products → Create product: id `full_unlock`, name "Full unlock", one-time, the price. Add your own Google account under Setup → License testing so test purchases are free.

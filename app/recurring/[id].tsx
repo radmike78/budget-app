@@ -11,6 +11,7 @@ import { categoryName, useDateFormat, useLanguageCode, useLocale, useT } from '@
 import { detectCategory } from '@/parser';
 import { confirmDialog, notify } from '@/lib/dialogs';
 import { CategoryPicker, DatePicker } from '@/components/pickers';
+import { TrialEnded, useAdding } from '@/components/TrialGate';
 import { Button, Chip, Field, Row, Screen, Segmented, Text } from '@/components/ui';
 
 const FREQUENCIES: Frequency[] = ['weekly', 'biweekly', 'monthly', 'yearly'];
@@ -31,6 +32,7 @@ export default function RecurringEditor() {
   const remove = useAppStore((s) => s.removeRule);
   const existing = rules.find((r) => r.id === id);
   const isNew = !existing;
+  const adding = useAdding();
 
   const [amount, setAmount] = useState(existing ? moneyInputText(existing.amount, locale.format.decimal === ',') : '');
   const [type, setType] = useState<TxType>(existing?.type ?? 'expense');
@@ -84,6 +86,8 @@ export default function RecurringEditor() {
     if (!existing) return;
     if (await confirmDialog(t.removeRecurringQ, t.removeRecurringBody, { confirmText: t.remove, cancelText: t.keep, destructive: true })) { await remove(existing.id); router.back(); }
   };
+
+  if (isNew && !adding) return <Screen><TrialEnded /></Screen>;
 
   return (
     <Screen keyboard>

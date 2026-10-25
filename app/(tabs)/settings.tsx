@@ -42,6 +42,7 @@ export default function SettingsScreen() {
   const [erasing, setErasing] = useState(false);
   // "On" with no key saved would read as if phrases were being sent; the row says what the sub-screen says.
   const [hasKey, setHasKey] = useState<boolean | null>(null);
+  const license = useAppStore((s) => s.license);
   useFocusEffect(useCallback(() => { getApiKey().then((k) => setHasKey(!!k)).catch(() => setHasKey(false)); }, []));
   if (!settings) return null;
 
@@ -173,6 +174,7 @@ export default function SettingsScreen() {
       {SMART_ASSIST ? <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? (hasKey === false ? t.smartNeedsKey : t.smartParseOn) : t.smartParseOff} onPress={() => router.push('/settings/smart')} /> : null}
 
       <SectionTitle>{t.about}</SectionTitle>
+      {Platform.OS !== 'web' && license ? <ListItem title={t.purchaseRow} subtitle={license.state === 'unlocked' ? t.unlockStatusUnlocked : license.state === 'ended' ? t.unlockStatusEnded : t.unlockStatusTrial(license.daysLeft)} onPress={() => router.push('/settings/unlock')} /> : null}
       <ListItem title={t.help} subtitle={t.helpSub} onPress={() => router.push('/settings/help')} />
       <ListItem title={t.aboutApp} subtitle={t.aboutSub} onPress={() => router.push('/settings/about')} />
 

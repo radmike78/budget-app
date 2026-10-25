@@ -11,6 +11,7 @@ import type { GoalKind } from '@/types';
 import { useDateFormat, useLocale, useMoney, useT } from '@/i18n';
 import { confirmDialog } from '@/lib/dialogs';
 import { DatePicker } from '@/components/pickers';
+import { TrialEnded, useAdding } from '@/components/TrialGate';
 import { Button, Card, Field, ProgressBar, Row, Screen, Segmented, Text } from '@/components/ui';
 
 export default function GoalEditor() {
@@ -28,6 +29,7 @@ export default function GoalEditor() {
   const contribute = useAppStore((s) => s.contributeToGoal);
   const existing = goals.find((g) => g.id === id);
   const isNew = !existing;
+  const adding = useAdding();
   const decimalComma = locale.format.decimal === ',';
 
   const [name, setName] = useState(existing?.name ?? '');
@@ -86,6 +88,8 @@ export default function GoalEditor() {
   const progress = existing ? goalProgress(existing, currency, today(), locale) : null;
   const targetPreview = parseMoneyInput(target, decimalComma);
   const plan = targetPreview != null && targetPreview > 0 ? goalPlanSentence(targetPreview, parseMoneyInput(current, decimalComma) ?? 0, targetDate, kind, currency, today(), locale) : null;
+
+  if (isNew && !adding) return <Screen><TrialEnded /></Screen>;
 
   return (
     <Screen keyboard>

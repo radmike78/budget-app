@@ -11,6 +11,7 @@ import { PeriodCard } from '@/components/PeriodCard';
 import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
 import { speak } from '@/lib/speak';
 import { EntryBar } from '@/components/EntryBar';
+import { TrialEnded, TrialNotice, useAdding } from '@/components/TrialGate';
 import { ConfirmationCard } from '@/components/ConfirmationCard';
 import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
 import { CarryQuestions } from '@/components/CarryQuestions';
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
   const [toastLine, setToastLine] = useState<string | null>(null);
+  const adding = useAdding();
 
   const onSaved = (msg: string, line?: string | null) => {
     dismiss();
@@ -72,7 +74,8 @@ export default function HomeScreen() {
 
   return (
     <Screen keyboard>
-      <EntryBar onSubmit={submit} busy={busy} />
+      {adding ? <EntryBar onSubmit={submit} busy={busy} /> : <TrialEnded style={{ marginTop: 0 }} />}
+      <TrialNotice />
       {answer ? (
         <Card tone="accent" style={{ marginTop: spacing.md }}>
           <Text variant="heading" style={{ lineHeight: 26 }}>{answer.text}</Text>

@@ -48,7 +48,7 @@ const ROUTES = [
   ['category', '/category/groceries'], ['entry', '/entry/seed-11'], ['goal', '/goal/goal-japan'], ['goal-debt', '/goal/goal-card'], ['goal-new', '/goal/new'],
   ['recurring', '/recurring'], ['recurring-rule', '/recurring/rule-rent'], ['debts', '/debts'], ['import', '/import'],
   ['settings-about', '/settings/about'], ['settings-backup', '/settings/backup'], ['settings-help', '/settings/help'], ['settings-keywords', '/settings/keywords'],
-  ['settings-reminders', '/settings/reminders'], ['settings-smart', '/settings/smart'], ['settings-voice', '/settings/voice'],
+  ['settings-reminders', '/settings/reminders'], ['settings-smart', '/settings/smart'], ['settings-unlock', '/settings/unlock'], ['settings-voice', '/settings/voice'],
 ];
 
 const browser = await playwright.chromium.launch({ headless: true });

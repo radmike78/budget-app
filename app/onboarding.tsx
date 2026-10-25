@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, ScrollView, View, useWindowDimensions } from 'react-native';
+import { FlatList, Platform, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
@@ -127,6 +127,7 @@ export default function Onboarding() {
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
           <Text variant="display">{t.onboardHeadline}</Text>
           <Text variant="muted" style={{ marginTop: spacing.xl, fontSize: 17 * typeScale, lineHeight: 24 * typeScale }}>{t.onboardBody}</Text>
+          {Platform.OS !== 'web' ? <Text variant="small" style={{ marginTop: spacing.md }}>{t.trialTerms}</Text> : null}
           <View style={{ marginTop: spacing.xxl }}><Button title={t.next} onPress={() => go(1)} /></View>
           <View style={{ marginTop: spacing.md, alignItems: 'center' }}><Button tone="ghost" small title={`${t.language}: ${languageName}`} onPress={() => setShowLanguage(true)} /></View>
         </View>

@@ -95,6 +95,7 @@ const ROUTES = [
   ['settings-keywords', '/settings/keywords', 'Learned words', 'Settings'],
   ['settings-voice', '/settings/voice', 'Voice', 'Settings'],
   ['settings-smart', '/settings/smart', 'Smart assist', 'Settings'],
+  ['settings-unlock', '/settings/unlock', 'Your purchase', 'Settings'],
   ['settings-help', '/settings/help', 'Help', 'Settings'],
   ['settings-about', '/settings/about', 'About', 'Settings'],
 ];

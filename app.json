@@ -114,7 +114,15 @@
           }
         }
       ],
-      "./plugins/withNoDataTransfer"
+      "./plugins/withNoDataTransfer",
+      [
+        "expo-iap",
+        {
+          "android": {
+            "store": "play"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false
