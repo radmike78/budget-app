@@ -245,6 +245,41 @@ const CASES: Case[] = [
 ];
 
 /** The opposite check: a looser way of asking must never swallow an ordinary entry. */
+// counts, paces and selling things (from the pre-launch review)
+const COUNTS_AND_PACES: Case[] = [
+  ['2 coffees 8', { type: 'expense', amount: 8, categoryId: 'dining', note: '2 coffees' }],
+  ['3 beers 15', { type: 'expense', amount: 15, categoryId: 'dining' }],
+  ['bought 2 tickets 30', { type: 'expense', amount: 30, categoryId: 'entertainment' }],
+  ['sold 3 shirts for 45', { type: 'income', amount: 45, categoryId: 'other_income' }],
+  ['sold my old bike for 150', { type: 'income', amount: 150, categoryId: 'other_income' }],
+  ['save 200 a month for a car', { kind: 'goal', amount: null, goalName: 'Car' }],
+  ['i want to save 100 a month for christmas', { kind: 'goal', amount: null, goalName: 'Christmas' }],
+  ['save 50 a week', { kind: 'goal', amount: null }],
+  // a small number before a preposition is still the money
+  ['2 for parking', { type: 'expense', amount: 2, categoryId: 'transport' }],
+  ['12 lunch 3 people', { type: 'expense', amount: 12, categoryId: 'dining' }],
+  ['5 beers', { type: 'expense', amount: 5, categoryId: 'dining' }],
+  ['save 500 for a car', { kind: 'goal', amount: 500, goalName: 'Car' }],
+  // "put away" and "set aside" are savings (here, into the open trip goal), never a change to an entry called "away"
+  ['put away 200 for a trip', { kind: 'contribution', amount: 200, goalId: 'g1' }],
+  ['set aside 200 for a trip', { kind: 'contribution', amount: 200, goalId: 'g1' }],
+  ['put away 200 for a rainy day', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings' }],
+];
+describe('English counts, paces and selling things', () => runCases('en', COUNTS_AND_PACES));
+
+describe('English custom category whose name has "and" in it', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { parseEntries } = require('@/parser') as typeof import('@/parser');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DEFAULT_CATEGORIES } = require('@/lib/defaultCategories') as typeof import('@/lib/defaultCategories');
+  const kids = { ...DEFAULT_CATEGORIES.find((c) => c.id === 'dining')!, id: 'kids', name: 'Kids extracurricular activities and school supplies', isDefault: false };
+  const ctx = { categories: [...DEFAULT_CATEGORIES, kids], goals: [], keywordMap: {}, today: '2026-09-16', nowTime: '12:00', language: 'en' };
+  it('is matched whole, before "school supplies" in the dictionary, and never split at its own "and"', () => {
+    expect(parseEntries('spent 30 on kids extracurricular activities and school supplies', ctx)).toMatchObject([{ amount: 30, categoryId: 'kids' }]);
+    expect(parseEntries('spent 30 on kids extracurricular activities and school supplies and 12 on lunch', ctx)).toMatchObject([{ amount: 30, categoryId: 'kids' }, { amount: 12, categoryId: 'dining' }]);
+  });
+});
+
 const STAY_ENTRIES: Case[] = [
   ['lunch 12 total', { kind: 'transaction', amount: 12 }],
   ['spent 40 total on groceries', { kind: 'transaction', amount: 40, categoryId: 'groceries' }],

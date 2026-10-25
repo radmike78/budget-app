@@ -105,6 +105,7 @@ export const ko: LocaleDef = {
       'hint.reminderDate': '날짜를 못 들어서 가장 가까운 날로 정했어요. 날짜를 눌러 바꿀 수 있어요.',
       'hint.goalName': '이 목표는 무엇을 위한 건가요?',
       'hint.goalNoDate': '아직 목표 날짜가 없어요. 추가해도 되고, 비워 둬도 됩니다.',
+      'hint.goalPace': '그건 한 달이나 한 주에 넣을 금액이지 총액이 아니에요. 모두 얼마를 모으고 싶으세요?',
       'hint.contributionAmount': '얼마를 넣었나요?',
       'hint.stillNoAmount': '여전히 금액을 찾지 못했어요.',
       'hint.assistUnavailable': '스마트 보조를 지금 사용할 수 없어요. 항목을 확인해 주세요.',

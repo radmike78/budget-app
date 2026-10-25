@@ -105,6 +105,7 @@ export const de: LocaleDef = {
       'hint.reminderDate': 'Kein Tag genannt, also habe ich den nächsten passenden gewählt. Tipp das Datum an, um es zu ändern.',
       'hint.goalName': 'Wofür ist dieses Ziel?',
       'hint.goalNoDate': 'Noch kein Zieldatum. Du kannst eines setzen oder es offen lassen.',
+      'hint.goalPace': 'Das ist ein Betrag pro Monat oder Woche, nicht die Summe. Wie viel willst du insgesamt sparen?',
       'hint.contributionAmount': 'Wie viel hast du hinzugefügt?',
       'hint.stillNoAmount': 'Ich finde immer noch keinen Betrag.',
       'hint.assistUnavailable': 'Die smarte Hilfe ist gerade nicht verfügbar, bitte prüf die Felder.',

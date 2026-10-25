@@ -92,6 +92,7 @@ export const HINT = {
   debtAmount: 'hint.debtAmount',
   goalName: 'hint.goalName',
   goalNoDate: 'hint.goalNoDate',
+  goalPace: 'hint.goalPace',
   reminderText: 'hint.reminderText',
   reminderTime: 'hint.reminderTime',
   reminderDate: 'hint.reminderDate',
@@ -297,7 +298,15 @@ export function extractAmount(text: string, pack: LanguagePack): AmountExtractio
   const candidates = findAmounts(text, pack);
   if (candidates.length === 0) return { amount: null, text, confidence: 0, multiple: false };
   const markedOnes = candidates.filter((c) => c.marked);
-  const chosen = markedOnes[0] ?? candidates[0];
+  // "2 coffees 8", "sold 3 shirts for 45": a small whole number right before a word of its own, with another
+  // number later and nothing marked, is a count; the money is the number after it. "12 on lunch" stays money.
+  const isCount = (c: AmountCandidate, i: number): boolean => {
+    if (!pack.countStop || markedOnes.length > 0 || i === candidates.length - 1) return false;
+    if (c.marked || !Number.isInteger(c.value) || c.value < 1 || c.value > 20 || /[.,]/.test(c.digits ?? '')) return false;
+    const next = text.slice(c.end).match(/^\s+(\p{L}[\p{L}'-]*)/u);
+    return !!next && !pack.countStop.test(next[1] ?? '');
+  };
+  const chosen = markedOnes[0] ?? candidates.find((c, i) => !isCount(c, i)) ?? candidates[0];
   const multiple = candidates.length > 1;
   const cleaned = (text.slice(0, chosen.start) + ' ' + text.slice(chosen.end)).replace(/\s+/g, ' ').trim();
   let confidence = chosen.marked ? 0.95 : 0.85;
@@ -365,6 +374,13 @@ export function detectCategory(text: string, ctx: ParseContext, pack: LanguagePa
   }
 
   const tokens = tokenize(text);
+  // A custom category's whole name comes before any dictionary phrase, however long it is
+  // ("kids extracurricular activities and school supplies" would otherwise lose to "school supplies").
+  {
+    const joined = ` ${tokens.join(' ')} `;
+    const long = [...customNameIndex.keys()].filter((k) => k.includes(' ')).sort((a, b) => b.length - a.length);
+    for (const k of long) if (joined.includes(` ${k} `)) { const r = lookup(k, 2); if (r) return r; }
+  }
   for (let len = Math.max(c.maxPhraseWords, 3); len >= 1; len -= 1) {
     for (let i = 0; i + len <= tokens.length; i += 1) {
       const phrase = tokens.slice(i, i + len).join(' ');
@@ -587,6 +603,9 @@ function parseGoal(afterLead: string, raw: string, ctx: ParseContext, pack: Lang
   r.targetDate = future.date;
   const amt = extractAmount(future.text, pack);
   r.amount = amt.amount;
+  // "save 200 a month for a car": 200 is the pace, not the total; the card asks for the total.
+  const paced = amt.amount != null && pack.perPeriod != null && pack.perPeriod.test(amt.text);
+  if (paced) { r.amount = null; amt.text = amt.text.replace(new RegExp(pack.perPeriod!.source, 'giu'), ' ').replace(/\s+/g, ' ').trim(); }
   const debt = pack.debtIntent.test(afterLead) || pack.debtWords.test(afterLead);
   if (debt) r.goalKind = 'debt';
   let rest = amt.text.replace(new RegExp(pack.goalIntent.source, 'giu'), ' ').replace(/\s+/g, ' ').trim();
@@ -610,7 +629,7 @@ function parseGoal(afterLead: string, raw: string, ctx: ParseContext, pack: Lang
   }
   if (!r.goalName && debt) r.goalName = null;
   r.confidence = (r.amount ? 0.6 : 0.2) + (r.goalName ? 0.3 : 0) + (r.targetDate ? 0.1 : 0);
-  if (!r.amount) r.hints.push(debt ? HINT.debtAmount : HINT.goalAmount);
+  if (!r.amount) r.hints.push(paced ? HINT.goalPace : debt ? HINT.debtAmount : HINT.goalAmount);
   if (!r.goalName) r.hints.push(HINT.goalName);
   if (!r.targetDate) r.hints.push(HINT.goalNoDate);
   r.needsReview = !r.amount || !r.goalName;
@@ -640,7 +659,8 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
     const forRe = new RegExp(pack.tokenizer === 'cjk' ? `(?:${pack.forWords})` : `${WB_START}(?:${pack.forWords})${WB_END}`, 'iu');
     const hasDate = applyRules(pack.futureDateRules, text, ctx.today).date != null;
     const bare = pack.tokenizer === 'space' && intent[0].trim().split(' ').length === 1;
-    const looksLikeGoal = forRe.test(text) || hasDate || !bare;
+    // "save 50 a week": an amount per period is a saving plan, even with nothing it is for.
+    const looksLikeGoal = forRe.test(text) || hasDate || !bare || (pack.perPeriod?.test(text) ?? false);
     if (looksLikeGoal) return parseGoal(text, raw, ctx, pack);
   }
   if (isDebtGoal(text, pack, ctx.today)) return parseGoal(text, raw, ctx, pack);

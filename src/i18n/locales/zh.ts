@@ -105,6 +105,7 @@ export const zh: LocaleDef = {
       'hint.reminderDate': '没听到是哪天，我选了最近的一天。点一下日期可以修改。',
       'hint.goalName': '这个目标是为了什么？',
       'hint.goalNoDate': '还没有目标日期。可以加一个，也可以先不设。',
+      'hint.goalPace': '这是每月或每周的金额，不是总数。你一共想存多少？',
       'hint.contributionAmount': '存入了多少？',
       'hint.stillNoAmount': '还是没有找到金额。',
       'hint.assistUnavailable': '智能辅助暂时不可用，请检查一下各项内容。',

@@ -105,6 +105,7 @@ export const it: LocaleDef = {
       'hint.reminderDate': 'Nessun giorno indicato, ho scelto il prossimo utile. Tocca la data per cambiarla.',
       'hint.goalName': 'A cosa serve questo obiettivo?',
       'hint.goalNoDate': 'Nessuna data obiettivo per ora. Puoi aggiungerne una o lasciarlo aperto.',
+      'hint.goalPace': 'Questo è un importo al mese o alla settimana, non il totale. Quanto vuoi risparmiare in tutto?',
       'hint.contributionAmount': 'Quanto hai aggiunto?',
       'hint.stillNoAmount': 'Continuo a non trovare un importo.',
       'hint.assistUnavailable': 'L’assistenza intelligente non è disponibile ora, controlla i campi.',
