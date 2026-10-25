@@ -17,6 +17,8 @@ import {
   getAvailablePurchases,
   initConnection,
   isUserCancelledError,
+  purchaseErrorListener,
+  purchaseUpdatedListener,
   requestPurchase,
   restorePurchases,
   type Product,
@@ -34,13 +36,47 @@ export type StoreState = {
 };
 
 let connected: Promise<boolean> | null = null;
+let listeners: { remove: () => void }[] = [];
+let unlockHandler: (() => void) | null = null;
+/** What the store last reported, so a trial-start sheet is never shown for a trial it already holds. */
+let lastKnown: StoreState | null = null;
 
-/** One connection per app run; every call below waits for it. */
+/** The store never holds the app up: a slow or absent store reads as "no answer" after this long. */
+const STORE_TIMEOUT_MS = 8000;
+function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), STORE_TIMEOUT_MS);
+    promise.then((v) => { clearTimeout(timer); resolve(v); }, () => { clearTimeout(timer); resolve(fallback); });
+  });
+}
+
+/** Called once the store confirms the unlock, however the purchase was started (the sheet, Ask to Buy, a retry). */
+export function onUnlocked(handler: () => void): void {
+  unlockHandler = handler;
+}
+
+/**
+ * One connection per app run; every call below waits for it. The outcome of a purchase arrives through the
+ * store's own events, not the return value of the request, so the listeners are the source of truth.
+ */
 async function connect(): Promise<boolean> {
   if (!connected) {
-    connected = initConnection().catch(() => {
-      connected = null;
-      return false;
+    connected = withTimeout(initConnection(), false).then((ok) => {
+      if (!ok) { connected = null; return false; }
+      if (listeners.length === 0) {
+        listeners = [
+          purchaseUpdatedListener((purchase) => {
+            if (owned([purchase], PRODUCT_UNLOCK)) {
+              finishTransaction({ purchase, isConsumable: false }).catch(() => {});
+              unlockHandler?.();
+            } else if (owned([purchase], PRODUCT_TRIAL)) {
+              finishTransaction({ purchase, isConsumable: false }).catch(() => {});
+            }
+          }),
+          purchaseErrorListener(() => {}),
+        ];
+      }
+      return true;
     });
   }
   return connected;
@@ -49,6 +85,8 @@ async function connect(): Promise<boolean> {
 export async function disconnect(): Promise<void> {
   if (!connected) return;
   connected = null;
+  for (const l of listeners) l.remove();
+  listeners = [];
   await endConnection().catch(() => {});
 }
 
@@ -68,10 +106,12 @@ function stateFrom(purchases: Purchase[]): StoreState {
 export async function readStore(): Promise<StoreState | null> {
   if (!(await connect())) return null;
   try {
-    const purchases = await getAvailablePurchases();
+    const purchases = await withTimeout(getAvailablePurchases(), null as Purchase[] | null);
+    if (!purchases) return null;
     // A purchase the store still holds open (an interrupted buy, a family share) is acknowledged here.
     for (const p of purchases) if (p.purchaseState === 'purchased') await finishTransaction({ purchase: p, isConsumable: false }).catch(() => {});
-    return stateFrom(purchases);
+    lastKnown = stateFrom(purchases);
+    return lastKnown;
   } catch {
     return null;
   }
@@ -88,16 +128,20 @@ export async function unlockPrice(): Promise<string | null> {
   }
 }
 
-export type BuyResult = 'bought' | 'cancelled' | 'failed';
+export type BuyResult = 'bought' | 'pending' | 'cancelled' | 'failed';
 
-/** Opens the store's own purchase sheet. */
+/**
+ * Opens the store's own purchase sheet. 'bought' when the request itself came back purchased; 'pending' when it
+ * came back without a final state (a slow payment method, Ask to Buy): the listener in `connect` unlocks the app
+ * the moment the store confirms, on this launch or the next.
+ */
 export async function buyUnlock(): Promise<BuyResult> {
   if (!(await connect())) return 'failed';
   try {
     const result = await requestPurchase({ type: 'in-app', request: { apple: { sku: PRODUCT_UNLOCK }, google: { skus: [PRODUCT_UNLOCK] } } });
     const purchases = result == null ? [] : Array.isArray(result) ? result : [result];
     const done = owned(purchases, PRODUCT_UNLOCK);
-    if (!done) return 'failed';
+    if (!done) return 'pending';
     await finishTransaction({ purchase: done, isConsumable: false }).catch(() => {});
     return 'bought';
   } catch (e) {
@@ -110,7 +154,8 @@ export async function restore(): Promise<StoreState | null> {
   if (!(await connect())) return null;
   try {
     await restorePurchases();
-    return stateFrom(await getAvailablePurchases());
+    lastKnown = stateFrom(await getAvailablePurchases());
+    return lastKnown;
   } catch {
     return null;
   }
@@ -121,7 +166,8 @@ export async function restore(): Promise<StoreState | null> {
  * The sheet may be declined or the product may not exist; neither matters, the local dates still rule.
  */
 export async function recordTrialStart(): Promise<void> {
-  if (Platform.OS !== 'ios' || !(await connect())) return;
+  // A reinstall already owns the trial product; asking again would only show "already purchased".
+  if (Platform.OS !== 'ios' || lastKnown?.trialStartedOn || !(await connect())) return;
   try {
     const result = await requestPurchase({ type: 'in-app', request: { apple: { sku: PRODUCT_TRIAL }, google: { skus: [PRODUCT_TRIAL] } } });
     const purchases = result == null ? [] : Array.isArray(result) ? result : [result];

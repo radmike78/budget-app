@@ -19,7 +19,7 @@ and what you expected; that is usually enough to fix it in the next release.
 
 - **Where is my data?** On your phone, and nowhere else. See the
   [privacy policy](privacy.html).
-- **How do I back up?** Settings → Back up. The backup is a file you keep in
+- **How do I back up?** Settings → Backup & export. The backup is a file you keep in
   your own cloud drive, with an optional passphrase. Restore it from the same
   screen on a new phone.
 - **Can I delete everything?** Settings → Erase everything removes it all at

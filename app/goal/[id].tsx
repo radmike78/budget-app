@@ -97,7 +97,8 @@ export default function GoalEditor() {
         <Card style={{ marginTop: spacing.sm, marginBottom: spacing.lg }}>
           <Text variant="body">{t.goalShort(money(existing.currentAmount, { compact: true }), money(existing.targetAmount, { compact: true }), money(progress.remaining, { compact: true }))}{progress.status !== 'no_date' && progress.status !== 'no_pace' ? ` · ${{ ahead: t.paceAhead, behind: t.paceBehind, on_track: t.paceOnTrack, done: t.paceDone }[progress.status]}` : ''}</Text>
           <View style={{ marginTop: spacing.md }}><ProgressBar fraction={progress.fraction} /></View>
-          {!existing.completed ? (
+          {!existing.completed && !adding ? <TrialEnded /> : null}
+          {!existing.completed && adding ? (
             <>
               <Row style={{ marginTop: spacing.lg }} align="flex-end">
                 <Field label={kind === 'debt' ? t.logPayment : t.addMoney} value={addAmount} onChangeText={setAddAmount} keyboardType="decimal-pad" placeholder="50" style={{ flex: 1, marginBottom: 0 }} />

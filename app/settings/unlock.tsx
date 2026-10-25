@@ -30,6 +30,7 @@ export default function Unlock() {
     try {
       const result = await buyUnlock();
       if (result === 'bought') { await recordUnlock(); notify(t.purchaseRow, t.purchaseDone); }
+      else if (result === 'pending') notify(t.purchaseRow, t.purchasePending);
       else if (result === 'failed') notify(t.purchaseRow, price ? t.purchaseFailed : t.storeUnavailable);
     } finally {
       setBusy(null);

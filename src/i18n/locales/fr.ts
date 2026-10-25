@@ -212,7 +212,7 @@ export const fr: LocaleDef = {
     // debts and pay-off plan
     debts: 'Dettes et plan de remboursement',
     debtsSub: 'Depuis un rapport de crédit ou un relevé de carte, ou ajoutez les vôtres.',
-    debtsIntro: 'Cartes et prêts seulement. Les prêts immobiliers et auto sont listés mais hors du plan.',
+    debtsIntro: 'Les cartes et les prêts personnels ou étudiants entrent dans le plan. Les prêts immobiliers et auto sont listés mais hors du plan.',
     noDebts: 'Aucune dette',
     noDebtsBody: 'Importez un rapport de crédit ou un relevé de carte, ou ajoutez-en une ici.',
     addDebt: 'Ajouter une dette',
@@ -298,7 +298,7 @@ export const fr: LocaleDef = {
     archive: 'Archiver',
     restore: 'Restaurer',
     deleteCategoryQ: (name) => `Supprimer ${name} ?`,
-    deleteCategoryUsed: (n) => `${n === 1 ? '1 opération gardera' : `${n} opérations garderont`} son montant mais perdra cette catégorie. Archiver conserve tout intact.`,
+    deleteCategoryUsed: (n) => `${n === 1 ? '1 opération gardera' : `${n} opérations garderont`} leur montant mais perdront cette catégorie. Archiver conserve tout intact.`,
     cannotUndo: 'Cette action est irréversible.',
     privacyPolicy: 'Politique de confidentialité',
     eraseEverything: 'Tout effacer',
@@ -340,6 +340,8 @@ export const fr: LocaleDef = {
     backupExportSub: 'CSV, un résumé lisible ou une sauvegarde complète à restaurer.',
     lastBackupShort: (when: string) => `Dernière sauvegarde : ${when}.`,
     noBackupYetShort: 'Pas encore de sauvegarde.',
+    backupNudgeFirst: 'Vos saisies n’existent que sur ce téléphone. Une sauvegarde prend une minute et les protège si le téléphone est perdu.',
+    backupNudgeStale: (when) => `Votre dernière sauvegarde date du ${when}. Tout ce qui a suivi n’existe que sur ce téléphone.`,
     repeatingEntries: 'Opérations récurrentes',
     repeatingEntriesSub: 'Loyer, salaire, abonnements.',
     categories: 'Catégories',
@@ -360,7 +362,7 @@ export const fr: LocaleDef = {
     notificationsOffBody: 'Activez-les pour OnlyBudget dans les réglages du téléphone si vous voulez un rappel quotidien.',
     appLock: 'Verrouiller l’app',
     appLockSub: 'Demande Face ID, l’empreinte ou votre code à l’ouverture d’OnlyBudget.',
-    trialTerms: 'Gratuit pendant 30 jours. Ensuite, un seul achat et c’est pour toujours. Tout ce que vous saisissez reste à vous, à lire et à exporter.',
+    trialTerms: 'Gratuit pendant 30 jours. Ensuite, un seul achat suffit pour continuer. Tout ce que vous saisissez reste à vous, à lire et à exporter.',
     trialDaysLeft: (n) => (n === 1 ? 'Il reste 1 jour à votre mois gratuit.' : `Il reste ${n} jours à votre mois gratuit.`),
     trialEndsSoon: (n) => (n === 1 ? 'Votre mois gratuit se termine demain. Un seul achat suffit ; rien de ce que vous avez saisi ne va nulle part.' : `Votre mois gratuit se termine dans ${n} jours. Un seul achat suffit ; rien de ce que vous avez saisi ne va nulle part.`),
     trialEnded: 'Votre mois gratuit est terminé.',
@@ -368,7 +370,7 @@ export const fr: LocaleDef = {
     keepUsing: 'Continuer avec OnlyBudget',
     notNow: 'Pas maintenant',
     unlockTitle: 'Un seul achat, pas d’abonnement',
-    unlockBody: 'Payez une fois et l’app est à vous sur ce compte de boutique, sur tous les téléphones où vous vous connectez. Pas d’abonnement, pas de renouvellement, rien de retenu pour plus tard.',
+    unlockBody: 'Payez une fois et l’app est à vous sur ce compte de boutique, sur tous les téléphones où vous vous connectez. Pas d’abonnement, pas de renouvellement, rien de retenu pour plus tard. Les mises à jour de cette version de l’app sont comprises.',
     unlockStatusTrial: (n) => (n === 1 ? 'Mois gratuit : 1 jour restant.' : `Mois gratuit : ${n} jours restants.`),
     unlockStatusEnded: 'Mois gratuit terminé.',
     unlockStatusUnlocked: 'Acheté. Merci.',
@@ -377,7 +379,8 @@ export const fr: LocaleDef = {
     restorePurchase: 'Restaurer l’achat',
     restoredOk: 'Achat retrouvé. Tout est débloqué.',
     nothingToRestore: 'Aucun achat trouvé pour ce compte de boutique.',
-    purchaseFailed: 'La boutique n’a pas terminé l’achat. Rien n’a été facturé.',
+    purchaseFailed: 'La boutique n’a pas terminé l’achat. Si elle vous a tout de même facturé, Restaurer l’achat le retrouvera.',
+    purchasePending: 'La boutique confirme encore l’achat. Tout se débloque dès qu’il aboutit, même si c’est à la prochaine ouverture.',
     purchaseDone: 'Merci. Tout est débloqué.',
     purchaseRow: 'Votre achat',
     storeUnavailable: 'La boutique est injoignable pour le moment. Réessayez dans un instant.',
@@ -499,26 +502,26 @@ export const fr: LocaleDef = {
     answerTotal: (period: string, amount: string, what: string | null, count: number, income: boolean) => {
       const p = period.charAt(0).toUpperCase() + period.slice(1);
       const n = `${count} ${count === 1 ? 'entrée' : 'entrées'}`;
-      return income ? `${p}, tu as reçu ${amount}${what ? ` de ${what}` : ''}, sur ${n}.` : `${p}, tu as dépensé ${amount}${what ? ` pour ${what}` : ''}, sur ${n}.`;
+      return income ? `${p}, vous avez reçu ${amount}${what ? ` de ${what}` : ''}, sur ${n}.` : `${p}, vous avez dépensé ${amount}${what ? ` pour ${what}` : ''}, sur ${n}.`;
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Rien n\'est rentré${what ? ` de ${what}` : ''} ${period}.` : `Rien n\'a été noté${what ? ` pour ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `Aucune entrée ne mentionne ${target}, donc voici le total de ${category}.`,
     answerCompare: (period, amount, what, direction, diff, prev) => {
-      const base = `${period.charAt(0).toUpperCase() + period.slice(1)}, tu as dépensé ${amount}${what ? ` pour ${what}` : ''}`;
+      const base = `${period.charAt(0).toUpperCase() + period.slice(1)}, vous avez dépensé ${amount}${what ? ` pour ${what}` : ''}`;
       if (direction === 'first') return `${base}. Il n’y a encore rien ${prev} pour comparer.`;
       if (direction === 'same') return `${base}, à peu près comme au même moment ${prev}.`;
       return `${base}, ${diff} de ${direction === 'more' ? 'plus' : 'moins'} qu’au même moment ${prev}.`;
     },
     comparePrev: { week: 'la semaine dernière', month: 'le mois dernier', year: 'l’an dernier', budget: 'la période de paie précédente' } as Record<string, string>,
     answerTop: (period, category, amount, total) => `${period.charAt(0).toUpperCase() + period.slice(1)}, le plus est allé à ${category} : ${amount} sur ${total}.`,
-    answerAffordFits: (price, left, what, until) => (what ? `Après ${price}, il te resterait ${left} du plan ${what}, jusqu’au ${until}.` : `Après ${price}, il te resterait ${left}, jusqu’au ${until}.`),
+    answerAffordFits: (price, left, what, until) => (what ? `Après ${price}, il vous resterait ${left} du plan ${what}, jusqu’au ${until}.` : `Après ${price}, il vous resterait ${left}, jusqu’au ${until}.`),
     answerAffordShort: (price, short, what, until) => (what ? `${price}, c’est ${short} de plus que ce qui reste du plan ${what} jusqu’au ${until}.` : `${price}, c’est ${short} de plus que ce qui reste jusqu’au ${until}.`),
     answerAffordUnknown: (price) => `Il n’y a encore ni plan ni revenu sur cette période, donc rien à quoi comparer ${price}.`,
-    answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Il te reste ${left} sur le plan de ${plan} pour ${what}, jusqu’au ${until}.` : `Il te reste ${left} sur le plan de ${plan}, jusqu’au ${until}.`),
-    answerPast: (over: string, plan: string, what: string | null) => (what ? `Tu as dépensé ${over} de plus que le plan de ${plan} pour ${what} sur cette période.` : `Tu as dépensé ${over} de plus que le plan de ${plan} sur cette période.`),
-    answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Après les factures encore à venir, tu as ${left} à dépenser jusqu’au ${until}.` : `Tu as ${left} à dépenser jusqu’au ${until}.`),
+    answerLeft: (left: string, plan: string, what: string | null, until: string) => (what ? `Il vous reste ${left} sur le plan de ${plan} pour ${what}, jusqu’au ${until}.` : `Il vous reste ${left} sur le plan de ${plan}, jusqu’au ${until}.`),
+    answerPast: (over: string, plan: string, what: string | null) => (what ? `Vous avez dépensé ${over} de plus que le plan de ${plan} pour ${what} sur cette période.` : `Vous avez dépensé ${over} de plus que le plan de ${plan} sur cette période.`),
+    answerIncomeLeft: (left: string, until: string, billsDue: boolean) => (billsDue ? `Après les factures encore à venir, vous avez ${left} à dépenser jusqu’au ${until}.` : `Vous avez ${left} à dépenser jusqu’au ${until}.`),
     answerIncomeShort: (short: string, billsDue: boolean) => (billsDue ? `Une fois les factures à venir payées, il manquera ${short} sur cette période.` : `Sur cette période, ${short} de plus est sorti que ce qui est rentré.`),
-    answerPlansLeft: (left: string, plan: string, until: string) => `En additionnant les plans de tes catégories, il te reste ${left} sur ${plan}, jusqu’au ${until}.`,
+    answerPlansLeft: (left: string, plan: string, until: string) => `En additionnant les plans de vos catégories, il vous reste ${left} sur ${plan}, jusqu’au ${until}.`,
     answerNothingSet: (spent: string) => `Il n’y a encore ni plan ni revenu sur cette période, donc rien à décompter. Pour l’instant, ${spent} sont sortis.`,
     answerNoPlanFor: (what: string, spent: string | null) => `${what} n’a pas de plan, donc rien à décompter. ${spent ? `${spent} y sont allés sur cette période.` : 'Rien n’y est allé sur cette période.'}`,
     answerNoCategory: (target: string) => `Aucune catégorie ne correspond à ${target}.`,
@@ -553,9 +556,9 @@ export const fr: LocaleDef = {
     ] as [string, string][],
     commitments: [
       ['Pas de banque liée. Jamais.', 'OnlyBudget ne demande jamais vos identifiants bancaires et ne le fera jamais, ni comme fonctionnalité ni comme option payante. C’est vous qui racontez ce qui s’est passé.'],
-      ['Pas de pub. Pas de pistage.', 'Pas de SDK d’analyse, pas d’identifiant publicitaire, pas de partage de données. Rien ne quitte ce téléphone sauf si vous l’exportez vous-même.'],
+      ['Pas de pub. Pas de pistage.', 'Pas de SDK d’analyse, pas d’identifiant publicitaire, pas de partage de données. Rien ne quitte ce téléphone sauf si vous l’exportez vous-même. L’achat passe par l’App Store ou Google Play, qui ne nous disent jamais qui vous êtes.'],
       ['Pas de compte.', 'Vous ne vous inscrivez jamais. Aucun serveur ne détient vos données. Les sauvegardes sont des fichiers qui vous appartiennent.'],
-      ['Pas d’abonnement ni d’essai.', 'Le prix d’OnlyBudget est annoncé d’avance et ne change jamais après l’achat. Rien de ce que vous avez saisi n’est mis derrière un paywall.'],
+      ['Pas d’abonnement.', 'Gratuit 30 jours, puis un seul achat, au prix annoncé d’avance et jamais modifié après l’achat. Rien de ce que vous avez saisi n’est mis derrière un paywall.'],
       ['Serein par conception.', 'Pas de séries, pas de badges rouges, pas de « vous avez échoué ». Juste des phrases simples sur où est passé votre argent.'],
     ],
     voiceSection: 'Voix',
@@ -621,8 +624,8 @@ export const fr: LocaleDef = {
     onboardBody: 'OnlyBudget est un budget manuel auquel vous parlez. Juste un budget : rien d’autre. Dites ou tapez « dépensé 12 pour le déjeuner » et il range le reste. Tout reste sur votre téléphone.',
     quickSetup: 'Configuration rapide',
     quickSetupBody: 'Pas de compte. Pas d’e-mail. Quelques choix facultatifs et c’est parti.',
-    moneySetupTitle: 'Ta paie et ton loyer',
-    moneySetupBody: 'Facultatif. Avec ça, Aujourd’hui montre dès le départ ce que tu peux dépenser jusqu’à la paie. Tu peux le modifier plus tard dans Récurrent. Le budget va alors d’une paie à la suivante ; Réglages → Période du budget permet de revenir au mois civil.',
+    moneySetupTitle: 'Votre paie et votre loyer',
+    moneySetupBody: 'Facultatif. Avec ça, Aujourd’hui montre dès le départ ce que vous pouvez dépenser jusqu’à la paie. Vous pouvez le modifier plus tard dans Réglages → Entrées récurrentes. Le budget va alors d’une paie à la suivante ; Réglages → Période du budget permet de revenir au mois civil.',
     takeHomePay: 'Salaire net',
     lastPayday: 'Dernière paie',
     rentOrMortgage: 'Loyer ou crédit immobilier, chaque mois',

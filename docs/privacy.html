@@ -54,7 +54,7 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <h1>Privacy Policy — OnlyBudget</h1>
 <p><strong>Last updated: 24 October 2026</strong></p>
 <p>OnlyBudget is a budgeting app that runs entirely on your phone. It has no server and no account. We do not receive your budget, and there is no &quot;we&quot; that could: nothing you enter is transmitted to the developer of this app, at any point, for any reason.</p>
-<p>This policy explains that in full, including the one case where something can leave your device and exactly what it involves.</p>
+<p>This policy explains that in full, including the two cases where something can leave your device and exactly what they involve.</p>
 <h2 id="the-short-version">The short version</h2>
 <ul>
   <li><strong>No account.</strong> You never sign up, and there is nothing to sign in to.</li>
@@ -68,7 +68,7 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <p>On iOS and Android this storage is private to the app and is covered by the device's own encryption. On iOS the files are locked whenever the device is locked with a passcode. On the web version it is stored in your browser, under the origin the app is served from.</p>
 <p>OnlyBudget never makes a copy of this data anywhere else; you make one yourself by exporting it (see <strong>Backups and exports</strong>). On Android the app is left out of Google's automatic backup and of transfers to a new phone. On iOS, a backup of the whole iPhone that you make to iCloud or to a computer includes the data of the apps on it, OnlyBudget's too, as for any app; that backup is yours and Apple's terms cover it, and OnlyBudget cannot read or reach it.</p>
 <h2 id="what-leaves-your-device-and-when">What leaves your device, and when</h2>
-<p>One feature involves a network, and only one. It is described here in full.</p>
+<p>Two things involve a network, and only two. Both are described here in full.</p>
 <h3 id="1-speech-recognition-when-you-use-the-microphone">1. Speech recognition, when you use the microphone</h3>
 <p>When you tap the microphone, your phone's own speech recognizer turns what you say into text. OnlyBudget never records audio, never stores audio, and never sends audio anywhere itself.</p>
 <p>The recognizer is part of your operating system, not part of this app:</p>
@@ -77,8 +77,10 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
   <li>Where it does not, the platform's recognizer may send the audio to Apple or Google for processing. That is a function of your operating system, and <strong>their</strong> privacy policy governs it, not this one. Your device settings control it.</li>
 </ul>
 <p>Microphone and speech-recognition permissions are requested the first time you use the mic, and the microphone is active only while you are speaking an entry. You can use every feature of the app by typing instead.</p>
-<h3 id="2-nothing-else">2. Nothing else</h3>
-<p>This version of the app has no feature that sends anything off your phone. It makes no network requests of its own: there is no server, no account, no analytics and no crash reporting. The only outbound connection the app is built to be capable of, an optional parsing assist that would send a single unclear phrase to a language model with your own API key, is switched off in the code for this release and cannot be turned on from the app. If a later version offers it, this policy will describe it before it ships, it will be off by default, and turning it on will ask you first.</p>
+<h3 id="2-the-purchase-through-your-store">2. The purchase, through your store</h3>
+<p>The app is free for 30 days, then a one-time purchase keeps new entries coming. The purchase is made through Apple's App Store or Google Play, with your store account, under their terms and privacy policies. OnlyBudget never sees your payment details. The app keeps one thing about it on your phone: a note that the purchase was made (or restored), plus the day the app was first opened and the day it was last opened, so it knows where the trial stands. None of that is sent anywhere, and none of it is in your backups.</p>
+<h3 id="3-nothing-else">3. Nothing else</h3>
+<p>Beyond those two, this version of the app makes no network requests of its own: there is no server, no account, no analytics and no crash reporting. The only other outbound connection the app is built to be capable of, an optional parsing assist that would send a single unclear phrase to a language model with your own API key, is switched off in the code for this release and cannot be turned on from the app. If a later version offers it, this policy will describe it before it ships, it will be off by default, and turning it on will ask you first.</p>
 <h2 id="statements-you-import">Statements you import</h2>
 <p>If you import a bank or card statement, or a credit report, as a PDF:</p>
 <ul>
@@ -95,8 +97,6 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <h2 id="backups-and-exports">Backups and exports</h2>
 <p>You can export your data at any time, as a CSV file, a readable summary, or a full backup. An export goes wherever <strong>you</strong> send it through your phone's own share sheet. Once it leaves the app it is an ordinary file in your control, and this policy no longer governs it — if you put it in a cloud drive, that provider's terms apply.</p>
 <p>Full backups can be encrypted with a passphrase you choose. Encryption uses scrypt for key derivation and XChaCha20-Poly1305 for the data. The passphrase is never stored and cannot be recovered: if you lose it, that backup cannot be opened, by us or by anyone.</p>
-<h2 id="the-purchase">The purchase</h2>
-<p>The app is free for 30 days, then a one-time purchase keeps new entries coming. The purchase is made through Apple's App Store or Google Play, with your store account, under their terms and privacy policies. OnlyBudget never sees your payment details. The app keeps one thing about it on your phone: a note that the purchase was made (or restored), plus the day the app was first opened and the day it was last opened, so it knows where the trial stands. None of that is sent anywhere, and none of it is in your backups.</p>
 <h2 id="deleting-your-data">Deleting your data</h2>
 <p>Settings → <strong>Erase everything</strong> removes every entry, goal, reminder, debt, import record and learned word from the device, and returns the app to the state it was in when you installed it. It takes effect immediately and cannot be undone.</p>
 <p>Uninstalling the app also removes everything on the device. (An iPhone backup you made earlier keeps what was there when it was made, until you delete that backup.)</p>
@@ -118,7 +118,7 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <p>Questions about this policy or about the app:</p>
 <p><strong><a href="mailto:support@mradsoftware.com">support@mradsoftware.com</a></strong></p>
 <hr>
-<p><em>OnlyBudget is published by MRAD Software Solutions LLC. This document describes the app's behaviour as implemented; it is not legal advice, and you should have it reviewed before you rely on it for a store submission.</em></p>
+<p><em>OnlyBudget is published by MRAD Software Solutions LLC. This document describes the app's behavior as implemented; it is not legal advice, and you should have it reviewed before you rely on it for a store submission.</em></p>
 </main>
 </body>
 </html>

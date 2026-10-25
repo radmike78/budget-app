@@ -7,8 +7,8 @@ and no account. We do not receive your budget, and there is no "we" that could:
 nothing you enter is transmitted to the developer of this app, at any point, for
 any reason.
 
-This policy explains that in full, including the one case where something can
-leave your device and exactly what it involves.
+This policy explains that in full, including the two cases where something can
+leave your device and exactly what they involve.
 
 ## The short version
 
@@ -45,7 +45,7 @@ Apple's terms cover it, and OnlyBudget cannot read or reach it.
 
 ## What leaves your device, and when
 
-One feature involves a network, and only one. It is described here in full.
+Two things involve a network, and only two. Both are described here in full.
 
 ### 1. Speech recognition, when you use the microphone
 
@@ -66,16 +66,26 @@ Microphone and speech-recognition permissions are requested the first time you
 use the mic, and the microphone is active only while you are speaking an entry.
 You can use every feature of the app by typing instead.
 
-### 2. Nothing else
+### 2. The purchase, through your store
 
-This version of the app has no feature that sends anything off your phone. It
-makes no network requests of its own: there is no server, no account, no
-analytics and no crash reporting. The only outbound connection the app is built
-to be capable of, an optional parsing assist that would send a single unclear
-phrase to a language model with your own API key, is switched off in the code
-for this release and cannot be turned on from the app. If a later version
-offers it, this policy will describe it before it ships, it will be off by
-default, and turning it on will ask you first.
+The app is free for 30 days, then a one-time purchase keeps new entries
+coming. The purchase is made through Apple's App Store or Google Play, with
+your store account, under their terms and privacy policies. OnlyBudget never
+sees your payment details. The app keeps one thing about it on your phone: a
+note that the purchase was made (or restored), plus the day the app was first
+opened and the day it was last opened, so it knows where the trial stands. None
+of that is sent anywhere, and none of it is in your backups.
+
+### 3. Nothing else
+
+Beyond those two, this version of the app makes no network requests of its
+own: there is no server, no account, no analytics and no crash reporting. The
+only other outbound connection the app is built to be capable of, an optional
+parsing assist that would send a single unclear phrase to a language model with
+your own API key, is switched off in the code for this release and cannot be
+turned on from the app. If a later version offers it, this policy will describe
+it before it ships, it will be off by default, and turning it on will ask you
+first.
 
 ## Statements you import
 
@@ -115,16 +125,6 @@ Full backups can be encrypted with a passphrase you choose. Encryption uses
 scrypt for key derivation and XChaCha20-Poly1305 for the data. The passphrase is
 never stored and cannot be recovered: if you lose it, that backup cannot be
 opened, by us or by anyone.
-
-## The purchase
-
-The app is free for 30 days, then a one-time purchase keeps new entries
-coming. The purchase is made through Apple's App Store or Google Play, with
-your store account, under their terms and privacy policies. OnlyBudget never
-sees your payment details. The app keeps one thing about it on your phone: a
-note that the purchase was made (or restored), plus the day the app was first
-opened and the day it was last opened, so it knows where the trial stands. None
-of that is sent anywhere, and none of it is in your backups.
 
 ## Deleting your data
 
@@ -177,5 +177,5 @@ Questions about this policy or about the app:
 ---
 
 *OnlyBudget is published by MRAD Software Solutions LLC. This
-document describes the app's behaviour as implemented; it is not legal advice,
+document describes the app's behavior as implemented; it is not legal advice,
 and you should have it reviewed before you rely on it for a store submission.*

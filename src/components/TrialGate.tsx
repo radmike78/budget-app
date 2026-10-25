@@ -2,7 +2,9 @@ import React from 'react';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
-import { useT } from '@/i18n';
+import { useDateFormat, useT } from '@/i18n';
+import { friendlyDate, localDay, today } from '@/lib/dates';
+import { needsBackupNudge } from '@/lib/backupNudge';
 import { Button, Card, Row, Text } from './ui';
 
 /**
@@ -46,6 +48,30 @@ export function TrialNotice() {
       <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
         <Button tone="ghost" small title={t.notNow} onPress={() => dismiss().catch(() => {})} />
         <Button tone="secondary" small title={t.keepUsing} onPress={() => router.push('/settings/unlock')} />
+      </Row>
+    </Card>
+  );
+}
+
+/** One quiet line when entries are worth keeping and no copy exists, or the last one is old. */
+export function BackupNotice() {
+  const t = useT();
+  const fmt = useDateFormat();
+  const router = useRouter();
+  const settings = useAppStore((s) => s.settings);
+  const entries = useAppStore((s) => s.recent.length);
+  const dismissedOn = useAppStore((s) => s.backupNudgeDismissedOn);
+  const dismiss = useAppStore((s) => s.dismissBackupNudge);
+  if (!settings) return null;
+  // `recent` holds the latest ten entries, so ten of them means at least that many exist.
+  const why = needsBackupNudge({ lastBackupAt: settings.lastBackupAt, entries, dismissedOn, today: today() });
+  if (!why) return null;
+  return (
+    <Card style={{ marginTop: spacing.md }}>
+      <Text variant="body">{why === 'first' ? t.backupNudgeFirst : t.backupNudgeStale(friendlyDate(localDay(settings.lastBackupAt!), today(), fmt))}</Text>
+      <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
+        <Button tone="ghost" small title={t.notNow} onPress={() => dismiss().catch(() => {})} />
+        <Button tone="secondary" small title={t.backupExport} onPress={() => router.push('/settings/backup')} />
       </Row>
     </Card>
   );
