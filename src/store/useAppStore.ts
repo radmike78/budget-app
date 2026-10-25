@@ -16,7 +16,7 @@ import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
 import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, isDailyReminderScheduled, needsRearm, nextOccurrence, notificationPermissionState, scheduleDailyReminder, scheduleReminderNotification, scheduledReminderIds, type PermissionState } from '@/lib/reminders';
 import { sweepExportCache } from '@/lib/files';
-import { earlierDay, licenseFrom, type License } from '@/lib/trial';
+import { earlierDay, firstDayNeedsReset, licenseFrom, type License } from '@/lib/trial';
 import { readStore, recordTrialStart, restore as restoreFromStore } from '@/lib/purchases';
 import { Platform } from 'react-native';
 import { getLocale, resolveLanguage } from '@/i18n';
@@ -714,6 +714,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     ]);
     let firstSeen = storedFirst;
     let unlocked = !!unlockedFlag;
+    // A first day in the future means the clock was ahead at the first open: the month restarts from today.
+    if (firstDayNeedsReset(firstSeen, todayStr)) {
+      firstSeen = null;
+      await repo.setAppState(db, 'trial.latestSeen', todayStr);
+    }
     // The first day is written once; the latest-seen day only ever moves forward.
     if (!firstSeen) {
       firstSeen = todayStr;
@@ -722,7 +727,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       recordTrialStart().catch(() => {});
     }
     if (!storedLatest || storedLatest < todayStr) await repo.setAppState(db, 'trial.latestSeen', todayStr);
-    const latestSeen = storedLatest && storedLatest > todayStr ? storedLatest : todayStr;
+    const latestSeen = storedLatest && storedLatest > todayStr && !firstDayNeedsReset(storedFirst, todayStr) ? storedLatest : todayStr;
     set({ license: licenseFrom({ firstSeen, latestSeen, unlocked, today: todayStr }), trialNoticeDismissed: !!noticeSeen });
     // The store's own record, read quietly: an unlock bought on another phone, or an earlier trial start.
     if (!unlocked) {

@@ -10,11 +10,13 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   image:
     runs-on: ubuntu-24.04  # pinned with ci.yml: ubuntu-latest became 26.04 in October 2026
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 

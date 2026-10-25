@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-24.04  # ubuntu-latest became 26.04 in October 2026, which Playwright 1.56 cannot install Chromium on

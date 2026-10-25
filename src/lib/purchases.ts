@@ -53,7 +53,7 @@ export async function disconnect(): Promise<void> {
 }
 
 function owned(purchases: Purchase[], productId: string): Purchase | undefined {
-  return purchases.find((p) => (p.productId === productId || p.ids?.includes(productId)) && p.purchaseState !== 'pending');
+  return purchases.find((p) => (p.productId === productId || p.ids?.includes(productId)) && p.purchaseState === 'purchased');
 }
 
 function stateFrom(purchases: Purchase[]): StoreState {

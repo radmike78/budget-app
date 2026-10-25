@@ -18,6 +18,8 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 # store credentials never belong in the repo (the Play key is uploaded to EAS once)
+credentials.json
+.env
 *service-account*.json
 play-*.json
 AuthKey_*.p8

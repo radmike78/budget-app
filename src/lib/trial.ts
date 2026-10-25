@@ -43,8 +43,11 @@ export const UNLOCKED: License = { state: 'unlocked', daysLeft: 0, endsOn: '', e
  */
 export function licenseFrom({ firstSeen, latestSeen, unlocked, today }: LicenseInput): License {
   if (unlocked) return UNLOCKED;
-  const start = firstSeen ?? today;
-  const effectiveToday = latestSeen && latestSeen > today ? latestSeen : today;
+  // A first day after today can only come from a clock set ahead before the first open; taken at face value it
+  // would freeze the trial (used = 0 for years). It restarts from the real today instead (the store persists that).
+  const clockWasAhead = firstSeen != null && firstSeen > today;
+  const start = clockWasAhead || firstSeen == null ? today : firstSeen;
+  const effectiveToday = !clockWasAhead && latestSeen && latestSeen > today ? latestSeen : today;
   const used = Math.max(0, daysBetween(start, effectiveToday));
   const daysLeft = Math.max(0, TRIAL_DAYS - used);
   const endsOn = addDays(start, TRIAL_DAYS);
@@ -53,6 +56,11 @@ export function licenseFrom({ firstSeen, latestSeen, unlocked, today }: LicenseI
 }
 
 /** The earlier of two first days, so a store-recorded trial start wins over a later local one. */
+/** True when the recorded first day lies after today, so the store should rewrite both days to today. */
+export function firstDayNeedsReset(firstSeen: string | null, today: string): boolean {
+  return firstSeen != null && firstSeen > today;
+}
+
 export function earlierDay(a: string | null, b: string | null): string | null {
   if (!a) return b;
   if (!b) return a;
