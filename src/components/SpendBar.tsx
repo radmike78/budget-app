@@ -16,7 +16,7 @@ const SEGMENTS = 3;
  * Magnitude is the job here, so colour follows size and identity comes from
  * the labels, never from colour alone.
  */
-export function SpendBar({ stats, categories, nameOf, otherLabel, restLabel, onPress }: {
+export function SpendBar({ stats, categories, nameOf, otherLabel, restLabel, onPress, accessibilityLabel }: {
   stats: MonthStats;
   categories: Category[];
   nameOf: (c: Category) => string;
@@ -24,6 +24,7 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, restLabel, onP
   /** The folded remainder ("Everything else"), never the same word as the Other category. */
   restLabel: string;
   onPress?: () => void;
+  accessibilityLabel?: string;
 }) {
   const { colors, isDark } = useTheme();
   if (stats.expenses <= 0) return null;
@@ -58,5 +59,5 @@ export function SpendBar({ stats, categories, nameOf, otherLabel, restLabel, onP
       </Row>
     </View>
   );
-  return onPress ? <Pressable accessibilityRole="button" onPress={onPress}>{body}</Pressable> : body;
+  return onPress ? <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress}>{body}</Pressable> : body;
 }

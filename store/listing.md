@@ -23,7 +23,7 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 
 **What you get**
 - Voice and text entry that take under ten seconds
-- A monthly picture in plain sentences: what came in, what went out, where most of it went
+- A monthly picture at a glance: what came in, what went out, where most of it went
 - Categories with optional limits, shown as a quiet progress bar, never a red alert
 - Repeating entries for rent, salary and subscriptions. Set up once, logged automatically
 - Savings goals with honest pace: "You're $180 away, on pace to hit it 2 weeks early"
@@ -57,13 +57,13 @@ First release.
 Full policy: `docs/PRIVACY.md`, rendered to `docs/privacy.html`. Host it and put the URL in both consoles (see `docs/RELEASE.md`).
 
 ### Apple privacy nutrition label
-**Data Not Collected.** Nothing leaves the phone: there is no server, no analytics and no network feature in 1.0 (Smart parsing is held back by `SMART_ASSIST` in `src/lib/features.ts`).
+**Data Not Collected.** Nothing leaves the phone: there is no server, no analytics and no network feature of the app's own in 1.0 (Smart parsing is held back by `SMART_ASSIST` in `src/lib/features.ts`). The one-time purchase goes through StoreKit; Apple's label guidance counts only data the developer transmits off the device, and data Apple collects itself is not the developer's to declare. The app keeps a local flag only and never reads purchase history off the device. (This reading of the StoreKit case is an inference from Apple's frameworks wording, not a sentence naming StoreKit.)
 - Speech recognition uses Apple's Speech framework (on the device where supported); that is Apple's processing, not OnlyBudget's, and is not declared.
 - Backups and exports are files the user writes and keeps themselves; they are not collection.
 - If Smart parsing ships in a later version, the label changes to **User Content → Other User Content** and **Financial Info → Other Financial Info**, purpose App Functionality, not used for tracking, linked to the user (the request carries their own API key), and the feature's consent dialog covers Guideline 5.1.2(i).
 
 ### Google Play data safety
-- Does the app collect or share user data? **No.**
+- Does the app collect or share user data? **No.** The in-app purchase goes through Google Play's billing system, which Play's data-safety guidance lists among payment services whose own collection the developer need not declare when the app never accesses that data; the app keeps a local flag only.
 - Is all of the user data collected by the app encrypted in transit? Not asked when nothing is collected.
 - Deletion request mechanism: not asked; the developer holds no data. Settings → Erase everything clears the phone, and so does uninstalling.
 - Security practices: data is stored on the device only; the user can request deletion by erasing it themselves.
@@ -74,7 +74,7 @@ Full policy: `docs/PRIVACY.md`, rendered to `docs/privacy.html`. Host it and put
 - **Speech recognition**: to turn speech into text for an entry.
 - **Notifications** (optional): reminders the user sets (one-off or repeating) and the optional evening nudge. Rescheduled after a restart. No badges (launcher-badge permissions are blocked in `app.json`).
 - **Face ID / fingerprint** (optional): only if the user turns on the app lock.
-- **Internet**: declared by the framework. Nothing in 1.0 sends data; the Android speech recognizer may use it for languages whose offline model is not installed, which is the system's own processing.
+- **Internet**: declared by the framework. Nothing in 1.0 sends data apart from the store's own billing; the Android speech recognizer may use it for languages whose offline model is not installed, which is the system's own processing.
 
 ## Play Console declarations (App content page)
 
@@ -95,7 +95,7 @@ Every answer follows from the app having no server, no ads and no login.
 | Health | No health features |
 | Advertising ID | No, the app does not use the advertising ID (`com.google.android.gms.permission.AD_ID` is in `blockedPermissions`) |
 
-Store settings: category **Finance**, tags *budget* and *expense tracker*; contact email support@mradsoftware.com and the website the policy page lives on. The EU DSA trader question is answered yes for a paid app: MRAD Software Solutions LLC, 725-900-8131, support@mradsoftware.com, and the address on the D-U-N-S record, all shown on the listing.
+Store settings: category **Finance**, tags *budget* and *expense tracker*; contact email support@mradsoftware.com and the website the policy page lives on. The EU DSA trader question is answered yes, since the app sells an in-app purchase: MRAD Software Solutions LLC, 725-900-8131, support@mradsoftware.com, and the address on the D-U-N-S record, all shown on the listing.
 
 ## App Store Connect forms
 
@@ -115,7 +115,7 @@ Store settings: category **Finance**, tags *budget* and *expense tracker*; conta
 - There is no login. Reviewers can use the app immediately after onboarding.
 - No financial account data of any kind is accessed. All amounts are entered manually by the user.
 - Try: tap the mic, say "spent twelve dollars on lunch", confirm. Or type "goal: save 500 for a trip by December".
-- The app makes no network requests. There is no server, no account and no analytics; speech is recognised by the phone's own recognizer.
+- The app makes no network requests of its own; the only connection is the store's own purchase sheet (StoreKit / Play Billing). There is no server, no account and no analytics; speech is recognised by the phone's own recognizer.
 - The app is free for 30 days from first open, then a one-time in-app purchase (`full_unlock`) is offered under Settings → Your purchase. A fresh install is inside the trial, so every feature can be exercised without buying; the purchase sheet is the store's own and works in the sandbox. Nothing already entered is ever locked.
 - Bank or card statement PDFs (Settings → Import a statement) are read on the device in a sandboxed view with no network access, and are never uploaded.
 

@@ -164,7 +164,8 @@ await step('fixing the last entry by voice, then undoing a removal', async () =>
   await expectText('Changed to $23');
   await expectNoText('$21');
   await entry('delete that');
-  await expectText('Removed Parking, $23.00');
+  // The undo bar is the only receipt for a removal; no answer card.
+  await expectText('Entry removed'); await expectNoText('Removed Parking');
   await button(/^Undo$/).click(); await page.waitForTimeout(800);
   await expectText('Parking');
 });
@@ -182,7 +183,7 @@ await step('fixing an entry by name, and amounts the way dictation writes them',
   await button(/^Save changes$/).click(); await page.waitForTimeout(600);
   await expectText('Changed to $5');
   await entry('forget the spotify one');
-  await expectText('Removed Spotify, $11.99');
+  await expectText('Entry removed'); await expectNoText('Spotify, $11.99');
   await entry('delete the piano lessons');
   await expectText("I couldn't find an entry for piano lessons");
   await button(/^Done$/).click();

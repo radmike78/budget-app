@@ -19,14 +19,16 @@ const PAGES = [
   { src: 'docs/SUPPORT.md', out: 'docs/support.html', description: 'Help and contact for OnlyBudget, the budget you talk to.' },
 ];
 
-const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// Only https, mailto and a relative page next to this one may be linked; anything else stays as text.
+const safeHref = (h) => (/^(https:\/\/[^\s"'<>]+|mailto:[^\s"'<>@]+@[^\s"'<>]+|[a-z0-9-]+\.html(#[a-z0-9-]+)?)$/.test(h) ? h : null);
 
 /** Inline Markdown: code first, so nothing inside a span is formatted twice. */
 function inline(text) {
   const code = [];
   let s = text.replace(/`([^`]+)`/g, (_m, c) => `\u0000${code.push(`<code>${escapeHtml(c)}</code>`) - 1}\u0000`);
   s = escapeHtml(s);
-  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text, href) => (safeHref(href) ? `<a href="${href}">${text}</a>` : text));
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
   // A line the publisher still has to fill in is marked so it cannot be missed.

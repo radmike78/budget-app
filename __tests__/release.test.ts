@@ -84,7 +84,7 @@ describe('the free month and the purchase', () => {
     expect(read('src/lib/purchases.web.ts')).toMatch(/unlocked: true/);
   });
   it('erasing everything keeps the trial dates and the unlock', () => {
-    expect(read('src/db/database.ts')).toMatch(/DELETE FROM app_state WHERE key NOT IN \('trial\.firstSeen', 'trial\.latestSeen', 'license\.unlocked'\)/);
+    expect(read('src/db/database.ts')).toMatch(/DELETE FROM app_state WHERE key NOT IN \('trial\.firstSeen', 'trial\.latestSeen', 'license\.unlocked', 'trial\.noticeSeen', 'backup\.nudgeSeen'\)/);
   });
   it('after the month only adding is gated: the bar, new goals, new repeating entries, imports and new debts', () => {
     for (const f of ['app/(tabs)/index.tsx', 'app/goal/[id].tsx', 'app/recurring/[id].tsx', 'app/import/index.tsx', 'app/debts/index.tsx']) expect(read(f)).toMatch(/useAdding\(\)/);
@@ -94,6 +94,6 @@ describe('the free month and the purchase', () => {
   it('the terms are stated before the trial is a day old, and the listing matches', () => {
     expect(read('app/onboarding.tsx')).toMatch(/t\.trialTerms/);
     expect(read('store/listing.md')).toMatch(/Free to install, with a 30-day trial/);
-    expect(read('docs/PRIVACY.md')).toMatch(/## The purchase/);
+    expect(read('docs/PRIVACY.md')).toMatch(/### 2\. The purchase, through your store/);
   });
 });

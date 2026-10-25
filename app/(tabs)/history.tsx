@@ -8,6 +8,7 @@ import { queryTransactionTotals, queryTransactions } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { addDays, monthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
+import { hasPayRules, periodContaining, shiftPeriod } from '@/lib/periods';
 import { categoryName, useMoney, useT } from '@/i18n';
 import { CategoryPicker } from '@/components/pickers';
 import { TransactionRow } from '@/components/TransactionRow';
@@ -38,10 +39,14 @@ export default function HistoryScreen() {
   const [shown, setShown] = useState(PAGE);
   // Queries can finish out of order while typing; only the latest one may set the rows.
   const requestId = useRef(0);
+  const settings = useAppStore((s) => s.settings);
+  const rules = useAppStore((s) => s.rules);
 
+  // In pay mode the first two chips are the pay periods Today and Budget show, so the totals here can match theirs.
+  const payMode = settings?.budgetPeriod === 'pay' && hasPayRules(rules);
   const ranges: { value: Range; label: string }[] = [
-    { value: 'month', label: t.rangeThisMonth },
-    { value: 'last_month', label: t.rangeLastMonth },
+    { value: 'month', label: payMode ? t.thisPeriod : t.rangeThisMonth },
+    { value: 'last_month', label: payMode ? t.lastPayPeriod : t.rangeLastMonth },
     { value: '90d', label: t.range90d },
     { value: 'all', label: t.rangeAll },
   ];
@@ -57,11 +62,16 @@ export default function HistoryScreen() {
   useFocusEffect(useCallback(() => { setDay(today()); }, []));
   const bounds = useMemo(() => {
     const now = day;
+    if (payMode) {
+      const current = periodContaining('pay', rules, now);
+      if (range === 'month') return current;
+      if (range === 'last_month') return shiftPeriod('pay', rules, current, -1);
+    }
     if (range === 'month') return monthRange(monthKey(now));
     if (range === 'last_month') return monthRange(shiftMonthKey(monthKey(now), -1));
     if (range === '90d') return { start: addDays(now, -90), end: now };
     return { start: null, end: null };
-  }, [range, day]);
+  }, [range, day, payMode, rules]);
 
   const load = useCallback(async () => {
     const id = ++requestId.current;

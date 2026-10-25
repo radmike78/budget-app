@@ -135,7 +135,7 @@ listing shows the company as the seller rather than your own name:
   An internal test track is still the right first step.
 
 **EU trader status.** Both stores ask whether you are a trader under the EU
-Digital Services Act. A paid app makes you one. Answer yes with these details,
+Digital Services Act. Selling an in-app purchase makes you one. Answer yes with these details,
 which each store verifies with a code and then shows on the EU listing (Play
 may show them elsewhere too):
 
@@ -221,11 +221,11 @@ With an organization account there is no 14-day closed test. The order below
 means no step waits on one that comes after it.
 
 1. **Play Console → Create app.** Name, default language English (US), *App*,
-   *Paid*. Accept the policy and US export-law declarations. The package name is
+   **Free** (it can never become paid; the money is the in-app purchase). Accept the policy and US export-law declarations. The package name is
    taken from the first bundle you upload, so run the rename first if the name
    is changing.
-2. **Payments profile** (Play Console → Setup → Payments profile) so a paid app
-   can be sold. Google verifies it; start it now.
+2. **Payments profile** (Play Console → Setup → Payments profile) so the in-app
+   purchase can be sold. Google verifies it; start it now.
 3. **Service account for EAS Submit**, once:
    - In Google Cloud, create a project (or use any), enable the *Google Play
      Android Developer API*, create a service account, and download a JSON key.
@@ -247,8 +247,8 @@ means no step waits on one that comes after it.
    sets if you have a tablet or emulator handy; they are optional on Play.
 6. **App content** (Policy and programs): the table in `store/listing.md`
    answers every declaration. The privacy policy URL is the hosted page.
-7. **Pricing and distribution**: set the price once; Play converts it per
-   country and lets you adjust. Pick the countries (all is fine for a
+7. **Pricing and distribution**: the app is free; the price lives on the
+   `full_unlock` product (Monetize → Products), converted per country by Play. Pick the countries (all is fine for a
    local-only app). Answer the EU trader question.
 8. **Internal testing**: add yourself as a tester, install from the opt-in
    link, and run section 2 on that exact bundle. This is the build that goes
@@ -280,7 +280,7 @@ this list and ship Android while it runs. Nothing on Play waits for Apple.
    support with the enrollment ID.
 3. **Agreements, Tax, and Banking** in App Store Connect, the day the account
    opens: accept the Paid Applications agreement and fill in the bank account
-   and the tax forms. A paid app cannot be submitted until these show *Active*.
+   and the tax forms. An app with an in-app purchase cannot be submitted until these show *Active*.
 4. **App Store Connect → Apps → New App**: iOS, the name, primary language,
    the bundle identifier from `app.json`, and an SKU (any string, `budget-1`).
    Copy the *Apple ID* number from App Information into `eas.json`
@@ -308,7 +308,7 @@ this list and ship Android while it runs. Nothing on Play waits for Apple.
 8. **The App Store listing**: copy from `store/listing.md`, 6.9-inch iPhone
    screenshots (three or more; `out/store/apple` holds drafts at the right
    size) and 13-inch iPad screenshots (required because `supportsTablet` is
-   on), the App Privacy answers, the age rating, the price and territories.
+   on), the App Privacy answers, the age rating, the in-app purchase price and the territories.
 9. **Submit for review** from the version page, picking the TestFlight build.
    Add the two review-note lines. First reviews commonly take one to three
    days; choose *Manually release this version* if you want to set the day.

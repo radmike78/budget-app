@@ -16,8 +16,8 @@ import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
 import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, isDailyReminderScheduled, needsRearm, nextOccurrence, notificationPermissionState, scheduleDailyReminder, scheduleReminderNotification, scheduledReminderIds, type PermissionState } from '@/lib/reminders';
 import { sweepExportCache } from '@/lib/files';
-import { earlierDay, licenseFrom, type License } from '@/lib/trial';
-import { readStore, recordTrialStart, restore as restoreFromStore } from '@/lib/purchases';
+import { earlierDay, firstDayNeedsReset, licenseFrom, type License } from '@/lib/trial';
+import { onUnlocked, readStore, recordTrialStart, restore as restoreFromStore } from '@/lib/purchases';
 import { Platform } from 'react-native';
 import { getLocale, resolveLanguage } from '@/i18n';
 
@@ -109,6 +109,8 @@ interface AppState {
   resetAll: () => Promise<void>;
   /** Reads the trial dates and what the store knows, and moves the latest-seen day forward. */
   refreshLicense: () => Promise<void>;
+  /** Asks the store once per launch, in the background, for an unlock or an earlier trial start. */
+  reconcileWithStore: () => Promise<void>;
   /** After a purchase: remembers the unlock on this phone. */
   recordUnlock: () => Promise<void>;
   /** Asks the store again, for a new phone or a reinstall. */
@@ -116,6 +118,9 @@ interface AppState {
   /** Puts the ending-soon notice away for good. */
   dismissTrialNotice: () => Promise<void>;
   trialNoticeDismissed: boolean;
+  /** The day "Not now" was tapped on the backup line, or null. */
+  backupNudgeDismissedOn: string | null;
+  dismissBackupNudge: () => Promise<void>;
 }
 
 /** Creditor names are compared without case or punctuation, in any script. */
@@ -136,6 +141,7 @@ let refreshedOn = '';
 let refreshRun = 0;
 
 /** `init` runs once; later calls (a re-mounted root, a retry) share the same promise. */
+let storeCheck: Promise<void> | null = null;
 let initPromise: Promise<void> | null = null;
 
 /** How many earlier periods a carry-over can accumulate across. */
@@ -233,6 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   review: null,
   license: null,
   trialNoticeDismissed: false,
+  backupNudgeDismissedOn: null,
 
   init: () => {
     if (!initPromise) {
@@ -246,6 +253,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         await get().refresh();
         await get().refreshLicense();
         set({ ready: true });
+        // The store is asked after the screens are up, once per launch, and never holds anything up.
+        onUnlocked(() => { get().recordUnlock().catch(() => {}); });
+        get().reconcileWithStore().catch(() => {});
         get().rearmReminders().catch(() => {});
         sweepImportCache().catch(() => {});
         sweepExportCache().catch(() => {});
@@ -643,6 +653,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = { ...current, ...patch };
     await repo.saveSettings(db, next);
     set({ settings: next });
+    // Apple's way of keeping a trial across reinstalls, asked once the welcome pages are done, never over them.
+    if (patch.onboardingDone && !current.onboardingDone) recordTrialStart().catch(() => {});
     // Reminders already on the schedule carry their words, which the lock keeps off the lock screen.
     if (patch.appLockEnabled !== undefined && patch.appLockEnabled !== current.appLockEnabled) get().rearmReminders(true).catch(() => {});
     // The period shape or the overall plan changed: the shown period and its totals follow.
@@ -703,41 +715,57 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   refreshLicense: async () => {
     // The web build is the free demo: nothing to count.
-    if (Platform.OS === 'web') { set({ license: licenseFrom({ firstSeen: null, latestSeen: null, unlocked: true, today: today() }) }); return; }
     const db = await getDb();
+    if (Platform.OS === 'web') {
+      set({ license: licenseFrom({ firstSeen: null, latestSeen: null, unlocked: true, today: today() }), backupNudgeDismissedOn: await repo.getAppState(db, 'backup.nudgeSeen') });
+      return;
+    }
     const todayStr = today();
-    const [storedFirst, storedLatest, unlockedFlag, noticeSeen] = await Promise.all([
+    const [storedFirst, storedLatest, unlockedFlag, noticeSeen, nudgeSeen] = await Promise.all([
       repo.getAppState(db, 'trial.firstSeen'),
       repo.getAppState(db, 'trial.latestSeen'),
       repo.getAppState(db, 'license.unlocked'),
       repo.getAppState(db, 'trial.noticeSeen'),
+      repo.getAppState(db, 'backup.nudgeSeen'),
     ]);
+    set({ backupNudgeDismissedOn: nudgeSeen });
     let firstSeen = storedFirst;
     let unlocked = !!unlockedFlag;
+    // A first day in the future means the clock was ahead at the first open: the month restarts from today.
+    if (firstDayNeedsReset(firstSeen, todayStr)) {
+      firstSeen = null;
+      await repo.setAppState(db, 'trial.latestSeen', todayStr);
+    }
     // The first day is written once; the latest-seen day only ever moves forward.
     if (!firstSeen) {
       firstSeen = todayStr;
       await repo.setAppState(db, 'trial.firstSeen', firstSeen);
-      // Apple's way of keeping a trial across reinstalls; a declined sheet changes nothing.
-      recordTrialStart().catch(() => {});
     }
     if (!storedLatest || storedLatest < todayStr) await repo.setAppState(db, 'trial.latestSeen', todayStr);
-    const latestSeen = storedLatest && storedLatest > todayStr ? storedLatest : todayStr;
+    const latestSeen = storedLatest && storedLatest > todayStr && !firstDayNeedsReset(storedFirst, todayStr) ? storedLatest : todayStr;
     set({ license: licenseFrom({ firstSeen, latestSeen, unlocked, today: todayStr }), trialNoticeDismissed: !!noticeSeen });
-    // The store's own record, read quietly: an unlock bought on another phone, or an earlier trial start.
-    if (!unlocked) {
-      const known = await readStore().catch(() => null);
-      if (known?.unlocked) {
-        unlocked = true;
-        await repo.setAppState(db, 'license.unlocked', 'store');
-      }
-      const earlier = earlierDay(firstSeen, known?.trialStartedOn ?? null);
-      if (earlier && earlier !== firstSeen) {
-        firstSeen = earlier;
-        await repo.setAppState(db, 'trial.firstSeen', firstSeen);
-      }
-      set({ license: licenseFrom({ firstSeen, latestSeen, unlocked, today: todayStr }) });
+  },
+
+  reconcileWithStore: async () => {
+    // The store's own record, read quietly once per launch: an unlock bought on another phone, or an earlier
+    // trial start. Single-flight, and never allowed to undo an unlock recorded while it was waiting.
+    if (Platform.OS === 'web' || get().license?.state === 'unlocked') return;
+    if (!storeCheck) {
+      storeCheck = (async () => {
+        const known = await readStore().catch(() => null);
+        if (!known) return;
+        const db = await getDb();
+        if (known.unlocked) { await get().recordUnlock(); return; }
+        if (get().license?.state === 'unlocked') return;
+        const firstSeen = await repo.getAppState(db, 'trial.firstSeen');
+        const earlier = earlierDay(firstSeen, known.trialStartedOn);
+        if (earlier && earlier !== firstSeen) {
+          await repo.setAppState(db, 'trial.firstSeen', earlier);
+          await get().refreshLicense();
+        }
+      })().catch(() => {});
     }
+    await storeCheck;
   },
 
   recordUnlock: async () => {
@@ -748,9 +776,24 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreUnlock: async () => {
     const known = await restoreFromStore().catch(() => null);
-    if (!known?.unlocked) return false;
-    await get().recordUnlock();
-    return true;
+    if (!known) return false;
+    if (known.unlocked) { await get().recordUnlock(); return true; }
+    // No unlock, but perhaps an earlier trial start from before a reinstall.
+    const db = await getDb();
+    const firstSeen = await repo.getAppState(db, 'trial.firstSeen');
+    const earlier = earlierDay(firstSeen, known.trialStartedOn);
+    if (earlier && earlier !== firstSeen) {
+      await repo.setAppState(db, 'trial.firstSeen', earlier);
+      await get().refreshLicense();
+    }
+    return false;
+  },
+
+  dismissBackupNudge: async () => {
+    const db = await getDb();
+    const day = today();
+    await repo.setAppState(db, 'backup.nudgeSeen', day);
+    set({ backupNudgeDismissedOn: day });
   },
 
   dismissTrialNotice: async () => {

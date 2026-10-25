@@ -6,6 +6,7 @@ export const PRODUCT_TRIAL = 'trial_30';
 export type { BuyResult, StoreState };
 
 export async function disconnect(): Promise<void> {}
+export function onUnlocked(_handler: () => void): void {}
 export async function readStore(): Promise<StoreState | null> {
   return { unlocked: true, trialStartedOn: null };
 }

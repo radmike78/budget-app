@@ -174,7 +174,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
     <Sheet visible={!!results} onClose={onCancel} tall>
       <Row style={{ justifyContent: 'space-between', marginBottom: spacing.sm }}>
         <Text variant="heading">{t.multiTitle(drafts.length)}</Text>
-        <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel}><Text variant="muted">{t.cancel}</Text></Pressable>
+        <Pressable onPress={onCancel} accessibilityRole="button" accessibilityLabel={t.cancel} hitSlop={12} style={{ minHeight: 44, justifyContent: 'center' }}><Text variant="muted">{t.cancel}</Text></Pressable>
       </Row>
       <Text variant="small" numberOfLines={2}>"{rawText}"</Text>
       <Text variant="muted" style={{ marginTop: spacing.xs, marginBottom: spacing.md }}>{t.multiIntro}</Text>

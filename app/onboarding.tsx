@@ -44,7 +44,8 @@ export default function Onboarding() {
   const listRef = useRef<FlatList<string>>(null);
   // A field that has text but no amount it can read: said beside the field, and the page waits.
   const [unreadable, setUnreadable] = useState<'balance' | 'pay' | 'rent' | null>(null);
-  const readable = (text: string) => !text.trim() || parseMoneyInput(text, locale.format.decimal === ',') != null;
+  // A leading minus is not a balance anyone meant to type.
+  const readable = (text: string) => !text.trim() || (!text.trim().startsWith('-') && parseMoneyInput(text, locale.format.decimal === ',') != null);
   const { width } = useWindowDimensions();
 
   // Follow the phone's own currency (a UK phone in English is pounds, not dollars), else the language's,
@@ -127,7 +128,7 @@ export default function Onboarding() {
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
           <Text variant="display">{t.onboardHeadline}</Text>
           <Text variant="muted" style={{ marginTop: spacing.xl, fontSize: 17 * typeScale, lineHeight: 24 * typeScale }}>{t.onboardBody}</Text>
-          {Platform.OS !== 'web' ? <Text variant="small" style={{ marginTop: spacing.md }}>{t.trialTerms}</Text> : null}
+          {Platform.OS !== 'web' ? <Text variant="muted" style={{ marginTop: spacing.md }}>{t.trialTerms}</Text> : null}
           <View style={{ marginTop: spacing.xxl }}><Button title={t.next} onPress={() => go(1)} /></View>
           <View style={{ marginTop: spacing.md, alignItems: 'center' }}><Button tone="ghost" small title={`${t.language}: ${languageName}`} onPress={() => setShowLanguage(true)} /></View>
         </View>
@@ -254,7 +255,7 @@ export default function Onboarding() {
         showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
         onLayout={(e) => setPageHeight(e.nativeEvent.layout.height)}
-        renderItem={({ item }) => renderPage(item)}
+        renderItem={({ item, index }) => <View importantForAccessibility={index === page ? 'auto' : 'no-hide-descendants'} aria-hidden={index !== page}>{renderPage(item)}</View>}
         getItemLayout={(_d, index) => ({ length: width, offset: width * index, index })}
         keyboardShouldPersistTaps="handled"
       />

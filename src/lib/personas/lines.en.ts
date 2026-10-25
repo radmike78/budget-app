@@ -37,12 +37,12 @@ const friend: LineSet = {
       'Money in: {amount}. Do a little dance, nobody is watching.',
       '{amount} landed. Try not to spend it all in one place, as they say.',
       '{amount} in. Hello, options.',
-      'Incoming: {amount}. My favourite kind of notification.',
+      'Incoming: {amount}. My favorite kind of notification.',
     ],
     spicy: [
       '{amount} in. Try to keep it for at least a day this time.',
       '{amount} in. Look who is thriving.',
-      '{amount} landed. Let us not tell {place} about it.',
+      '{amount} landed. Let us not tell the shops about it.',
       '{amount} in. Your dining category just sat up straight.',
       '{amount} in. Bold of it to assume it is staying.',
       'Money in: {amount}. Shopping has entered the chat. Ignore it.',
@@ -74,7 +74,7 @@ const friend: LineSet = {
     spicy: [
       '{amount} to {goal}. Present you is capable of good decisions, apparently.',
       '{goal} +{amount}. Who are you and what did you do with the old you?',
-      '{pct}% to {goal}. Hold the line, spender.',
+      '{pct}% to {goal}. Hold the line.',
       '{amount} into {goal}. Suspiciously responsible. I like it.',
       '{goal} at {current}. Keep this up and I will run out of jokes.',
       '{amount} for {goal}. Somebody skipped a checkout page today.',
@@ -84,7 +84,7 @@ const friend: LineSet = {
   },
   spend_free: {
     nice: [
-      '{amount} at {place}. Logged, no judgement.',
+      '{amount} at {place}. Logged, no judgment.',
       'Got it: {amount} at {place}.',
       '{amount} at {place}. Enjoy it.',
       'Logged {amount} at {place}. That took five seconds.',
@@ -186,7 +186,7 @@ const coach: LineSet = {
       '{amount} in. Logged and counted.',
       'Income logged: {amount}. Nice work.',
       '{amount} in. That is the fuel for the plan.',
-      '{amount} in. Every dollar logged is a dollar you can steer.',
+      '{amount} in. Every amount logged is one you can steer.',
       'In: {amount}. Good. The plan starts from here.',
       '{amount} landed. Well earned.',
       'Logged {amount} in. That is the foundation.',
@@ -203,7 +203,7 @@ const coach: LineSet = {
       '{amount} arrived. Let us make it count.',
     ],
     spicy: [
-      '{amount} in. Give every dollar a job before it wanders off.',
+      '{amount} in. Give every bit of it a job before it wanders off.',
       '{amount} in. Momentum is built on days like this.',
       '{amount} in. Log the outgoings just as fast and you are unstoppable.',
       '{amount} in. Do not let it sit there looking pretty. Assign it.',
@@ -356,7 +356,7 @@ const roaster: LineSet = {
       '{amount} in. Frame this feeling.',
     ],
     playful: [
-      '{amount} in. Please do not tell {place}.',
+      '{amount} in. Please do not tell the mall.',
       '{amount} in. Try to remember this feeling next time you are at the mall.',
       '{amount} in. Quick, log it before it evaporates.',
       '{amount} landed. The shopping cart has been notified.',
@@ -383,7 +383,7 @@ const roaster: LineSet = {
       '{amount} toward {goal}. Unexpectedly responsible.',
       '{amount} into {goal}. Well, look at that.',
       '{goal} at {pct}%. I am quietly impressed.',
-      '{amount} for {goal}. Good behaviour noted.',
+      '{amount} for {goal}. Good behavior noted.',
       '{goal}: {current} saved. Respectable.',
       'Another {amount} to {goal}. Keep surprising me.',
     ],
@@ -398,9 +398,9 @@ const roaster: LineSet = {
       '{amount} for {goal}. Slow clap. A sincere one.',
     ],
     spicy: [
-      '{amount} to {goal}. Did someone swap phones with you?',
+      '{amount} to {goal}. The goal did not see that coming.',
       '{goal} at {pct}%. Frame this moment; it may not repeat.',
-      '{amount} to {goal}. The old you is filing a complaint.',
+      '{amount} to {goal}. The latte is filing a complaint.',
       '{amount} into {goal}. I had a joke ready. You ruined it with competence.',
       '{goal}: {pct}%. Keep going and I will have to retire.',
       '{amount} for {goal}. A rare sighting of restraint in the wild.',
@@ -432,10 +432,10 @@ const roaster: LineSet = {
     spicy: [
       '{amount} at {place}? Their rent is basically your hobby.',
       '{place} again? Your loyalty card must be glowing.',
-      '{amount} at {place}. I have seen this movie. It ends with "why is my balance low".',
+      '{amount} at {place}. I have seen this movie. The sequel is called Receipt.',
       '{place}: {amount}. Somewhere an accountant felt a chill.',
-      '{amount} at {place}. Money well spent, said nobody, ever.',
-      '{place}, {amount}. Their staff know you by name, do they not.',
+      '{amount} at {place}. Money spent, says the receipt. Logged.',
+      '{place}, {amount}. The regulars nodded, did they not.',
       '{amount} at {place}. Impulse: 1. Plan: 0.',
       '{place} thanks you for funding their expansion. {amount}.',
     ],
@@ -454,7 +454,7 @@ const roaster: LineSet = {
     playful: [
       '{amount} at {place}. Look at you being almost reasonable. {left} left.',
       '{place}: {amount}. {left} left, so good choices are happening. Weird.',
-      '{amount} at {place}. {left} left. I had money on you blowing it.',
+      '{amount} at {place}. {left} left. I had money on the plan losing. It did not.',
       '{amount} at {place}. {left} left in {category}. Who taught you restraint?',
       '{place}, {amount}. {left} left. The plan is thriving, and so is my disbelief.',
       'Logged {amount}. {left} left. Suspiciously well behaved.',
@@ -462,14 +462,14 @@ const roaster: LineSet = {
       '{place}: {amount}. {left} left. Balanced. Like a person with a plan. Odd.',
     ],
     spicy: [
-      '{place} again. {left} left in {category}. Your loyalty card must be glowing.',
+      '{place} again. {left} left in {category}. The loyalty card is earning its keep.',
       '{amount} at {place}. {left} left. Their staff know you by name, do they not.',
       '{amount} at {place}. {left} left. The plan tolerates you. For now.',
       '{place}, {amount}. {left} left in {category}. Do not get comfortable.',
       '{amount} at {place}. {left} left, which is frankly a miracle.',
       'Logged {amount}. {left} left. I am withholding the roast. Temporarily.',
       '{place}: {amount}. {left} to go. The budget is side-eyeing you.',
-      '{amount} at {place}. Still {left}. Do not make it a personality.',
+      '{amount} at {place}. Still {left}. The plan is unbothered.',
     ],
   },
   spend_close: {
@@ -522,8 +522,8 @@ export const FLAVORS_EN: Record<Exclude<Voice, 'plain'>, FlavorSet> = {
       spicy: ['{amount} at {place}? Did you order for the whole table?', '{place}, {amount}. The chef sends thanks and a gentle plea to come back.', '{amount} at {place}. Fancy. Logged.'],
     },
     delivery: {
-      nice: ['{amount} on delivery. Some nights are like that.', '{place}: {amount}. Food came to you. Logged.', '{amount} for takeout. No judgement; I like nights off too.'],
-      playful: ['{amount} at {place}. The couch thanks you.', 'Delivery logged: {amount}. Pyjamas remain undefeated.', '{amount} on takeout. The kitchen stays clean. A win, technically.'],
+      nice: ['{amount} on delivery. Some nights are like that.', '{place}: {amount}. Food came to you. Logged.', '{amount} for takeout. No judgment; I like nights off too.'],
+      playful: ['{amount} at {place}. The couch thanks you.', 'Delivery logged: {amount}. Pajamas remain undefeated.', '{amount} on takeout. The kitchen stays clean. A win, technically.'],
       spicy: ['{amount} at {place}. The delivery driver knows your dog by name.', '{place} again? Your fridge would like a word.', '{amount} for delivery. The fee alone could buy a spoon.'],
     },
     shopping: {
@@ -554,7 +554,7 @@ export const FLAVORS_EN: Record<Exclude<Voice, 'plain'>, FlavorSet> = {
       spicy: ['{amount} at {place}. Enjoy it, then keep the rest of the week tight.', '{place}, {amount}. Big meals are fine if the plan was built for them.', '{amount} at {place}. One good night, then back to form.'],
     },
     delivery: {
-      nice: ['{amount} on delivery. Logged. Some nights need it.', '{place}: {amount}. Noted, no judgement.', '{amount} for takeout. On the record. That is the job.'],
+      nice: ['{amount} on delivery. Logged. Some nights need it.', '{place}: {amount}. Noted, no judgment.', '{amount} for takeout. On the record. That is the job.'],
       playful: ['{amount} at {place}. Convenience has a price; you just wrote it down.', 'Delivery logged: {amount}. Awareness is the first rep.', '{amount} on takeout. Next time, notice the fee line. Just notice.'],
       spicy: ['{amount} at {place}. Fees and tips add up; tracking them is how you win.', '{place}, {amount}. Convenience is a subscription in disguise. Watch it.', '{amount} on delivery. Logged. Now you know the real cost of a night off.'],
     },
@@ -587,8 +587,8 @@ export const FLAVORS_EN: Record<Exclude<Voice, 'plain'>, FlavorSet> = {
     },
     delivery: {
       nice: ['{amount} on delivery. Logged. Nights off happen.', '{place}: {amount}. Food arrived, entry arrived.', '{amount} for takeout. Noted, quietly.'],
-      playful: ['{amount} at {place}. The driver waved at your neighbours again.', 'Delivery: {amount}. Your kitchen is starting to feel unwanted.', '{amount} on takeout. The fees alone are a small meal.'],
-      spicy: ['{amount} at {place}. The delivery app has your address memorised, and your weaknesses.', '{place} again? Your stove is filing for unemployment.', '{amount} for delivery. Service fee, small order fee, "existing" fee. Logged.'],
+      playful: ['{amount} at {place}. The driver waved at your neighbors again.', 'Delivery: {amount}. Your kitchen is starting to feel unwanted.', '{amount} on takeout. The fees alone are a small meal.'],
+      spicy: ['{amount} at {place}. The delivery app has your address memorized, and your weaknesses.', '{place} again? Your stove is filing for unemployment.', '{amount} for delivery. Service fee, small order fee, "existing" fee. Logged.'],
     },
     shopping: {
       nice: ['{amount} at {place}. Logged. Enjoy the new thing.', 'Shopping: {amount}. Noted without a sigh.', '{amount} at {place}. Fine. I hope it fits.'],
@@ -614,7 +614,7 @@ export const LEFT_SUFFIXES_EN = [' {left} left in {category}.', ' {left} to go.'
 /** Said once when a voice is chosen, so the user hears who they picked (and which spoken voice). */
 export const GREETINGS_EN: Record<Voice, string[]> = {
   plain: ['Plain voice. Just the facts from here on.', 'Understood. No commentary, only numbers.', 'Quiet mode. I will just keep the books.'],
-  friend: ['Hey, it is me. I am on your side, lattes and all.', 'Friend here. We are going to be fine.', 'Hi. No judgement, just company and the occasional nudge.', 'Friend voice on. Tell me what happened, I will keep track.'],
+  friend: ['Hey, it is me. I am on your side, lattes and all.', 'Friend here. We are going to be fine.', 'Hi. No judgment, just company and the occasional nudge.', 'Friend voice on. Tell me what happened, I will keep track.'],
   coach: ['Coach here. Every entry is a rep. Let us go.', 'Coach checking in. Log it, own it, keep going.', 'Coach voice on. Small habits, big results. Ready when you are.', 'Coach here. We track, we plan, we finish under.'],
   roaster: ['Roaster here. Your lattes are on notice; your rent is safe with me.', 'Well, well. Someone wants honesty. Let us begin.', 'Roaster voice on. I roast receipts, never people.', 'Roaster here. Say what you spent. I will say what I think.'],
 };
