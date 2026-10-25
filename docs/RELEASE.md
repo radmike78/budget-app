@@ -162,12 +162,18 @@ the About screen links to it.
 requires 13-inch iPad screenshots too. Turning it off removes that, but the app
 then runs as a scaled-up phone app on iPads.
 
-**Price.** Paid, one-time, the same on both stores; `store/listing.md` has the
-suggested tier. On Google Play a free app can never become paid; a paid app can
-become free. Apple needs the Paid Applications agreement signed and banking and
-tax forms filled in App Store Connect before a paid app can go on sale; Google
-needs a payments profile in the Play Console. Both take days to clear, so start
-them with the accounts.
+**Price.** Free to install, a 30-day trial of everything, then one one-time
+in-app purchase; `store/listing.md` has the products and the suggested tier.
+The purchase goes through the stores' own billing (`expo-iap`, no billing
+service of ours), so Apple needs the Paid Applications agreement signed and
+banking and tax forms filled in App Store Connect, and Google needs a payments
+profile in the Play Console. Both take days to clear, so start them with the
+accounts. Create the products before the first build you want to test buying
+on: App Store Connect → the app → In-App Purchases: `full_unlock` (non-consumable)
+and `trial_30` (non-consumable, price tier 0, display name "30-day Trial");
+Play Console → Monetize → In-app products: `full_unlock`. Test with a sandbox
+Apple ID and a Play licence tester account; neither is charged. The trial
+itself needs no store setup: it runs on dates the app keeps (`src/lib/trial.ts`).
 
 **Smart parsing** is held back for 1.0 (`SMART_ASSIST` in `src/lib/features.ts`),
 so the app has no network feature and both privacy forms are "no data
@@ -200,8 +206,11 @@ reviewer. The copy is English; translate per locale before submission.
   did not ask for it.
 - The calendar picks single days; there is no typed date any more. A date years
   away is reached month by month, which suits a budget and nothing else needs.
-- There is no purchase code, and none is needed: the price is the store's
-  up-front price, and the app has no in-app purchases.
+- The trial is counted on the phone: the first and latest days the app was
+  opened, kept across Erase everything. A clock set back changes nothing; a
+  reinstall on Android starts a new month, which is accepted; on iOS the free
+  `trial_30` product carries the start date across reinstalls when the person
+  took it. There is no server to check against, by design.
 - Smart parsing exists in the code but is off for 1.0 (`SMART_ASSIST`), with
   its screen reachable only by deep link, where it says it is not in this
   version.

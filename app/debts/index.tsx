@@ -11,6 +11,7 @@ import { confirmDialog, notify } from '@/lib/dialogs';
 import { useLocale, useMoney, useT } from '@/i18n';
 import { planPayoff, recommendStrategy, type DebtInput, type Strategy } from '@/statements';
 import { Sheet } from '@/components/pickers';
+import { TrialEnded, useAdding } from '@/components/TrialGate';
 import { Button, Card, EmptyState, Field, Row, Screen, SectionTitle, Segmented, Text } from '@/components/ui';
 
 const TYPES: DebtType[] = ['credit_card', 'personal_loan', 'student_loan', 'line_of_credit', 'other', 'auto_loan', 'mortgage'];
@@ -18,6 +19,7 @@ const CONSUMER = new Set<DebtType>(['credit_card', 'personal_loan', 'student_loa
 
 /** Every debt the user owes, and a plain pay-off plan for the consumer ones. */
 export default function DebtsScreen() {
+  const adding = useAdding();
   const router = useRouter();
   const t = useT();
   const locale = useLocale();
@@ -103,10 +105,12 @@ export default function DebtsScreen() {
   return (
     <Screen keyboard>
       <Text variant="muted" style={{ marginTop: spacing.sm }}>{t.debtsIntro}</Text>
-      <Row style={{ marginTop: spacing.md, flexWrap: 'wrap' }}>
-        <Button title={t.addDebt} onPress={() => openEditor()} />
-        <Button tone="secondary" title={t.importStatement} onPress={() => router.push('/import')} />
-      </Row>
+      {adding ? (
+        <Row style={{ marginTop: spacing.md, flexWrap: 'wrap' }}>
+          <Button title={t.addDebt} onPress={() => openEditor()} />
+          <Button tone="secondary" title={t.importStatement} onPress={() => router.push('/import')} />
+        </Row>
+      ) : <TrialEnded />}
 
       {debts.length === 0 ? (
         <EmptyState title={t.noDebts} body={t.noDebtsBody} />

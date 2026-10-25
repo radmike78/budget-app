@@ -75,3 +75,25 @@ describe('release switches', () => {
     }
   });
 });
+
+describe('the free month and the purchase', () => {
+  const walkTs = (dir: string): string[] => fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walkTs(path.join(dir, e.name)) : /\.tsx?$/.test(e.name) ? [path.join(dir, e.name)] : []));
+  it('only the purchase module talks to the store, and the web build is never gated', () => {
+    const importers = [...walkTs('src'), ...walkTs('app')].filter((f) => /from 'expo-iap'/.test(read(f)));
+    expect(importers).toEqual(['src/lib/purchases.ts']);
+    expect(read('src/lib/purchases.web.ts')).toMatch(/unlocked: true/);
+  });
+  it('erasing everything keeps the trial dates and the unlock', () => {
+    expect(read('src/db/database.ts')).toMatch(/DELETE FROM app_state WHERE key NOT IN \('trial\.firstSeen', 'trial\.latestSeen', 'license\.unlocked'\)/);
+  });
+  it('after the month only adding is gated: the bar, new goals, new repeating entries, imports and new debts', () => {
+    for (const f of ['app/(tabs)/index.tsx', 'app/goal/[id].tsx', 'app/recurring/[id].tsx', 'app/import/index.tsx', 'app/debts/index.tsx']) expect(read(f)).toMatch(/useAdding\(\)/);
+    // Editing an entry, history, backups and the budget never ask.
+    for (const f of ['app/entry/[id].tsx', 'app/(tabs)/history.tsx', 'app/settings/backup.tsx', 'app/(tabs)/budget.tsx']) expect(read(f)).not.toMatch(/useAdding|TrialEnded/);
+  });
+  it('the terms are stated before the trial is a day old, and the listing matches', () => {
+    expect(read('app/onboarding.tsx')).toMatch(/t\.trialTerms/);
+    expect(read('store/listing.md')).toMatch(/Free to install, with a 30-day trial/);
+    expect(read('docs/PRIVACY.md')).toMatch(/## The purchase/);
+  });
+});

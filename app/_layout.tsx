@@ -101,6 +101,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings/about" options={{ title: t.aboutApp }} />
           <Stack.Screen name="settings/backup" options={{ title: t.backupExport }} />
           <Stack.Screen name="settings/smart" options={{ title: t.smartParse }} />
+          <Stack.Screen name="settings/unlock" options={{ title: t.purchaseRow }} />
           <Stack.Screen name="settings/keywords" options={{ title: t.learnedWords }} />
           <Stack.Screen name="settings/reminders" options={{ title: t.reminders }} />
           <Stack.Screen name="import/index" options={{ title: t.importStatement }} />

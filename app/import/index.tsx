@@ -10,6 +10,7 @@ import { categoryName, deviceRegion, useDateFormat, useLanguageCode, useLocale, 
 import { parseCreditReport, parseStatement, rowsFromItems, type ParsedStatement, type StatementLine, type Tradeline } from '@/statements';
 import { PdfExtractor, type PdfExtractorHandle } from '@/components/PdfExtractor';
 import { CategoryPicker } from '@/components/pickers';
+import { TrialEnded, useAdding } from '@/components/TrialGate';
 import { Button, Card, Row, Screen, SectionTitle, Text } from '@/components/ui';
 
 type Stage = 'idle' | 'reading' | 'review' | 'report';
@@ -19,6 +20,7 @@ type Stage = 'idle' | 'reading' | 'review' | 'report';
  * read on the device; the user sees and can change every line before saving.
  */
 export default function ImportScreen() {
+  const adding = useAdding();
   const router = useRouter();
   const { colors } = useTheme();
   const t = useT();
@@ -154,6 +156,8 @@ export default function ImportScreen() {
       notify(t.didntWork((e as Error).message));
     }
   };
+
+  if (!adding) return <Screen><TrialEnded /></Screen>;
 
   return (
     <Screen keyboard>

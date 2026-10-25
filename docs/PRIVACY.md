@@ -116,6 +116,16 @@ scrypt for key derivation and XChaCha20-Poly1305 for the data. The passphrase is
 never stored and cannot be recovered: if you lose it, that backup cannot be
 opened, by us or by anyone.
 
+## The purchase
+
+The app is free for 30 days, then a one-time purchase keeps new entries
+coming. The purchase is made through Apple's App Store or Google Play, with
+your store account, under their terms and privacy policies. OnlyBudget never
+sees your payment details. The app keeps one thing about it on your phone: a
+note that the purchase was made (or restored), plus the day the app was first
+opened and the day it was last opened, so it knows where the trial stands. None
+of that is sent anywhere, and none of it is in your backups.
+
 ## Deleting your data
 
 Settings → **Erase everything** removes every entry, goal, reminder, debt,
