@@ -458,3 +458,232 @@ describe('Korean corrections', () => runCases('ko', corrections, labels));
 describe('Korean sentences that are not corrections', () => runCases('ko', notCorrections, labels));
 describe('Korean: comparing, the most, affording', () => runCases('ko', insights, labels));
 describe('Korean: entries near those words stay entries', () => runCases('ko', insightsStayEntries, labels));
+
+// ---------------------------------------------------------------------------------------------
+// A second sweep of everyday speech: dictation without punctuation, 반말 and 해요체 mixed, 줄임말.
+
+/** Putting money aside. With no goal of that name it is a savings entry. */
+const savingEntries: Case[] = [
+  ['20만원 저축했어', { kind: 'transaction', type: 'expense', amount: 200000, categoryId: 'savings' }],
+  ['여행 가려고 10만원 따로 빼놨어', { kind: 'transaction', type: 'expense', amount: 100000, categoryId: 'savings' }],
+  ['적금에 30만원 넣었어', { kind: 'transaction', type: 'expense', amount: 300000, categoryId: 'savings' }],
+  ['오늘 5천원 모았어', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'savings' }],
+  ['비자금 5만원', { kind: 'transaction', type: 'expense', amount: 50000, categoryId: 'savings' }],
+  ['청약 10만원 냈어', { kind: 'transaction', type: 'expense', amount: 100000, categoryId: 'savings' }],
+  ['주식 50만원 샀어', { kind: 'transaction', type: 'expense', amount: 500000, categoryId: 'savings' }],
+  ['예금에 100만원 넣었어', { kind: 'transaction', type: 'expense', amount: 1000000, categoryId: 'savings' }],
+  ['파킹통장에 50만원 옮겼어', { kind: 'transaction', type: 'expense', amount: 500000, categoryId: 'savings' }],
+  ['저축 30만원', { kind: 'transaction', type: 'expense', amount: 300000, categoryId: 'savings' }],
+];
+
+/** An amount per month or week is a pace, not the goal's total: the card asks for the total. */
+const pacedGoals: Case[] = [
+  ['차 사려고 매달 20만원씩 모으고 싶어', { kind: 'goal', amount: null, goalKind: 'saving', goalName: '차' }],
+  ['매달 50만원씩 저축하고 싶어', { kind: 'goal', amount: null, goalKind: 'saving' }],
+  ['한 달에 20만원 모으기', { kind: 'goal', amount: null, goalKind: 'saving' }],
+  ['매주 5만원씩 모으려고', { kind: 'goal', amount: null, goalKind: 'saving' }],
+  ['노트북 사려고 다달이 10만원씩 모을래', { kind: 'goal', amount: null, goalKind: 'saving', goalName: '노트북' }],
+  // The total said as a total stays one.
+  ['차 사려고 500만원 모으고 싶어', { kind: 'goal', amount: 5000000, goalKind: 'saving', goalName: '차' }],
+];
+
+const moreExpenses: Case[] = [
+  ['점심 만 2천원', { kind: 'transaction', type: 'expense', amount: 12000, categoryId: 'dining' }],
+  ['편의점에서 8천원', { type: 'expense', amount: 8000, categoryId: 'groceries' }],
+  ['점심에 만원 썼어', { type: 'expense', amount: 10000, categoryId: 'dining' }],
+  ['기름 가득 5만원', { type: 'expense', amount: 50000, categoryId: 'transport' }],
+  ['전기세 냈어 8만원', { type: 'expense', amount: 80000, categoryId: 'utilities' }],
+  ['월세 보냈어 90만원', { type: 'expense', amount: 900000, categoryId: 'rent' }],
+  ['회식에 4만원', { type: 'expense', amount: 40000, categoryId: 'dining' }],
+  ['택시 2만원', { type: 'expense', amount: 20000, categoryId: 'transport' }],
+  ['스벅 6천원', { type: 'expense', amount: 6000, categoryId: 'dining' }],
+  ['유니클로에서 5만원', { type: 'expense', amount: 50000, categoryId: 'shopping' }],
+  ['병원 3만원', { type: 'expense', amount: 30000, categoryId: 'health' }],
+  ['약국 만 5천원', { type: 'expense', amount: 15000, categoryId: 'health' }],
+  ['주차 3천원', { type: 'expense', amount: 3000, categoryId: 'transport' }],
+  ['통행료 8천원', { type: 'expense', amount: 8000, categoryId: 'transport' }],
+  ['애들 학원비 30만원', { type: 'expense', amount: 300000, categoryId: 'other_expense' }],
+  ['구독 1만 4900', { type: 'expense', amount: 14900, categoryId: 'subscriptions' }],
+  ['쿠팡에서 3만원 질렀어', { type: 'expense', amount: 30000, categoryId: 'shopping' }],
+  ['배민 2만원', { type: 'expense', amount: 20000, categoryId: 'dining' }],
+  ['동료랑 국밥 9천원', { type: 'expense', amount: 9000, categoryId: 'dining' }],
+  ['버스비 1500', { type: 'expense', amount: 1500, categoryId: 'transport' }],
+  ['정기권 6만원', { type: 'expense', amount: 60000, categoryId: 'transport' }],
+  ['치맥 3만원', { type: 'expense', amount: 30000, categoryId: 'dining' }],
+  ['아침에 김밥 3천원', { type: 'expense', amount: 3000, categoryId: 'dining' }],
+  ['카카오택시 만 삼천원', { type: 'expense', amount: 13000, categoryId: 'transport' }],
+  ['지하철 1400원', { type: 'expense', amount: 1400, categoryId: 'transport' }],
+  ['세차 3만원', { type: 'expense', amount: 30000, categoryId: 'transport' }],
+  ['안경 15만원', { type: 'expense', amount: 150000, categoryId: 'health' }],
+  ['영양제 4만원 샀어', { type: 'expense', amount: 40000, categoryId: 'health' }],
+  ['올영에서 2만원', { type: 'expense', amount: 20000, categoryId: 'shopping' }],
+  ['강아지 사료 3만원', { type: 'expense', amount: 30000, categoryId: 'shopping' }],
+  ['세탁소 만원', { type: 'expense', amount: 10000, categoryId: 'shopping' }],
+  ['경조사비 10만원', { type: 'expense', amount: 100000, categoryId: 'other_expense' }],
+  ['택배비 3천원', { type: 'expense', amount: 3000, categoryId: 'other_expense' }],
+  ['과태료 4만원 냈어', { type: 'expense', amount: 40000, categoryId: 'other_expense' }],
+  ['대출 이자 20만원 나갔어', { type: 'expense', amount: 200000, categoryId: 'debt' }],
+  ['할부 10만원', { type: 'expense', amount: 100000, categoryId: 'debt' }],
+  ['핸드폰 요금 55000원 나갔어', { type: 'expense', amount: 55000, categoryId: 'utilities' }],
+  ['넷플 17000', { type: 'expense', amount: 17000, categoryId: 'subscriptions' }],
+  ['순댓국 9천원', { type: 'expense', amount: 9000, categoryId: 'dining' }],
+];
+
+const moreIncome: Case[] = [
+  ['월급 들어왔어 250만원', { kind: 'transaction', type: 'income', amount: 2500000, categoryId: 'salary' }],
+  ['월급날', { kind: 'transaction', type: 'income', amount: null, categoryId: 'salary' }],
+  ['알바비 30만원', { type: 'income', amount: 300000, categoryId: 'salary' }],
+  ['부업으로 50만원 벌었어', { type: 'income', amount: 500000, categoryId: 'freelance' }],
+  ['당근에 팔아서 3만원', { type: 'income', amount: 30000, categoryId: 'freelance' }],
+  ['환불 2만원', { type: 'income', amount: 20000, categoryId: 'other_income' }],
+  ['할머니가 10만원 주셨어', { type: 'income', amount: 100000, categoryId: 'gift_income' }],
+  ['보너스 300만원', { type: 'income', amount: 3000000, categoryId: 'salary' }],
+  ['환급금 10만원', { type: 'income', amount: 100000, categoryId: 'other_income' }],
+  ['세뱃돈 5만원', { type: 'income', amount: 50000, categoryId: 'gift_income' }],
+  ['용돈 10만원 받았어', { type: 'income', amount: 100000, categoryId: 'gift_income' }],
+  ['엄마한테 용돈 20만원 받았어', { type: 'income', amount: 200000, categoryId: 'gift_income' }],
+  ['월급 들어옴 280만원', { type: 'income', amount: 2800000, categoryId: 'salary' }],
+  ['상여금 150만원', { type: 'income', amount: 1500000, categoryId: 'salary' }],
+  ['과외비 40만원 받았어', { type: 'income', amount: 400000, categoryId: 'freelance' }],
+  ['중고로 팔아서 5만원', { type: 'income', amount: 50000, categoryId: 'freelance' }],
+  ['배당금 5만원 들어왔어', { type: 'income', amount: 50000, categoryId: 'other_income' }],
+  ['장학금 100만원', { type: 'income', amount: 1000000, categoryId: 'other_income' }],
+  ['이자 만원', { type: 'income', amount: 10000, categoryId: 'other_income' }],
+  ['친구가 2만원 보내줬어', { type: 'income', amount: 20000 }],
+];
+
+const moreQuestions: Case[] = [
+  ['이번 주에 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  ['얼마나 남았지', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['외식 얼마 남았어', { kind: 'question', question: { ask: 'left', categoryId: 'dining' } }],
+  ['지난달보다 더 썼나', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['이번 달에 어디에 제일 많이 썼어', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['제일 큰 지출이 뭐야', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['8만원짜리 신발 살 수 있어', { kind: 'question', question: { ask: 'afford', price: 80000, target: '신발', fallbackCategoryId: 'shopping' } }],
+  ['이번 달에 얼마 벌었지', { kind: 'question', question: { type: 'income', period: 'month', target: null } }],
+  ['커피에 이번 달 얼마', { kind: 'question', question: { ask: 'spent', period: 'month', target: '커피', fallbackCategoryId: 'dining' } }],
+  ['오늘 얼마나 썼어', { kind: 'question', question: { ask: 'spent', period: 'today', target: null } }],
+  ['이번 주 외식에 얼마 썼지', { kind: 'question', question: { ask: 'spent', period: 'week', categoryId: 'dining' } }],
+  ['지난주 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'lastWeek', target: null } }],
+  ['이번 달 교통비 얼마 나갔어', { kind: 'question', question: { ask: 'spent', period: 'month', categoryId: 'transport' } }],
+  ['편의점에서 얼마 썼어', { kind: 'question', question: { ask: 'spent', target: '편의점', fallbackCategoryId: 'groceries' } }],
+  ['배민에 이번 달 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'month', target: '배민', fallbackCategoryId: 'dining' } }],
+  ['최근 3일 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'recentDays', days: 3, target: null } }],
+  ['주말에 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } }],
+  ['구독료 얼마 나가', { kind: 'question', question: { ask: 'spent', categoryId: 'subscriptions' } }],
+  ['이번 달 얼마 썼더라', { kind: 'question', question: { ask: 'spent', period: 'month', target: null } }],
+  ['남은 돈 얼마', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['이번 달 얼마나 남았어', { kind: 'question', question: { ask: 'left', period: 'budget', target: null } }],
+  ['교통비 얼마 남았어', { kind: 'question', question: { ask: 'left', categoryId: 'transport' } }],
+  ['쇼핑 예산 남았어?', { kind: 'question', question: { ask: 'left', categoryId: 'shopping' } }],
+  ['얼마 더 쓸 수 있어', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['저번 주보다 많이 썼어?', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['지난달이랑 비교하면 어때', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['이번 달 뭐에 가장 많이 썼어', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['어디에 돈 제일 많이 나갔어', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['5만원짜리 신발 사도 돼', { kind: 'question', question: { ask: 'afford', price: 50000, target: '신발' } }],
+  ['10만원 써도 괜찮아', { kind: 'question', question: { ask: 'afford', price: 100000, target: null } }],
+  ['외식에 3만원 써도 돼', { kind: 'question', question: { ask: 'afford', price: 30000, categoryId: 'dining' } }],
+  ['배달 시켜도 돼?', { kind: 'question', question: { ask: 'left', fallbackCategoryId: 'dining' } }],
+  ['지출 얼마야 이번 주', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  ['택시에 이번 주 얼마', { kind: 'question', question: { ask: 'spent', period: 'week', target: '택시', fallbackCategoryId: 'transport' } }],
+];
+
+const moreCorrections: Case[] = [
+  ['아니 만 4천원이었어', { kind: 'correction', correction: { amount: 14000, remove: false } }],
+  ['외식으로 바꿔', { kind: 'correction', correction: { categoryId: 'dining', amount: null } }],
+  ['어제 거였어', { kind: 'correction', correction: { date: '2026-09-15', amount: null, categoryId: null } }],
+  ['어제 거야', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['방금 거 지워', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['택시 지워', { kind: 'correction', correction: { remove: true, target: '택시' } }],
+  ['방금 스벅 거 삭제해줘', { kind: 'correction', correction: { remove: true, target: '스벅' } }],
+  ['넷플릭스 취소해 줘', { kind: 'correction', correction: { remove: true, target: '넷플릭스' } }],
+  ['점심 내역 지워줘', { kind: 'correction', correction: { remove: true, target: '점심' } }],
+  ['점심 만 5천원으로 고쳐', { kind: 'correction', correction: { amount: 15000, categoryId: 'dining' } }],
+  ['택시 2만3천원 아니고 3만2천원', { kind: 'correction', correction: { target: '택시', amount: 32000, remove: false } }],
+  ['점심 만 2천원이 아니라 만 4천원이었어', { kind: 'correction', correction: { target: '점심', amount: 14000 } }],
+  ['아니 3만원이야', { kind: 'correction', correction: { amount: 30000 } }],
+  ['그거 2만원으로', { kind: 'correction', correction: { amount: 20000 } }],
+  ['카테고리 건강으로', { kind: 'correction', correction: { categoryId: 'health' } }],
+  ['방금 거 어제로 바꿔줘', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['그제 거였어', { kind: 'correction', correction: { date: '2026-09-14' } }],
+];
+
+const moreReminders: Case[] = [
+  ['1일에 월세 알려줘', { kind: 'reminder', occurredAt: '2026-10-01' }],
+  ['금요일에 전기세 잊지 않게 해줘', { kind: 'reminder', occurredAt: '2026-09-18' }],
+  ['8시에 영수증 입력하라고 알려줘', { kind: 'reminder', reminderTime: '08:00', occurredAt: '2026-09-17' }],
+  ['매주 월요일 예산 확인 알림', { kind: 'reminder', reminderRepeat: 'weekly', occurredAt: '2026-09-21' }],
+  ['내일 아침에 월세 내라고 알려줘', { kind: 'reminder', reminderTime: '08:00', occurredAt: '2026-09-17' }],
+  ['매달 1일에 적금 넣으라고 알려줘', { kind: 'reminder', reminderRepeat: 'monthly' }],
+  ['모레 카드값 알림', { kind: 'reminder', occurredAt: '2026-09-18' }],
+  ['다음주 금요일에 보험료 알려줘', { kind: 'reminder', occurredAt: '2026-09-25' }],
+  ['매일 저녁 가계부 알림', { kind: 'reminder', reminderRepeat: 'daily', reminderTime: '20:00' }],
+  ['오후 3시에 공과금 내라고 알려줘', { kind: 'reminder', reminderTime: '15:00' }],
+  ['저녁 7시 반에 지출 정리하라고 알려줘', { kind: 'reminder', reminderTime: '19:30' }],
+  ['토요일 아침에 장보기 알림', { kind: 'reminder', occurredAt: '2026-09-19', reminderTime: '08:00' }],
+  ['25일 카드값 리마인드', { kind: 'reminder', occurredAt: '2026-09-25' }],
+];
+
+/** Numbers the way people say or type them. */
+const numbers: Case[] = [
+  ['천이백원', { kind: 'transaction', amount: 1200 }],
+  ['1,200원', { kind: 'transaction', amount: 1200 }],
+  ['이천오백', { kind: 'transaction', amount: 2500 }],
+  ['1.2만', { kind: 'transaction', amount: 12000 }],
+  ['만이천', { kind: 'transaction', amount: 12000 }],
+  ['12만', { kind: 'transaction', amount: 120000 }],
+  ['오천원', { kind: 'transaction', amount: 5000 }],
+  ['만원짜리 커피', { kind: 'transaction', amount: 10000, categoryId: 'dining' }],
+  ['점심 1.5만원', { kind: 'transaction', amount: 15000, categoryId: 'dining' }],
+  ['커피 4천5백원', { kind: 'transaction', amount: 4500, categoryId: 'dining' }],
+  ['택시 2만 5천원', { kind: 'transaction', amount: 25000, categoryId: 'transport' }],
+  ['옷 삼만원', { kind: 'transaction', amount: 30000, categoryId: 'shopping' }],
+  ['월급 1,500,000원', { kind: 'transaction', type: 'income', amount: 1500000, categoryId: 'salary' }],
+  ['점심 만 원', { kind: 'transaction', amount: 10000, categoryId: 'dining' }],
+  ['커피 3천', { kind: 'transaction', amount: 3000, categoryId: 'dining' }],
+  ['점심 12,000', { kind: 'transaction', amount: 12000, categoryId: 'dining' }],
+  ['십만원 저축', { kind: 'transaction', amount: 100000, categoryId: 'savings' }],
+  ['월세 백만원', { kind: 'transaction', amount: 1000000, categoryId: 'rent' }],
+  ['천오백원 버스', { kind: 'transaction', amount: 1500, categoryId: 'transport' }],
+];
+
+/** Question-like or correction-like words beside an amount: still an entry. */
+const stayEntries: Case[] = [
+  ['커피 총 9천원', { kind: 'transaction', amount: 9000, categoryId: 'dining' }],
+  ['이번 달 구독 합계 5만원', { kind: 'transaction', amount: 50000, categoryId: 'subscriptions' }],
+  ['남은 돈으로 치킨 2만원', { kind: 'transaction', amount: 20000, categoryId: 'dining' }],
+  ['제일 싼 커피 2천원', { kind: 'transaction', amount: 2000, categoryId: 'dining' }],
+  ['얼마 전에 산 신발 8만원', { kind: 'transaction', amount: 80000, categoryId: 'shopping' }],
+  ['많이 썼네 오늘 5만원', { kind: 'transaction', amount: 50000 }],
+  ['넷플릭스 구독 취소 13500원', { kind: 'transaction', amount: 13500 }],
+  ['택시 2만원이었어', { kind: 'transaction', amount: 20000, categoryId: 'transport' }],
+  ['매달 넷플릭스 17000원', { kind: 'transaction', amount: 17000, categoryId: 'subscriptions' }],
+  ['아니 택시 2만원 탔어', { kind: 'transaction', amount: 20000, categoryId: 'transport' }],
+];
+
+describe('Korean: putting money aside', () => runCases('ko', savingEntries, labels));
+describe('Korean: goals said as an amount per month', () => runCases('ko', pacedGoals, labels));
+describe('Korean: more expenses', () => runCases('ko', moreExpenses, labels));
+describe('Korean: more income', () => runCases('ko', moreIncome, labels));
+describe('Korean: more questions', () => runCases('ko', moreQuestions, labels));
+describe('Korean: more corrections', () => runCases('ko', moreCorrections, labels));
+describe('Korean: more reminders', () => runCases('ko', moreReminders, labels));
+describe('Korean: numbers as said', () => runCases('ko', numbers, labels));
+describe('Korean: entries that stay entries', () => runCases('ko', stayEntries, labels));
+
+const moreKoContributions: [string, string, number][] = [
+  ['일본 여행 통장에 2만원 보탰어', 'k1', 20000],
+  ['비상금으로 10만원 넣음', 'k2', 100000],
+  ['일본 여행 가려고 10만원 따로 빼놨어', 'k1', 100000],
+  ['비상금에 5만원 더 넣었어', 'k2', 50000],
+  ['일본여행 적금 20만원 넣었어', 'k1', 200000],
+];
+
+describe('Korean phrasings: more contributions to a goal named in Korean', () => {
+  it.each(moreKoContributions)('%s', (text, goalId, amount) => {
+    const r = parseOne(text, 'ko', labels, KO_GOALS);
+    expect(r).toHaveLength(1);
+    expect({ kind: r[0].kind, goalId: r[0].goalId, amount: r[0].amount }).toEqual({ kind: 'contribution', goalId, amount });
+  });
+});
