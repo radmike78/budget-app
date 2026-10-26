@@ -506,3 +506,377 @@ const INSIGHTS_STAY_ENTRIES: Case[] = [
 
 describe('Italian: comparing, the most, affording', () => runCases('it', INSIGHTS, LABELS));
 describe('Italian: entries near those words stay entries', () => runCases('it', INSIGHTS_STAY_ENTRIES, LABELS));
+
+// ---------------------------------------------------------------------------------------------------------------
+// More everyday Italian, from the spoken-language review: putting money aside, colloquial spending, money coming
+// in, questions, naming the entry to fix, reminders with spoken times, and what dictation writes.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Like runCases, with the goal named in Italian ("Viaggio in Giappone") so paying into it can be matched. */
+function runCasesIt(cases: Case[]) {
+  test.each(cases)('%s', (text, expected) => {
+    const r = parseOne(text, 'it', LABELS, IT_GOALS);
+    const got = r[0] as unknown as Record<string, unknown>;
+    const summary = { kind: got.kind, type: got.type, amount: got.amount, categoryId: got.categoryId, note: got.note, goalId: got.goalId, goalName: got.goalName, question: got.question, correction: got.correction };
+    expect({ text, n: r.length, ...summary }).toMatchObject({ text, n: 1, ...expected });
+  });
+}
+
+/** Putting money aside: a transfer to savings, a contribution when the goal is named, a goal when it is a plan. */
+const SAVING: Case[] = [
+  ['ho messo da parte 200', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings' }],
+  ['messi via 100 per il viaggio', { kind: 'contribution', amount: 100, goalId: 'g1' }],
+  ['ho spostato 300 sul conto risparmio', { kind: 'transaction', type: 'expense', amount: 300, categoryId: 'savings' }],
+  ['risparmiato 50', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'savings' }],
+  ['ho messo 100 nel fondo emergenze', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  ['ho aggiunto 20 al fondo Giappone', { kind: 'contribution', amount: 20, goalId: 'g1' }],
+  ['voglio mettere da parte 200 al mese per una macchina', { kind: 'goal', amount: null, goalName: 'Macchina' }],
+  ['accantonato 50 oggi', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'savings', note: null }],
+  ['ho messo via 150', { kind: 'transaction', type: 'expense', amount: 150, categoryId: 'savings', note: null }],
+  ['messo da parte 50 per le emergenze', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'savings' }],
+  ['ho messo 200 sul conto deposito', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings' }],
+  ['ho risparmiato 100 questo mese', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  ['altri 50 nel salvadanaio', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'savings' }],
+  ['ho spostato 100 sul Giappone', { kind: 'contribution', amount: 100, goalId: 'g1' }],
+  ['ho versato 100 sul conto risparmio', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  ['metto via 100 al mese per il Giappone', { kind: 'contribution', amount: 100, goalId: 'g1' }],
+  ['ho messo 50 nel viaggio in Giappone', { kind: 'contribution', amount: 50, goalId: 'g1' }],
+  ['una ventina di euro nel salvadanaio', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'savings' }],
+  // a plan: the amount per period is a pace, not the total
+  ['voglio risparmiare 50 a settimana', { kind: 'goal', amount: null }],
+  ['risparmiare 100 al mese', { kind: 'goal', amount: null }],
+  ['voglio mettere da parte 5000 per una macchina', { kind: 'goal', amount: 5000, goalName: 'Macchina' }],
+  ['mettere da parte 300 per le vacanze', { kind: 'goal', amount: 300, goalName: 'Vacanze' }],
+];
+describe('Italian: putting money aside', () => runCasesIt(SAVING));
+
+/** Spending the way people say it. */
+const SPENDING: Case[] = [
+  ['ho speso 40', { kind: 'transaction', type: 'expense', amount: 40 }],
+  ['ho buttato 40', { kind: 'transaction', type: 'expense', amount: 40 }],
+  ['mi sono giocato 200', { kind: 'transaction', type: 'expense', amount: 200, note: null }],
+  ['mi è costato 60', { kind: 'transaction', type: 'expense', amount: 60, note: null }],
+  ["ho lasciato 85 all'Esselunga", { kind: 'transaction', type: 'expense', amount: 85, categoryId: 'groceries' }],
+  ['fatto il pieno 50', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'transport' }],
+  ['ho fatto il pieno alla macchina 50', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'transport' }],
+  ['mi sono fatto il pieno 55', { kind: 'transaction', type: 'expense', amount: 55, categoryId: 'transport' }],
+  ['un caffè 1,20', { kind: 'transaction', type: 'expense', amount: 1.2, categoryId: 'dining' }],
+  ['pagato la luce 80', { kind: 'transaction', type: 'expense', amount: 80, categoryId: 'utilities' }],
+  ['ho pagato 35 di luce', { kind: 'transaction', type: 'expense', amount: 35, categoryId: 'utilities' }],
+  ['60 euro di luce', { kind: 'transaction', type: 'expense', amount: 60, categoryId: 'utilities' }],
+  ['bolletta 80', { kind: 'transaction', type: 'expense', amount: 80, categoryId: 'utilities' }],
+  ['ricarica 10', { kind: 'transaction', type: 'expense', amount: 10, categoryId: 'utilities' }],
+  ['affitto 900', { kind: 'transaction', type: 'expense', amount: 900, categoryId: 'rent' }],
+  ['rata del mutuo 650', { kind: 'transaction', type: 'expense', amount: 650 }],
+  ['un giro di birre 24', { kind: 'transaction', type: 'expense', amount: 24, categoryId: 'dining' }],
+  ['dato 20 al taxi', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'transport' }],
+  ['la pizza 8', { kind: 'transaction', type: 'expense', amount: 8, categoryId: 'dining' }],
+  ['aperitivo 10', { kind: 'transaction', type: 'expense', amount: 10, categoryId: 'dining' }],
+  ['40 di cena', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'dining' }],
+  ['ho cacciato 40 per la cena', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'dining' }],
+  ['ci sono andati 60 di cena', { kind: 'transaction', type: 'expense', amount: 60, categoryId: 'dining' }],
+  ['cena con i colleghi 35', { kind: 'transaction', type: 'expense', amount: 35, categoryId: 'dining' }],
+  ['ieri ho speso 20 dal cinese', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'dining', occurredAt: '2026-09-15' }],
+  ['asilo 300', { kind: 'transaction', type: 'expense', amount: 300, categoryId: 'other_expense' }],
+  ['dentista 70', { kind: 'transaction', type: 'expense', amount: 70, categoryId: 'health' }],
+  ['spesi 20 in farmacia', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'health' }],
+  ['parcheggio 3', { kind: 'transaction', type: 'expense', amount: 3, categoryId: 'transport' }],
+  ['autostrada 8', { kind: 'transaction', type: 'expense', amount: 8, categoryId: 'transport' }],
+  ['ho pagato il bollo 200', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'transport' }],
+  ['ho fatto la revisione 70', { kind: 'transaction', type: 'expense', amount: 70, categoryId: 'transport' }],
+  ['multa 40', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'other_expense' }],
+  ['mi hanno fregato 30 di multa', { kind: 'transaction', type: 'expense', amount: 30 }],
+  ['spesa 85', { kind: 'transaction', type: 'expense', amount: 85, categoryId: 'groceries' }],
+  ['un centone di spesa', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'groceries' }],
+  ['due centoni di spesa', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'groceries' }],
+  ['ho speso una cinquantina di euro di spesa', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'groceries' }],
+  ['12 per il parcheggio', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'transport' }],
+  ['ho speso 30 dal parrucchiere', { kind: 'transaction', type: 'expense', amount: 30, categoryId: 'shopping' }],
+  ['sono andato dal barbiere 15', { kind: 'transaction', type: 'expense', amount: 15, categoryId: 'shopping' }],
+  ['lavatrice nuova 400', { kind: 'transaction', type: 'expense', amount: 400, categoryId: 'shopping' }],
+  ['sigarette 6', { kind: 'transaction', type: 'expense', amount: 6, categoryId: 'other_expense' }],
+  ['tabaccaio 6', { kind: 'transaction', type: 'expense', amount: 6, categoryId: 'other_expense' }],
+  ['mi ha scalato 12,99 netflix', { kind: 'transaction', type: 'expense', amount: 12.99, categoryId: 'subscriptions' }],
+  ['hanno addebitato 30 di assicurazione', { kind: 'transaction', type: 'expense', amount: 30, note: 'Assicurazione' }],
+  ['prelievo 100', { kind: 'transaction', type: 'expense', amount: 100 }],
+  ['sabato pizza 20', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'dining', occurredAt: '2026-09-12' }],
+  ['stamattina colazione 3', { kind: 'transaction', type: 'expense', amount: 3, categoryId: 'dining', occurredAt: '2026-09-16' }],
+  ["l'altro ieri taxi 15", { kind: 'transaction', type: 'expense', amount: 15, categoryId: 'transport', occurredAt: '2026-09-14' }],
+  // a small number before a word of its own is a count, the money comes after
+  ['2 caffè 8', { kind: 'transaction', type: 'expense', amount: 8, categoryId: 'dining', note: '2 caffè' }],
+  ['3 birre 15', { kind: 'transaction', type: 'expense', amount: 15, categoryId: 'dining' }],
+  ['ho preso 2 biglietti 30', { kind: 'transaction', type: 'expense', amount: 30 }],
+  ['due caffè 2 40', { kind: 'transaction', type: 'expense', amount: 2.4, categoryId: 'dining' }],
+  ['benzina 50 tondi', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'transport', note: 'Benzina' }],
+];
+describe('Italian: everyday spending', () => runCases('it', SPENDING, LABELS));
+
+/** Money coming in. A bare "bonifico" is a transfer out (the category is "Risparmio / Bonifico"); the verb makes it income. */
+const INCOME: Case[] = [
+  ['mi hanno pagato 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['è arrivato lo stipendio 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['mi è arrivato lo stipendio 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['è entrato lo stipendio 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['stipendio accreditato 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['mi hanno accreditato lo stipendio 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['ho ricevuto 2400 di stipendio', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['ho preso 2400 di stipendio', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['entrati 2400 di stipendio', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['tredicesima 1000', { kind: 'transaction', type: 'income', amount: 1000, categoryId: 'salary' }],
+  ['quattordicesima 1500', { kind: 'transaction', type: 'income', amount: 1500, categoryId: 'salary' }],
+  ['mi hanno fatto un bonifico di 300', { kind: 'transaction', type: 'income', amount: 300 }],
+  ['mi è arrivato un bonifico di 300', { kind: 'transaction', type: 'income', amount: 300 }],
+  ['un cliente mi ha pagato 500', { kind: 'transaction', type: 'income', amount: 500, categoryId: 'freelance' }],
+  ['un cliente mi ha dato 500', { kind: 'transaction', type: 'income', amount: 500, categoryId: 'freelance' }],
+  ['ho incassato 500 da un cliente', { kind: 'transaction', type: 'income', amount: 500, categoryId: 'freelance' }],
+  ['ho fatto 200 con le ripetizioni', { kind: 'transaction', type: 'income', amount: 200, categoryId: 'freelance' }],
+  ['mance 85', { kind: 'transaction', type: 'income', amount: 85 }],
+  ['ho guadagnato 80 di mance', { kind: 'transaction', type: 'income', amount: 80 }],
+  ['preso 50 di mance', { kind: 'transaction', type: 'income', amount: 50 }],
+  ['ho venduto la bici 120', { kind: 'transaction', type: 'income', amount: 120 }],
+  ['venduto il telefono vecchio 200', { kind: 'transaction', type: 'income', amount: 200 }],
+  ['ho venduto il divano 150', { kind: 'transaction', type: 'income', amount: 150 }],
+  ['rimborsati 32', { kind: 'transaction', type: 'income', amount: 32 }],
+  ['rimborso 32', { kind: 'transaction', type: 'income', amount: 32, categoryId: 'other_income' }],
+  ['è arrivato il rimborso 32', { kind: 'transaction', type: 'income', amount: 32, categoryId: 'other_income' }],
+  ['mi hanno rimborsato 32', { kind: 'transaction', type: 'income', amount: 32, categoryId: 'other_income' }],
+  ['la nonna mi ha dato 50', { kind: 'transaction', type: 'income', amount: 50, categoryId: 'gift_income' }],
+  ['mia zia mi ha regalato 100', { kind: 'transaction', type: 'income', amount: 100, categoryId: 'gift_income' }],
+  ['mi hanno regalato 100 per natale', { kind: 'transaction', type: 'income', amount: 100, categoryId: 'gift_income' }],
+  ['paghetta 20', { kind: 'transaction', type: 'income', amount: 20, categoryId: 'gift_income' }],
+  ['il bonus 100', { kind: 'transaction', type: 'income', amount: 100, categoryId: 'other_income' }],
+  ['ho ricevuto il bonus 500', { kind: 'transaction', type: 'income', amount: 500, categoryId: 'other_income' }],
+  ['mi è entrata la pensione 1200', { kind: 'transaction', type: 'income', amount: 1200, categoryId: 'other_income' }],
+  ['cashback 5', { kind: 'transaction', type: 'income', amount: 5, categoryId: 'other_income' }],
+  ['vinto 50 al gratta e vinci', { kind: 'transaction', type: 'income', amount: 50, categoryId: 'other_income' }],
+  ['mi hanno restituito 40', { kind: 'transaction', type: 'income', amount: 40 }],
+  ['Giulia mi ha ridato 20', { kind: 'transaction', type: 'income', amount: 20 }],
+  ['mi sono entrati 300', { kind: 'transaction', type: 'income', amount: 300 }],
+  ['accreditato 2400', { kind: 'transaction', type: 'income', amount: 2400 }],
+  ['bonifico di 2400', { kind: 'transaction', type: 'expense', amount: 2400, categoryId: 'savings' }],
+];
+describe('Italian: money coming in', () => runCases('it', INCOME, LABELS));
+
+/** More ways of asking. */
+const MORE_QUESTIONS: Case[] = [
+  ['quanto ho speso questa settimana', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  ['quanto ho speso di spesa', { kind: 'question', question: { ask: 'spent', categoryId: 'groceries' } }],
+  ['quanto spendo di benzina', { kind: 'question', question: { ask: 'spent', target: 'Benzina', fallbackCategoryId: 'transport' } }],
+  ['quanto ho speso di caffè', { kind: 'question', question: { ask: 'spent', target: 'Caffè', fallbackCategoryId: 'dining' } }],
+  ['quanto ho speso oggi per mangiare', { kind: 'question', question: { ask: 'spent', period: 'today', categoryIds: ['groceries', 'dining'] } }],
+  ['quanto ho speso negli ultimi 30 giorni', { kind: 'question', question: { ask: 'spent', period: 'recentDays', days: 30 } }],
+  ['quanto ho speso lo scorso weekend', { kind: 'question', question: { ask: 'spent', period: 'weekend' } }],
+  ["quanto ho speso da amazon quest'anno", { kind: 'question', question: { ask: 'spent', period: 'year', target: 'Amazon' } }],
+  ['quanto ho speso in bollette il mese scorso', { kind: 'question', question: { ask: 'spent', period: 'lastMonth', categoryId: 'utilities' } }],
+  ['quanto ho speso in svago', { kind: 'question', question: { ask: 'spent', categoryId: 'entertainment' } }],
+  ["quanto ho speso di affitto quest'anno", { kind: 'question', question: { ask: 'spent', period: 'year', categoryId: 'rent' } }],
+  ['a quanto sono le spese questo mese', { kind: 'question', question: { ask: 'spent', period: 'month', target: null } }],
+  ['quanto sono andato a spendere questo mese', { kind: 'question', question: { ask: 'spent', period: 'month', target: null } }],
+  ['quanto ho tirato fuori questa settimana', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  // what is left
+  ['quanto mi resta', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['quanto mi rimane per la spesa', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['quanto mi resta per mangiare fuori', { kind: 'question', question: { ask: 'left', categoryId: 'dining' } }],
+  ['quanto mi rimane questo mese', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['mi resta qualcosa', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['ho ancora budget per la spesa', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['quanto posso spendere per la spesa', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['quanto ho a disposizione', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['quanto mi resta da spendere', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['quanto ho ancora', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['quanto rimane nel budget', { kind: 'question', question: { ask: 'left', target: null } }],
+  ["c'è ancora margine", { kind: 'question', question: { ask: 'left', target: null } }],
+  // comparing
+  ['ho speso più del mese scorso', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['quanto ho speso in più questo mese', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['sto spendendo di più del solito', { kind: 'question', question: { ask: 'compare', target: null } }],
+  ['spendo meno del mese scorso', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['ho speso meno questa settimana', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['sono messo meglio o peggio del mese scorso', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  // where it went
+  ['dove sono finiti i soldi', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['la spesa più grossa', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['dove è andato a finire lo stipendio', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['cosa mi è costato di più questo mese', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['qual è la mia spesa più alta', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['dove spendo di più questo mese', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['su cosa ho speso di più la settimana scorsa', { kind: 'question', question: { ask: 'top', period: 'lastWeek', target: null } }],
+  ['quali sono le mie spese maggiori', { kind: 'question', question: { ask: 'top', target: null } }],
+  // whether it fits
+  ['posso permettermi delle scarpe da 80', { kind: 'question', question: { ask: 'afford', price: 80, target: 'Scarpe', fallbackCategoryId: 'shopping' } }],
+  ['posso permettermi una cena da 50', { kind: 'question', question: { ask: 'afford', price: 50, fallbackCategoryId: 'dining' } }],
+  ['mi posso permettere 100 di shopping', { kind: 'question', question: { ask: 'afford', price: 100, categoryId: 'shopping' } }],
+  ['ci stanno 80 di scarpe nel budget', { kind: 'question', question: { ask: 'afford', price: 80, fallbackCategoryId: 'shopping' } }],
+  ['rientrano 80 di scarpe nel budget', { kind: 'question', question: { ask: 'afford', price: 80, fallbackCategoryId: 'shopping' } }],
+  ['posso spendere 30 per un libro', { kind: 'question', question: { ask: 'afford', price: 30, target: 'Libro' } }],
+  ['ce la faccio con 200 di spesa', { kind: 'question', question: { ask: 'afford', price: 200, categoryId: 'groceries' } }],
+  // income
+  ['quanto ho guadagnato questo mese', { kind: 'question', question: { type: 'income', period: 'month', target: null } }],
+  ["quanto ho guadagnato quest'anno", { kind: 'question', question: { type: 'income', period: 'year' } }],
+  ['quanto ho incassato questo mese', { kind: 'question', question: { type: 'income', period: 'month' } }],
+  ["quanto è entrato quest'anno", { kind: 'question', question: { type: 'income', period: 'year' } }],
+  ['quante entrate questo mese', { kind: 'question', question: { type: 'income', period: 'month' } }],
+  ['quanto ho ricevuto questa settimana', { kind: 'question', question: { type: 'income', period: 'week' } }],
+  ['quanto mi è entrato in tutto', { kind: 'question', question: { type: 'income', period: 'all' } }],
+];
+describe('Italian: more questions', () => runCases('it', MORE_QUESTIONS, LABELS));
+
+/** Fixing an entry, by name or the last one. */
+const MORE_CORRECTIONS: Case[] = [
+  ['no erano 14', { kind: 'correction', correction: { amount: 14, target: null } }],
+  ['no era 14', { kind: 'correction', correction: { amount: 14 } }],
+  ['no 15 euro', { kind: 'correction', correction: { amount: 15 } }],
+  ['no, in realtà 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['correggi 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['cambialo a 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['era 15 euro', { kind: 'correction', correction: { amount: 15 } }],
+  ['costava 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['fanno 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['no, metti 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['mettilo in ristoranti', { kind: 'correction', correction: { categoryId: 'dining', amount: null } }],
+  ['mettilo in alimentari', { kind: 'correction', correction: { categoryId: 'groceries' } }],
+  ['spostalo in bollette', { kind: 'correction', correction: { categoryId: 'utilities' } }],
+  ['cambia quello in 14', { kind: 'correction', correction: { amount: 14, target: null } }],
+  ['era ieri', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['era di ieri', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['era lunedì scorso', { kind: 'correction', correction: { date: '2026-09-14' } }],
+  ['cancella', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['cancella la spesa', { kind: 'correction', correction: { remove: true, target: null } }],
+  // naming the entry
+  ["togli l'uber", { kind: 'correction', correction: { remove: true, target: 'uber' } }],
+  ["cancella l'uber", { kind: 'correction', correction: { remove: true, target: 'uber' } }],
+  ['togli il pranzo', { kind: 'correction', correction: { remove: true, target: 'pranzo' } }],
+  ['rimuovi il pranzo', { kind: 'correction', correction: { remove: true, target: 'pranzo' } }],
+  ['elimina netflix', { kind: 'correction', correction: { remove: true, target: 'netflix' } }],
+  ['dimentica lo spotify', { kind: 'correction', correction: { remove: true, target: 'spotify' } }],
+  ['cancella quella di spotify', { kind: 'correction', correction: { remove: true, target: 'spotify' } }],
+  ['togli quella del caffè', { kind: 'correction', correction: { remove: true, target: 'caffè' } }],
+  ['cambia il pranzo a 15', { kind: 'correction', correction: { remove: false, target: 'pranzo', amount: 15, categoryId: null } }],
+  ["cambia l'uber in 32", { kind: 'correction', correction: { target: 'uber', amount: 32 } }],
+  ['il pranzo era 15 non 12', { kind: 'correction', correction: { target: 'pranzo', amount: 15 } }],
+  ["quell'uber era 32 non 23", { kind: 'correction', correction: { target: 'uber', amount: 32 } }],
+  ['quel caffè era 2 non 3', { kind: 'correction', correction: { target: 'caffè', amount: 2 } }],
+  ['sposta il pranzo in trasporti', { kind: 'correction', correction: { target: 'pranzo', categoryId: 'transport', amount: null } }],
+  ['metti il caffè in svago', { kind: 'correction', correction: { target: 'caffè', categoryId: 'entertainment' } }],
+  ['il pranzo era ieri', { kind: 'correction', correction: { target: 'pranzo', date: '2026-09-15', amount: null } }],
+  // These need a change in the core (`parseCorrectionText` rejects a second number): see the note at the end.
+  // ['erano 14 non 12', { kind: 'correction', correction: { amount: 14, target: null } }],
+  // ['ho detto 14 non 12', { kind: 'correction', correction: { amount: 14, target: null } }],
+];
+/** ... and sentences near those words that stay entries. */
+const MORE_NOT_CORRECTIONS: Case[] = [
+  ['cancella netflix 15,99', { kind: 'transaction', amount: 15.99 }],
+  ['togli 20 dai risparmi', { kind: 'transaction', amount: 20, categoryId: 'savings' }],
+  ['elimina code 5', { kind: 'transaction', amount: 5 }],
+  ['la cena era 30', { kind: 'transaction', amount: 30, categoryId: 'dining' }],
+  ['il caffè era 2', { kind: 'transaction', amount: 2, categoryId: 'dining' }],
+  ['metti 40 di benzina', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['metti 100 nel viaggio in Giappone', { kind: 'transaction', amount: 100 }],
+];
+describe('Italian: naming the entry to fix', () => runCases('it', MORE_CORRECTIONS, LABELS));
+describe('Italian: still not corrections', () => runCases('it', MORE_NOT_CORRECTIONS, LABELS));
+
+/** Reminders, with the day and the time as people say them. */
+const MORE_REMINDERS: Case[] = [
+  ["ricordami l'affitto il primo", { kind: 'reminder', occurredAt: '2026-10-01' }],
+  ['non farmi dimenticare la bolletta venerdì', { kind: 'reminder', occurredAt: '2026-09-18' }],
+  ["non farmi scordare l'affitto il primo", { kind: 'reminder', occurredAt: '2026-10-01' }],
+  ['avvisami alle 20 di segnare gli scontrini', { kind: 'reminder', reminderTime: '20:00' }],
+  ['ricordami ogni lunedì di controllare il budget', { kind: 'reminder', reminderRepeat: 'weekly', occurredAt: '2026-09-21' }],
+  ['ricordami tutti i venerdì di fare la spesa', { kind: 'reminder', reminderRepeat: 'weekly' }],
+  ['ricordami ogni giorno di segnare le spese', { kind: 'reminder', reminderRepeat: 'daily' }],
+  ['ricordami ogni sera alle 21 di segnare le spese', { kind: 'reminder', reminderRepeat: 'daily', reminderTime: '21:00' }],
+  ["ricordami il primo di ogni mese di pagare l'affitto", { kind: 'reminder', reminderRepeat: 'monthly', occurredAt: '2026-10-01' }],
+  ["ricordami ogni mese l'affitto", { kind: 'reminder', reminderRepeat: 'monthly' }],
+  ['ricordami domani la bolletta', { kind: 'reminder', occurredAt: '2026-09-17' }],
+  ['ricordami il bollo il 30', { kind: 'reminder', occurredAt: '2026-09-30' }],
+  ['ricordami alle 18 di pagare la palestra', { kind: 'reminder', reminderTime: '18:00', occurredAt: '2026-09-16' }],
+  ['ricordami venerdì prossimo di pagare la rata', { kind: 'reminder', occurredAt: '2026-09-18' }],
+  ['ricordami fra 3 giorni di pagare il dentista', { kind: 'reminder', occurredAt: '2026-09-19' }],
+  ['ricordami il 15 ottobre la rata', { kind: 'reminder', occurredAt: '2026-10-15' }],
+  ['mettimi un promemoria per il 20: pagare la tari', { kind: 'reminder', occurredAt: '2026-09-20' }],
+  ["ricordati che il 5 c'è l'affitto", { kind: 'reminder', occurredAt: '2026-10-05' }],
+  ['promemoria affitto il primo', { kind: 'reminder', occurredAt: '2026-10-01' }],
+  ['ricordami stasera di controllare il conto', { kind: 'reminder', occurredAt: '2026-09-16' }],
+  ['ricordami domani mattina di chiamare la banca', { kind: 'reminder', occurredAt: '2026-09-17' }],
+  ['ricordami la bolletta della luce entro il 20', { kind: 'reminder', occurredAt: '2026-09-20' }],
+  ['avvertimi il 28 che scade il bollo', { kind: 'reminder', occurredAt: '2026-09-28' }],
+  ['puoi ricordarmi di pagare netflix il 12', { kind: 'reminder', occurredAt: '2026-10-12' }],
+  ["ricordami che lunedì devo pagare l'asilo", { kind: 'reminder', occurredAt: '2026-09-21' }],
+  ['ricordami a mezzogiorno di segnare il pranzo', { kind: 'reminder', reminderTime: '12:00' }],
+  // spoken clock times
+  ['ricordami alle 9 e 30 di pagare la bolletta', { kind: 'reminder', reminderTime: '09:30' }],
+  ['ricordami alle 9 30 di pagare la bolletta', { kind: 'reminder', reminderTime: '09:30' }],
+  ['ricordami alle 9.30 di pagare la bolletta', { kind: 'reminder', reminderTime: '09:30' }],
+  ['ricordamelo alle 8 e mezza', { kind: 'reminder', reminderTime: '08:30' }],
+  ['ricordami domani alle 9 e mezza di pagare la bolletta', { kind: 'reminder', reminderTime: '09:30', occurredAt: '2026-09-17' }],
+  ['ricordami alle 9 e un quarto di pagare', { kind: 'reminder', reminderTime: '09:15' }],
+  ['ricordami alle 9 meno un quarto di pagare', { kind: 'reminder', reminderTime: '08:45' }],
+  ['ricordami alle 20 e 45 di segnare le spese', { kind: 'reminder', reminderTime: '20:45' }],
+];
+describe('Italian: more reminders', () => runCases('it', MORE_REMINDERS, LABELS));
+
+/** What dictation writes for spoken numbers. */
+const DICTATION: Case[] = [
+  ['caffè quattro e cinquanta', { kind: 'transaction', amount: 4.5, categoryId: 'dining' }],
+  ['caffè 4 50', { kind: 'transaction', amount: 4.5, categoryId: 'dining' }],
+  ['ho speso 4 50 per il caffè', { kind: 'transaction', amount: 4.5, categoryId: 'dining' }],
+  ['venti euro di pranzo', { kind: 'transaction', amount: 20, categoryId: 'dining' }],
+  ['cento di spesa', { kind: 'transaction', amount: 100, categoryId: 'groceries' }],
+  ['milleduecento di affitto', { kind: 'transaction', amount: 1200, categoryId: 'rent' }],
+  ['mille di affitto', { kind: 'transaction', amount: 1000, categoryId: 'rent' }],
+  ['12 euro e 50 di pranzo', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['pranzo 12,50', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['pranzo dodici e cinquanta', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['12 e 50 di pranzo', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['ho speso 12 e 50 in pizza', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['caffè 1 e 50', { kind: 'transaction', amount: 1.5, categoryId: 'dining' }],
+  ['cena 35 e 50', { kind: 'transaction', amount: 35.5, categoryId: 'dining' }],
+  ['spesa 85 e 40', { kind: 'transaction', amount: 85.4, categoryId: 'groceries' }],
+  ['spesa 85 euro e 40', { kind: 'transaction', amount: 85.4, categoryId: 'groceries' }],
+  ['caffè un euro e venti', { kind: 'transaction', amount: 1.2, categoryId: 'dining' }],
+  ['un euro e cinquanta di caffè', { kind: 'transaction', amount: 1.5, categoryId: 'dining' }],
+  ['un caffè 1 euro', { kind: 'transaction', amount: 1, categoryId: 'dining' }],
+  ['otto e mezzo di pranzo', { kind: 'transaction', amount: 8.5, categoryId: 'dining' }],
+  ['pranzo 8 e mezzo', { kind: 'transaction', amount: 8.5, categoryId: 'dining' }],
+  ['cinque euro e mezzo di gelato', { kind: 'transaction', amount: 5.5, categoryId: 'dining' }],
+  ['ventidue e cinquanta di cena', { kind: 'transaction', amount: 22.5, categoryId: 'dining' }],
+  ['centoventi di scarpe', { kind: 'transaction', amount: 120, categoryId: 'shopping' }],
+  ['duecentocinquanta euro di rata', { kind: 'transaction', amount: 250, categoryId: 'debt' }],
+  ['benzina quaranta', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['cinquanta di benzina', { kind: 'transaction', amount: 50, categoryId: 'transport' }],
+  ['una ventina di euro di benzina', { kind: 'transaction', amount: 20, categoryId: 'transport' }],
+  ['duemila e quattrocento di stipendio', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['stipendio duemilaquattrocento', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['tremila di stipendio', { kind: 'transaction', type: 'income', amount: 3000, categoryId: 'salary' }],
+  ['mezzo chilo di pane 2', { kind: 'transaction', amount: 2, categoryId: 'groceries' }],
+];
+describe('Italian: what dictation writes', () => runCases('it', DICTATION, LABELS));
+
+/** Entries that stay entries, even with a period word or "totale" in them, or two numbers around "e". */
+const MORE_STAY_ENTRIES: Case[] = [
+  ['pranzo 12 totale', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  ['spesa 85 questa settimana', { kind: 'transaction', amount: 85, categoryId: 'groceries' }],
+  ['cena 40 in totale', { kind: 'transaction', amount: 40, categoryId: 'dining' }],
+  ['totale 40 di cena', { kind: 'transaction', amount: 40, categoryId: 'dining' }],
+  ['questa settimana 40 di benzina', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['40 di benzina questa settimana', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['caffè 2', { kind: 'transaction', amount: 2, categoryId: 'dining' }],
+  ['ho speso 85 alla coop', { kind: 'transaction', amount: 85, categoryId: 'groceries' }],
+];
+describe('Italian: more entries that stay entries', () => runCases('it', MORE_STAY_ENTRIES, LABELS));
+
+// "pranzo 12 e caffè 2" is two entries (a word between the numbers), while "cena 35 e 50" is one amount with cents.
+describe('Italian: a list around "e" still splits', () => {
+  test('pranzo 12 e caffè 2', () => {
+    const r = parseOne('pranzo 12 e caffè 2', 'it', LABELS);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ amount: 12, categoryId: 'dining' });
+    expect(r[1]).toMatchObject({ amount: 2, categoryId: 'dining' });
+  });
+});
+
+// Still to come from the core (not a pack change): a correction with "non" and the old number, "erano 14 non 12",
+// "ho detto 14 non 12". `parseCorrectionText` sees two numbers and gives up (`amt.multiple`); it would need a pack
+// field such as `correction.notTail` (/\s+(?:e )?non [€$]?\d[\d.,]*(?: ?euro)?$/) stripped from `rest` before
+// `extractAmount`, so the second number is the one being replaced and never a second amount.
