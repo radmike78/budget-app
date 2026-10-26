@@ -4,6 +4,7 @@
  */
 import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import { decodeTextBytes } from './textBytes';
 import { Directory, File, Paths } from 'expo-file-system';
 import { scanPdfBytes } from './pdfScan';
 
@@ -37,9 +38,28 @@ export interface PickedPdf {
   bytes: Uint8Array;
 }
 
+/** A chosen statement file: a PDF's bytes (scanned for active content), or a CSV's text. */
+export type PickedStatement = { kind: 'pdf'; name: string; bytes: Uint8Array } | { kind: 'csv'; name: string; text: string };
+
+/** CSV exports are small; anything bigger is not one. */
+export const MAX_CSV_FILE_BYTES = 5 * 1024 * 1024;
+
 /** Opens the system file picker for a PDF and returns its bytes, or null if cancelled. */
 export async function pickPdf(): Promise<PickedPdf | null> {
-  const result = await DocumentPicker.getDocumentAsync({ type: ['application/pdf'], copyToCacheDirectory: true, multiple: false });
+  const picked = await pickStatement(['application/pdf']);
+  if (!picked) return null;
+  if (picked.kind !== 'pdf') throw new Error('Not a PDF');
+  return { name: picked.name, bytes: picked.bytes };
+}
+
+const STATEMENT_TYPES = ['application/pdf', 'text/csv', 'text/comma-separated-values', 'application/csv', 'application/vnd.ms-excel', 'text/plain', 'text/tab-separated-values'];
+
+/**
+ * Opens the system file picker for a statement: a PDF (scanned before it is read) or a CSV export (read as
+ * text, never executed). The content decides, not the name: a CSV is any text file that is not a PDF.
+ */
+export async function pickStatement(types: string[] = STATEMENT_TYPES): Promise<PickedStatement | null> {
+  const result = await DocumentPicker.getDocumentAsync({ type: types, copyToCacheDirectory: true, multiple: false });
   if (result.canceled || !result.assets?.length) return null;
   const asset = result.assets[0];
   if (asset.size != null && asset.size > MAX_PDF_BYTES) throw new PdfTooLargeError();
@@ -60,11 +80,20 @@ export async function pickPdf(): Promise<PickedPdf | null> {
   }
   if (buffer.byteLength > MAX_PDF_BYTES) throw new PdfTooLargeError();
   const bytes = new Uint8Array(buffer);
-  if (!looksLikePdf(bytes)) throw new Error('Not a PDF');
+  if (!looksLikePdf(bytes)) {
+    // Not a PDF: a CSV export, as long as it is small, text, and was offered as one.
+    const name = (asset.name ?? '').toLowerCase();
+    const textual = /\.(csv|tsv|txt)$/.test(name) || /^text\/|csv/.test(asset.mimeType ?? '');
+    if (!textual || bytes.byteLength > MAX_CSV_FILE_BYTES) { bytes.fill(0); throw new Error('Not a PDF'); }
+    const text = decodeTextBytes(bytes);
+    bytes.fill(0);
+    if (text.includes('\u0000')) throw new Error('Not a PDF');
+    return { kind: 'csv', name: asset.name, text };
+  }
   const scan = scanPdfBytes(bytes);
   if (scan.blocked) { bytes.fill(0); throw new PdfBlockedError(scan.markers); }
   if (scan.encrypted) { bytes.fill(0); throw new PdfEncryptedError(); }
-  return { name: asset.name, bytes };
+  return { kind: 'pdf', name: asset.name, bytes };
 }
 
 function deleteQuietly(entry: File | Directory): void {
