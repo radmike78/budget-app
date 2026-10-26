@@ -508,3 +508,235 @@ const INSIGHTS_STAY_ENTRIES: Case[] = [
 ];
 describe('ja: comparing, the most, affording', () => runCases('ja', INSIGHTS, labels));
 describe('ja: entries near those words stay entries', () => runCases('ja', INSIGHTS_STAY_ENTRIES, labels));
+
+// ---- Round two: more of what people actually say, mostly as dictation writes it (no punctuation, no 円). ----
+
+/** Putting money aside with no goal named: a savings entry, never a new goal. */
+const SAVING_ENTRIES: Case[] = [
+  ['2万貯金した', { kind: 'transaction', type: 'expense', amount: 20000, categoryId: 'savings' }],
+  ['今日5千円貯めた', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'savings', occurredAt: '2026-09-16' }],
+  ['貯蓄口座に3万移した', { kind: 'transaction', type: 'expense', amount: 30000, categoryId: 'savings' }],
+  ['へそくり5千円', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'savings', note: 'へそくり' }],
+  ['緊急用に1万入れた', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'savings' }],
+  ['旅行用に1万よけておいた', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'savings' }],
+  ['積立NISAに3万3千', { kind: 'transaction', type: 'expense', amount: 33000, categoryId: 'savings' }],
+  ['毎月の積立3万', { kind: 'transaction', type: 'expense', amount: 30000, categoryId: 'savings' }],
+  ['貯金箱に500円', { kind: 'transaction', type: 'expense', amount: 500, categoryId: 'savings' }],
+  ['タンス預金に1万', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'savings' }],
+  ['定期預金に10万入れた', { kind: 'transaction', type: 'expense', amount: 100000, categoryId: 'savings' }],
+  ['ビットコイン1万円分買った', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'savings' }],
+  ['五百円玉貯金', { kind: 'transaction', type: 'expense', amount: 500, categoryId: 'savings' }],
+];
+
+/** "毎月2万" is a pace, not the total: the card asks for the total. */
+const PACED_GOALS: Case[] = [
+  ['車のために毎月2万貯めたい', { kind: 'goal', amount: null, goalKind: 'saving', goalName: '車' }],
+  ['毎月3万ずつ貯金したい', { kind: 'goal', amount: null, goalKind: 'saving' }],
+  ['月2万円貯めたい', { kind: 'goal', amount: null, goalKind: 'saving' }],
+  ['来年までに50万貯めたい', { kind: 'goal', amount: 500000, targetDate: '2027-01-01' }],
+  ['12月までに10万貯めたい', { kind: 'goal', amount: 100000 }],
+];
+
+const MORE_EXPENSES: Case[] = [
+  ['ランチ1200', { kind: 'transaction', type: 'expense', amount: 1200, categoryId: 'dining' }],
+  ['コンビニで800', { kind: 'transaction', type: 'expense', amount: 800, categoryId: 'groceries' }],
+  ['昼飯に千円使った', { kind: 'transaction', type: 'expense', amount: 1000, categoryId: 'dining' }],
+  ['ガソリン満タン5千円', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'transport' }],
+  ['電気代払った8千円', { kind: 'transaction', type: 'expense', amount: 8000, categoryId: 'utilities' }],
+  ['家賃振り込んだ9万', { kind: 'transaction', type: 'expense', amount: 90000, categoryId: 'rent' }],
+  ['飲み会で4千円', { kind: 'transaction', type: 'expense', amount: 4000, categoryId: 'dining' }],
+  ['タクシー2千円', { kind: 'transaction', type: 'expense', amount: 2000, categoryId: 'transport' }],
+  ['スタバ600', { kind: 'transaction', type: 'expense', amount: 600, categoryId: 'dining' }],
+  ['ユニクロで5千円', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'shopping' }],
+  ['病院で3千円', { kind: 'transaction', type: 'expense', amount: 3000, categoryId: 'health' }],
+  ['薬局で1500', { kind: 'transaction', type: 'expense', amount: 1500, categoryId: 'health' }],
+  ['駐車場300', { kind: 'transaction', type: 'expense', amount: 300, categoryId: 'transport' }],
+  ['高速代800', { kind: 'transaction', type: 'expense', amount: 800, categoryId: 'transport' }],
+  ['子どもの習い事1万', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'shopping' }],
+  ['サブスク1480', { kind: 'transaction', type: 'expense', amount: 1480, categoryId: 'subscriptions' }],
+  ['Amazonで3千円ポチった', { kind: 'transaction', type: 'expense', amount: 3000, categoryId: 'shopping' }],
+  ['ウーバーイーツ2千円', { kind: 'transaction', type: 'expense', amount: 2000, categoryId: 'dining' }],
+  ['お昼は同僚とラーメン900', { kind: 'transaction', type: 'expense', amount: 900, categoryId: 'dining' }],
+  ['電車代400', { kind: 'transaction', type: 'expense', amount: 400, categoryId: 'transport' }],
+  ['定期代1万2千', { kind: 'transaction', type: 'expense', amount: 12000, categoryId: 'transport' }],
+  ['ワンコインランチ', { kind: 'transaction', type: 'expense', amount: 500, categoryId: 'dining' }],
+  ['五百円玉落とした', { kind: 'transaction', type: 'expense', amount: 500 }],
+  ['朝マック500', { kind: 'transaction', type: 'expense', amount: 500, categoryId: 'dining' }],
+  ['ドトールで400', { kind: 'transaction', type: 'expense', amount: 400, categoryId: 'dining' }],
+  ['セブンで350', { kind: 'transaction', type: 'expense', amount: 350, categoryId: 'groceries' }],
+  ['美容院8千円', { kind: 'transaction', type: 'expense', amount: 8000, categoryId: 'shopping' }],
+  ['ネイル6千円', { kind: 'transaction', type: 'expense', amount: 6000, categoryId: 'shopping' }],
+  ['ペットフード3千円', { kind: 'transaction', type: 'expense', amount: 3000, categoryId: 'shopping' }],
+  ['切手84円', { kind: 'transaction', type: 'expense', amount: 84, categoryId: 'other_expense' }],
+  ['PayPayで2千円', { kind: 'transaction', type: 'expense', amount: 2000 }],
+  ['洗剤とトイレットペーパー1500', { kind: 'transaction', type: 'expense', amount: 1500, categoryId: 'shopping' }],
+  ['ランチ代1200円でした', { kind: 'transaction', type: 'expense', amount: 1200, categoryId: 'dining' }],
+  ['ガチャに3千円課金', { kind: 'transaction', type: 'expense', amount: 3000, categoryId: 'entertainment' }],
+  ['推しのグッズ5千円', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'entertainment' }],
+  ['お菓子300', { kind: 'transaction', type: 'expense', amount: 300, categoryId: 'dining' }],
+  ['歯医者で5千円払いました', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'health' }],
+  ['保育園代3万', { kind: 'transaction', type: 'expense', amount: 30000, categoryId: 'other_expense' }],
+  ['塾の月謝2万', { kind: 'transaction', type: 'expense', amount: 20000, categoryId: 'shopping' }],
+  ['ETC代1200', { kind: 'transaction', type: 'expense', amount: 1200, categoryId: 'transport' }],
+  ['レンタカー8千円', { kind: 'transaction', type: 'expense', amount: 8000, categoryId: 'transport' }],
+  ['コンタクト3千円', { kind: 'transaction', type: 'expense', amount: 3000, categoryId: 'health' }],
+  // Given, not received: "お年玉", "お小遣い" and "チップ" are keywords, and the verb decides the direction.
+  ['お年玉あげた1万', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'shopping' }],
+  ['子どもにお小遣い3千円あげた', { kind: 'transaction', type: 'expense', amount: 3000, categoryId: 'shopping' }],
+  ['チップ渡した500円', { kind: 'transaction', type: 'expense', amount: 500 }],
+];
+
+const MORE_INCOME: Case[] = [
+  ['給料入った25万', { kind: 'transaction', type: 'income', amount: 250000, categoryId: 'salary' }],
+  ['給料日', { kind: 'transaction', type: 'income', amount: null, categoryId: 'salary' }],
+  ['給料日25万', { kind: 'transaction', type: 'income', amount: 250000, categoryId: 'salary' }],
+  ['バイト代3万', { kind: 'transaction', type: 'income', amount: 30000, categoryId: 'salary' }],
+  ['副業で5万', { kind: 'transaction', type: 'income', amount: 50000, categoryId: 'freelance' }],
+  ['チップ', { kind: 'transaction', type: 'income', amount: null, categoryId: 'freelance' }],
+  ['メルカリで売れた3千円', { kind: 'transaction', type: 'income', amount: 3000, categoryId: 'freelance' }],
+  ['フリマで売れた2千円', { kind: 'transaction', type: 'income', amount: 2000, categoryId: 'freelance' }],
+  ['返金2千円', { kind: 'transaction', type: 'income', amount: 2000, categoryId: 'other_income' }],
+  ['おばあちゃんから1万もらった', { kind: 'transaction', type: 'income', amount: 10000, categoryId: 'gift_income' }],
+  ['ボーナス30万', { kind: 'transaction', type: 'income', amount: 300000, categoryId: 'salary' }],
+  ['還付金1万', { kind: 'transaction', type: 'income', amount: 10000, categoryId: 'other_income' }],
+  ['お年玉', { kind: 'transaction', type: 'income', amount: null, categoryId: 'gift_income' }],
+  ['手取り入った23万5千', { kind: 'transaction', type: 'income', amount: 235000, categoryId: 'salary' }],
+  ['親から仕送り5万', { kind: 'transaction', type: 'income', amount: 50000, categoryId: 'gift_income' }],
+  ['お祝い金3万もらった', { kind: 'transaction', type: 'income', amount: 30000, categoryId: 'gift_income' }],
+  ['キャッシュバック1500', { kind: 'transaction', type: 'income', amount: 1500, categoryId: 'other_income' }],
+  ['宝くじ当たった3千円', { kind: 'transaction', type: 'income', amount: 3000, categoryId: 'other_income' }],
+  ['残業代2万', { kind: 'transaction', type: 'income', amount: 20000, categoryId: 'salary' }],
+  ['経費精算で5千円戻ってきた', { kind: 'transaction', type: 'income', amount: 5000, categoryId: 'other_income' }],
+];
+
+const MORE_QUESTIONS: Case[] = [
+  ['今週いくら使った', { kind: 'question', question: { ask: 'spent', type: 'expense', period: 'week', target: null } }],
+  ['今日何円使った', { kind: 'question', question: { ask: 'spent', period: 'today', target: null } }],
+  ['今月はいくら使ったっけ', { kind: 'question', question: { ask: 'spent', period: 'month', target: null } }],
+  ['昨日いくら使ったか教えて', { kind: 'question', question: { ask: 'spent', period: 'yesterday', target: null } }],
+  ['コーヒーに今月いくら', { kind: 'question', question: { ask: 'spent', period: 'month', target: 'コーヒー', fallbackCategoryId: 'dining' } }],
+  ['今月の外食いくら', { kind: 'question', question: { ask: 'spent', period: 'month', categoryId: 'dining' } }],
+  ['今週コンビニいくら', { kind: 'question', question: { ask: 'spent', period: 'week', target: 'コンビニ', fallbackCategoryId: 'groceries' } }],
+  ['今日のランチいくらだった', { kind: 'question', question: { ask: 'spent', period: 'today', target: 'ランチ', fallbackCategoryId: 'dining' } }],
+  ['ガス代今月いくら払った', { kind: 'question', question: { ask: 'spent', period: 'month', target: 'ガス', fallbackCategoryId: 'utilities' } }],
+  ['今月サブスクいくら', { kind: 'question', question: { ask: 'spent', period: 'month', categoryId: 'subscriptions' } }],
+  ['今週の飲み会いくら', { kind: 'question', question: { ask: 'spent', period: 'week', target: '飲み会', fallbackCategoryId: 'dining' } }],
+  ['あといくら残ってる', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['いくら残ってる', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['今月まだいくら使える', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['食費はあといくら', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries', 'dining'] } }],
+  ['交通費あといくら', { kind: 'question', question: { ask: 'left', categoryIds: ['transport'] } }],
+  ['今月使いすぎ？', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['給料日までお金足りる？', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['今月お金足りそう？', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['先週より使ってる？', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['今週何に一番使った？', { kind: 'question', question: { ask: 'top', period: 'week', target: null } }],
+  ['今月一番大きかった出費は', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['8千円の靴買える？', { kind: 'question', question: { ask: 'afford', price: 8000, target: '靴', fallbackCategoryId: 'shopping' } }],
+  ['1万円の靴買っても大丈夫', { kind: 'question', question: { ask: 'afford', price: 10000, target: '靴', fallbackCategoryId: 'shopping' } }],
+  ['今週いくら稼いだ', { kind: 'question', question: { type: 'income', period: 'week', target: null } }],
+  ['今月の収入いくら', { kind: 'question', question: { type: 'income', period: 'month', target: null } }],
+  ['バイト代今月いくら', { kind: 'question', question: { type: 'income', period: 'month', fallbackCategoryId: 'salary' } }],
+  ['先月の給料いくらだった', { kind: 'question', question: { type: 'income', period: 'lastMonth', categoryId: 'salary' } }],
+];
+
+/** Fixes by voice, some naming the entry they mean ("ウーバー消して", "ランチ1500に直して"). */
+const MORE_CORRECTIONS: Case[] = [
+  ['やっぱ1400だった', { kind: 'correction', correction: { remove: false, target: null, amount: 1400 } }],
+  ['金額1400に', { kind: 'correction', correction: { amount: 1400 } }],
+  ['1500円に修正', { kind: 'correction', correction: { amount: 1500 } }],
+  ['1200じゃなくて1400', { kind: 'correction', correction: { amount: 1400, target: null } }],
+  ['千四百円の間違い', { kind: 'correction', correction: { amount: 1400 } }],
+  ['それ1400円に直して', { kind: 'correction', correction: { amount: 1400, target: null } }],
+  ['外食にして', { kind: 'correction', correction: { categoryId: 'dining', amount: null, target: null } }],
+  ['やっぱ交通費', { kind: 'correction', correction: { categoryId: 'transport' } }],
+  ['昨日のだった', { kind: 'correction', correction: { date: '2026-09-15', amount: null, categoryId: null } }],
+  ['昨日の分だった', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['おとといの分', { kind: 'correction', correction: { date: '2026-09-14' } }],
+  ['さっきの消して', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['あれ消して', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['ウーバー消して', { kind: 'correction', correction: { remove: true, target: 'ウーバー' } }],
+  ['スタバのやつ消して', { kind: 'correction', correction: { remove: true, target: 'スタバ' } }],
+  ['コンビニのやつ削除して', { kind: 'correction', correction: { remove: true, target: 'コンビニ' } }],
+  ['ランチ1500に直して', { kind: 'correction', correction: { remove: false, target: 'ランチ', amount: 1500, categoryId: null } }],
+  ['さっきのランチ1500に直して', { kind: 'correction', correction: { target: 'ランチ', amount: 1500 } }],
+  ['ウーバー2300じゃなくて3200', { kind: 'correction', correction: { target: 'ウーバー', amount: 3200 } }],
+  ['ランチ1400円だった、ごめん', { kind: 'correction', correction: { target: 'ランチ', amount: 1400 } }],
+];
+
+/** Said in passing, these stay entries: a plain "was 1200" is how people log, and "全部" names no entry. */
+const STILL_ENTRIES: Case[] = [
+  ['ランチ1200円だった', { kind: 'transaction', amount: 1200, categoryId: 'dining' }],
+  ['全部消して', { kind: 'transaction', amount: null }],
+  ['全部で3千円', { kind: 'transaction', amount: 3000 }],
+  ['毎月の家賃8万', { kind: 'transaction', amount: 80000, categoryId: 'rent' }],
+  ['月額980円のサブスク', { kind: 'transaction', amount: 980, categoryId: 'subscriptions' }],
+  ['毎週のジム代1万', { kind: 'transaction', amount: 10000, categoryId: 'health' }],
+  ['先月の電気代8千円払った', { kind: 'transaction', amount: 8000, categoryId: 'utilities', occurredAt: '2026-08-16' }],
+  ['貯金から1万おろした', { kind: 'transaction', type: 'expense', amount: 10000 }],
+  ['クリーニング代1200', { kind: 'transaction', amount: 1200 }],
+];
+
+const MORE_REMINDERS: Case[] = [
+  ['1日に家賃リマインドして', { kind: 'reminder', occurredAt: '2026-10-01', reminderText: '家賃' }],
+  ['金曜に電気代忘れないように', { kind: 'reminder', occurredAt: '2026-09-18', reminderText: '電気代' }],
+  ['20時にレシート入力って言って', { kind: 'reminder', reminderTime: '20:00', reminderText: 'レシート入力' }],
+  ['毎週月曜に予算チェックのリマインド', { kind: 'reminder', reminderRepeat: 'weekly', reminderText: '予算チェック' }],
+  ['明日の朝9時に振込って教えて', { kind: 'reminder', occurredAt: '2026-09-17', reminderTime: '09:00' }],
+  ['毎月25日カード引き落としのリマインダー', { kind: 'reminder', reminderRepeat: 'monthly' }],
+  ['来週月曜に保険料払うようリマインド', { kind: 'reminder', occurredAt: '2026-09-21' }],
+  ['毎朝家計簿つけるのを思い出させて', { kind: 'reminder', reminderRepeat: 'daily', reminderTime: '08:00' }],
+  ['夜8時に家計簿リマインド', { kind: 'reminder', reminderTime: '20:00' }],
+];
+
+/** Kanji, kana, commas, "万" with a decimal, and the 500-yen coin. */
+const NUMBER_FORMS: Case[] = [
+  ['千二百円', { kind: 'transaction', amount: 1200 }],
+  ['1,200円', { kind: 'transaction', amount: 1200 }],
+  ['二千五百', { kind: 'transaction', amount: 2500 }],
+  ['1.2万', { kind: 'transaction', amount: 12000 }],
+  ['一万二千', { kind: 'transaction', amount: 12000 }],
+  ['12万', { kind: 'transaction', amount: 120000 }],
+  ['八百円', { kind: 'transaction', amount: 800 }],
+  ['¥3,500', { kind: 'transaction', amount: 3500 }],
+  ['ワンコイン', { kind: 'transaction', amount: 500 }],
+  ['ランチ千二百', { kind: 'transaction', amount: 1200, categoryId: 'dining' }],
+  ['三万五千円の家賃', { kind: 'transaction', amount: 35000, categoryId: 'rent' }],
+  ['2.5万使った', { kind: 'transaction', amount: 25000 }],
+  ['1万2千円のコート', { kind: 'transaction', amount: 12000, categoryId: 'shopping' }],
+  ['15,000円の靴', { kind: 'transaction', amount: 15000, categoryId: 'shopping' }],
+  ['12.5万のパソコン', { kind: 'transaction', amount: 125000, categoryId: 'shopping' }],
+];
+
+describe('ja: putting money aside', () => runCases('ja', SAVING_ENTRIES, labels));
+describe('ja: an amount per month is a pace', () => runCases('ja', PACED_GOALS, labels));
+describe('ja: more expenses, as dictated', () => runCases('ja', MORE_EXPENSES, labels));
+describe('ja: more income', () => runCases('ja', MORE_INCOME, labels));
+describe('ja: more questions', () => runCases('ja', MORE_QUESTIONS, labels));
+describe('ja: more corrections, some naming the entry', () => runCases('ja', MORE_CORRECTIONS, labels));
+describe('ja: still entries', () => runCases('ja', STILL_ENTRIES, labels));
+describe('ja: more reminders', () => runCases('ja', MORE_REMINDERS, labels));
+describe('ja: the ways a number is said', () => runCases('ja', NUMBER_FORMS, labels));
+
+/** Paying into a goal named in Japanese, with "用に", a bare verb after the amount, or the goal's own words. */
+const MORE_CONTRIBUTIONS: [string, Record<string, unknown>][] = [
+  ['沖縄旅行の貯金に2千円足した', { kind: 'contribution', amount: 2000, goalId: 'g1' }],
+  ['沖縄旅行に3千円貯金', { kind: 'contribution', amount: 3000, goalId: 'g1' }],
+  ['沖縄旅行に1万円貯めた', { kind: 'contribution', amount: 10000, goalId: 'g1' }],
+  ['旅行用に1万よけておいた', { kind: 'contribution', amount: 10000, goalId: 'g1' }],
+  ['昨日沖縄旅行用に5千円入れた', { kind: 'contribution', amount: 5000, goalId: 'g1', occurredAt: '2026-09-15' }],
+  ['緊急用に1万入れた', { kind: 'contribution', amount: 10000, goalId: 'g2' }],
+  ['緊急資金5千円追加', { kind: 'contribution', amount: 5000, goalId: 'g2' }],
+  ['緊急資金に2万足した', { kind: 'contribution', amount: 20000, goalId: 'g2' }],
+];
+describe('ja: paying into a goal, round two', () => {
+  it.each(MORE_CONTRIBUTIONS)('%s', (text, expected) => {
+    const r = parseOne(text, 'ja', labels, JAPANESE_GOALS);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected);
+  });
+  it('Trip to Japanに2千円足した', () => {
+    const r = parseOne('Trip to Japanに2千円足した', 'ja', labels);
+    expect(r[0]).toMatchObject({ kind: 'contribution', amount: 2000, goalId: 'g1' });
+  });
+});
