@@ -12,7 +12,7 @@ import { HINT } from '@/parser';
 import { cleanEntry } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
-import { getTransaction, latestSavedTransaction, queryTransactions, recentTransactions } from '@/db/repositories';
+import { getTransaction, latestSavedTransaction, queryTransactions, recentlySavedTransactions } from '@/db/repositories';
 import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange } from '@/lib/questions';
 import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
@@ -42,6 +42,9 @@ export function useEntryFlow() {
   useEffect(() => { pendingRef.current = pending; }, [pending]);
   useEffect(() => { pendingManyRef.current = pendingMany; }, [pendingMany]);
   const [answer, setAnswer] = useState<SpokenAnswer | null>(null);
+  // After the free month a sentence that would add something shows the purchase card instead of a confirmation card;
+  // questions, corrections and voice commands still go through.
+  const [blocked, setBlocked] = useState(false);
   const [busy, setBusy] = useState(false);
   /** How the entry on the card came in, so a spoken entry can get a spoken reply. */
   const [lastSource, setLastSource] = useState<EntrySource>('typed');
@@ -63,7 +66,8 @@ export function useEntryFlow() {
       // The period so far against the same point in the one before, so half a month never meets a whole one.
       const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
       const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);
-      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0);
+      const whole = kind === 'lastWeek' || kind === 'lastMonth' || kind === 'lastYear' || kind === 'yesterday' || kind === 'weekend' || kind === 'recentDays' || kind === 'today';
+      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0, q.days);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: r.before.from, to: r.now.to, limit: 100000 });
       const spentQ = { ...q, ask: 'spent' as const };
@@ -71,9 +75,9 @@ export function useEntryFlow() {
       const before = answerQuestion(spentQ, rows, r.before, categories);
       const cat = now.categoryId ? categories.find((c) => c.id === now.categoryId) : null;
       const what = now.categoryIds ? now.target : cat && !now.usedFallback ? categoryName(cat, t) : now.target;
-      const periodName = t.periodNames[kind] ?? kind;
-      const prev = t.comparePrev[kind] ?? kind;
-      text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev);
+      const periodName = kind === 'recentDays' ? t.periodLastDays(q.days ?? 7) : t.periodNames[kind] ?? kind;
+      const prev = kind === 'recentDays' ? t.comparePrevDays(q.days ?? 7) : t.comparePrev[kind] ?? kind;
+      text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev, whole);
     } else if (q.ask === 'top') {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
       const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
@@ -221,7 +225,7 @@ export function useEntryFlow() {
     const db = await getDb();
     if (fix.target) {
       // The newest entry whose note or category says those words ("spotify", "uber"); a plain substring test, never a RegExp.
-      const found = (await recentTransactions(db, 200)).filter((x) => isMeant(x.note, x.categoryId)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
+      const found = (await recentlySavedTransactions(db, 500)).find((x) => isMeant(x.note, x.categoryId));
       if (!found) { await reply(t.correctionNoMatch(fix.target), source, language); return; }
       await applyToSaved(found, fix, result, source, language);
       return;
@@ -247,6 +251,7 @@ export function useEntryFlow() {
     const language = resolveLanguage(settings?.language);
     const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames, currency: settings?.currency };
     const entries = parseEntries(text, ctx);
+    setBlocked(false);
     if (entries.length === 1 && entries[0].kind === 'correction' && entries[0].correction) {
       await applyCorrection(entries[0], source, language);
       return;
@@ -278,6 +283,13 @@ export function useEntryFlow() {
       return;
     }
     setAnswer(null);
+    if (useAppStore.getState().license?.state === 'ended') {
+      // Reading, asking and fixing are never gated; adding is what the purchase is for.
+      setPending(null);
+      setPendingMany(null);
+      setBlocked(true);
+      return;
+    }
     if (entries.length > 1) {
       // Several expenses in one go: each becomes its own row on the card.
       setPending(null);
@@ -324,8 +336,22 @@ export function useEntryFlow() {
     }
   }, [submitInner, t]);
 
-  const dismiss = useCallback(() => { setPending(null); setPendingMany(null); }, []);
+  const dismiss = useCallback(() => { setPending(null); setPendingMany(null); setBlocked(false); }, []);
+
+  /** One tap on a frequent entry: the same card as a typed sentence, dated today, still saved by the person. */
+  const prefill = useCallback((entry: { note: string | null; categoryId: string | null; amount: number }) => {
+    if (useAppStore.getState().license?.state === 'ended') { setPending(null); setPendingMany(null); setBlocked(true); return; }
+    setAnswer(null);
+    setBlocked(false);
+    setPendingMany(null);
+    setLastSource('typed');
+    setPending({
+      kind: 'transaction', raw: entry.note ?? '', amount: entry.amount, type: 'expense', typeConfidence: 1, categoryId: entry.categoryId, categoryConfidence: 1,
+      note: entry.note, occurredAt: today(), dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
+      reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null, command: null, correction: null, confidence: 1, needsReview: false, hints: [],
+    });
+  }, []);
   const dismissAnswer = useCallback(() => setAnswer(null), []);
 
-  return { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource };
+  return { pending, pendingMany, answer, busy, blocked, submit, prefill, dismiss, dismissAnswer, lastSource };
 }

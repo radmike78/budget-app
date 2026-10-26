@@ -110,7 +110,8 @@ export default function RecurringEditor() {
       <Button title={isNew ? t.startRepeating : t.save} onPress={onSave} loading={saving} />
       {existing ? (
         <Row style={{ marginTop: spacing.md }}>
-          <Button tone="secondary" title={existing.active ? t.pause : t.resume} style={{ flex: 1 }} disabled={saving} onPress={() => persist({ ...existing, active: !existing.active })} />
+          {/* Resuming logs new entries at once, so after the free month only pausing stays. */}
+          <Button tone="secondary" title={existing.active ? t.pause : t.resume} style={{ flex: 1 }} disabled={saving || (!existing.active && !adding)} onPress={() => persist({ ...existing, active: !existing.active })} />
           <Button tone="danger" title={t.remove} style={{ flex: 1 }} onPress={onDelete} />
         </Row>
       ) : null}

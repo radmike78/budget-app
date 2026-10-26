@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Share } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
@@ -11,7 +11,12 @@ const MIME: Record<string, string> = {
 };
 
 /** Writes text to the cache directory and opens the system share sheet (a download on the web build). */
-export async function shareTextFile(filename: string, contents: string): Promise<void> {
+/**
+ * Hands a text file to the share sheet. Resolves true when it was taken somewhere; iOS reports a plain dismiss,
+ * which answers false so a backup date is never recorded for a copy that was not made. Android and the web
+ * cannot tell, and answer true.
+ */
+export async function shareTextFile(filename: string, contents: string): Promise<boolean> {
   if (Platform.OS === 'web') {
     const ext = filename.split('.').pop() ?? 'txt';
     const blob = new Blob([contents], { type: MIME[ext] ?? 'text/plain' });
@@ -23,15 +28,20 @@ export async function shareTextFile(filename: string, contents: string): Promise
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    return;
+    return true;
   }
   const file = new File(Paths.cache, filename);
   if (file.exists) file.delete();
   file.write(contents);
   const ext = filename.split('.').pop() ?? 'txt';
+  if (Platform.OS === 'ios') {
+    const result = await Share.share({ url: file.uri }, { subject: filename });
+    return result.action === Share.sharedAction;
+  }
   const canShare = await Sharing.isAvailableAsync();
   if (!canShare) throw new Error('SHARING_UNAVAILABLE');
   await Sharing.shareAsync(file.uri, { mimeType: MIME[ext] ?? 'text/plain', dialogTitle: filename, UTI: ext === 'json' || ext === 'onlybudget' ? 'public.json' : 'public.plain-text' });
+  return true;
 }
 
 /**

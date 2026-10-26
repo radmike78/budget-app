@@ -3,9 +3,10 @@ import { AccessibilityInfo, Pressable, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme';
-import { monthKey, monthName, today } from '@/lib/dates';
+import { friendlyDate, monthKey, monthName, today } from '@/lib/dates';
 import { goalProgress, isWholeMonth } from '@/lib/plain';
 import { periodContaining, samePeriod } from '@/lib/periods';
+import { upcomingBills } from '@/lib/safeToSpend';
 import { compareWeeks } from '@/lib/recap';
 import { PeriodCard } from '@/components/PeriodCard';
 import { categoryName, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
@@ -17,7 +18,7 @@ import { MultiConfirmationCard } from '@/components/MultiConfirmationCard';
 import { CarryQuestions } from '@/components/CarryQuestions';
 import { TransactionRow } from '@/components/TransactionRow';
 import { useEntryFlow } from '@/components/useEntryFlow';
-import { Button, Card, EmptyState, ProgressBar, Row, Screen, SectionTitle, Spacer, Text } from '@/components/ui';
+import { Button, Card, Chip, ChipRow, EmptyState, ProgressBar, Row, Screen, SectionTitle, Spacer, Text } from '@/components/ui';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -35,8 +36,9 @@ export default function HomeScreen() {
   const lifetime = useAppStore((s) => s.lifetime);
   const recap = useAppStore((s) => s.recap);
   const review = useAppStore((s) => s.review);
+  const frequent = useAppStore((s) => s.frequent);
   const fmt = useDateFormat();
-  const { pending, pendingMany, answer, busy, submit, dismiss, dismissAnswer, lastSource } = useEntryFlow();
+  const { pending, pendingMany, answer, busy, blocked, submit, prefill, dismiss, dismissAnswer, lastSource } = useEntryFlow();
   const language = useLanguageCode();
   const [toast, setToast] = useState<string | null>(null);
   const [toastLine, setToastLine] = useState<string | null>(null);
@@ -74,7 +76,19 @@ export default function HomeScreen() {
 
   return (
     <Screen keyboard>
-      {adding ? <EntryBar onSubmit={submit} busy={busy} /> : <TrialEnded style={{ marginTop: 0 }} />}
+      {/* The bar stays after the free month: questions, fixes and voice commands are never gated. A new entry shows the purchase card. */}
+      <EntryBar onSubmit={submit} busy={busy} />
+      {!adding && (blocked || (!pending && !pendingMany && !answer)) ? <TrialEnded /> : null}
+      {/* What gets logged most often, one tap away; the card still asks before saving. */}
+      {adding && frequent.length > 0 && !pending && !pendingMany ? (
+        <ChipRow style={{ marginTop: spacing.sm }}>
+          {frequent.map((f) => {
+            const cat = categories.find((c) => c.id === f.categoryId);
+            const label = `${f.note || (cat ? categoryName(cat, t) : t.otherSpending)} ${money(f.amount, { compact: true })}`;
+            return <Chip key={`${f.note ?? ''}|${f.categoryId ?? ''}|${f.amount}`} label={label} accessibilityLabel={t.logAgain(label)} onPress={() => prefill(f)} />;
+          })}
+        </ChipRow>
+      ) : null}
       <TrialNotice />
       <BackupNotice />
       {answer ? (
@@ -99,6 +113,27 @@ export default function HomeScreen() {
       ) : null}
       <SectionTitle>{payPeriod ? t.thisPeriod : t.thisMonth}</SectionTitle>
       <PeriodCard stats={stats} settings={settings} categories={categories} rules={rules} today={todayStr} onBarPress={() => router.push('/budget')} />
+      {(() => {
+        // The bills due in the next month, soonest first: what the safe-to-spend number is keeping back.
+        const bills = upcomingBills(rules, todayStr);
+        if (!bills.length) return null;
+        return (
+          <Card style={{ marginTop: spacing.sm }}>
+            <Text variant="label">{t.comingUp}</Text>
+            {bills.map(({ rule, date }) => {
+              const cat = categories.find((c) => c.id === rule.categoryId);
+              return (
+                <Pressable key={`${rule.id}|${date}`} accessibilityRole="button" onPress={() => router.push(`/recurring/${rule.id}`)}>
+                  <Row style={{ marginTop: spacing.xs, justifyContent: 'space-between' }}>
+                    <Text variant="body" style={{ flex: 1 }} numberOfLines={1}>{rule.note || (cat ? categoryName(cat, t) : t.otherSpending)} · {friendlyDate(date, todayStr, fmt)}</Text>
+                    <Text variant="body">{money(rule.amount, { compact: true })}</Text>
+                  </Row>
+                </Pressable>
+              );
+            })}
+          </Card>
+        );
+      })()}
       {balance ? <Text variant="small" style={{ marginTop: spacing.sm }}>{balance}</Text> : null}
 
       <CarryQuestions />

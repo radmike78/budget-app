@@ -193,11 +193,11 @@ export function dayOfMonthRule(re: RegExp): DateRule {
       if (day < 1 || day > 31) return null;
       let y = td.getFullYear();
       let mo = td.getMonth();
-      if (day > td.getDate()) {
-        mo -= 1;
-        if (mo < 0) { mo = 11; y -= 1; }
-      }
-      return toDateString(new Date(y, mo, Math.min(day, daysInMonth(y, mo))));
+      const back = () => { mo -= 1; if (mo < 0) { mo = 11; y -= 1; } };
+      if (day > td.getDate()) back();
+      // The most recent month that has such a day: "on the 31st" said in March means January 31st, not February 28th.
+      for (let guard = 0; guard < 12 && day > daysInMonth(y, mo); guard += 1) back();
+      return toDateString(new Date(y, mo, day));
     },
   };
 }

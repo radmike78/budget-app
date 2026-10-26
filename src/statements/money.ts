@@ -35,8 +35,12 @@ export function toNumber(numeric: string): number | null {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
 }
 
+/** Longer text than this is not a statement line; the regex is bounded so a crafted line cannot stall the app. */
+const MAX_MONEY_TEXT = 4000;
+
 /** Every money-looking token in a row, in order. Years (2026) and long ids are skipped. */
-export function findMoney(text: string): MoneyToken[] {
+export function findMoney(input: string): MoneyToken[] {
+  const text = input.length > MAX_MONEY_TEXT ? input.slice(0, MAX_MONEY_TEXT) : input;
   const out: MoneyToken[] = [];
   MONEY_RE.lastIndex = 0;
   let m: RegExpExecArray | null;

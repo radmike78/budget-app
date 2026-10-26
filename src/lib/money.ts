@@ -75,7 +75,8 @@ export function formatMoney(amount: number, code: string, opts: { compact?: bool
     numberText = frac ? `${groupThousands(intPart, fmt.group)}${fmt.decimal}${frac}` : groupThousands(intPart, fmt.group);
   }
   const sign = negative ? '-' : '';
-  if (fmt.symbolAfter) return `${sign}${numberText} ${info.symbol.trim()}`;
+  // A no-break space: "12,50 €" is one word on a narrow label.
+  if (fmt.symbolAfter) return `${sign}${numberText}\u00a0${info.symbol.trim()}`;
   return `${sign}${info.symbol}${numberText}`;
 }
 

@@ -27,6 +27,16 @@ describe('comparing at the same point', () => {
   it('the year so far against last year to the same date', () => {
     expect(compareRanges('year', '2026-09-16')).toEqual({ now: { from: '2026-01-01', to: '2026-09-16' }, before: { from: '2025-01-01', to: '2025-09-16' } });
   });
+  it('a period that is over is compared whole with the one before it', () => {
+    // Wednesday 16 September 2026, weeks starting Sunday: last week was the 6th to the 12th.
+    expect(compareRanges('lastWeek', '2026-09-16')).toEqual({ now: { from: '2026-09-06', to: '2026-09-12' }, before: { from: '2026-08-30', to: '2026-09-05' } });
+    expect(compareRanges('yesterday', '2026-09-16')).toEqual({ now: { from: '2026-09-15', to: '2026-09-15' }, before: { from: '2026-09-14', to: '2026-09-14' } });
+    expect(compareRanges('today', '2026-09-16')).toEqual({ now: { from: '2026-09-16', to: '2026-09-16' }, before: { from: '2026-09-15', to: '2026-09-15' } });
+    expect(compareRanges('lastMonth', '2026-09-16')).toEqual({ now: { from: '2026-08-01', to: '2026-08-31' }, before: { from: '2026-07-01', to: '2026-07-31' } });
+    expect(compareRanges('lastYear', '2026-09-16')).toEqual({ now: { from: '2025-01-01', to: '2025-12-31' }, before: { from: '2024-01-01', to: '2024-12-31' } });
+    expect(compareRanges('recentDays', '2026-09-16', undefined, undefined, 0, 30)).toEqual({ now: { from: '2026-08-18', to: '2026-09-16' }, before: { from: '2026-07-19', to: '2026-08-17' } });
+    expect(compareRanges('weekend', '2026-09-16')).toEqual({ now: { from: '2026-09-12', to: '2026-09-13' }, before: { from: '2026-09-05', to: '2026-09-06' } });
+  });
 });
 
 describe('where most went', () => {

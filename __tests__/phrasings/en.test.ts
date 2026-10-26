@@ -376,6 +376,11 @@ const INSIGHTS: Case[] = [
   ['how am I doing compared to last week', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
   ['is my spending up this month', { kind: 'question', question: { ask: 'compare', period: 'month' } }],
   ['how much more did I spend this week than last week', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  // A finished period against the one before it keeps its own period; "before" never becomes a target.
+  ['did I spend more last week than the week before', { kind: 'question', question: { ask: 'compare', period: 'lastWeek', target: null } }],
+  ['did I spend more yesterday than the day before', { kind: 'question', question: { ask: 'compare', period: 'yesterday', target: null } }],
+  ['did I spend more last month than the month before on groceries', { kind: 'question', question: { ask: 'compare', period: 'lastMonth', categoryId: 'groceries' } }],
+  ['did I spend more over the weekend than last weekend', { kind: 'question', question: { ask: 'compare', period: 'weekend', target: null } }],
   ['did I spend less on groceries than last month', { kind: 'question', question: { ask: 'compare', categoryId: 'groceries' } }],
   ['what did I spend the most on', { kind: 'question', question: { ask: 'top', target: null } }],
   ['where did most of my money go this month', { kind: 'question', question: { ask: 'top', period: 'month' } }],

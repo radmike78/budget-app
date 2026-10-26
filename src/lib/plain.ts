@@ -7,6 +7,9 @@ import type { LocaleDef } from '@/i18n/types';
 import { en } from '@/i18n/locales/en';
 import { addDays, clockLabel, daysBetween, friendlyDate, localDay, longDate, monthKey, monthName, monthRange, type DateFormat } from './dates';
 import { formatMoney } from './money';
+import { isWholeMonth } from './periods';
+
+export { isWholeMonth };
 
 function moneyFn(currency: string, locale: LocaleDef) {
   return (n: number) => formatMoney(n, currency, { compact: true, format: locale.format });
@@ -20,11 +23,6 @@ export function monthSummarySentence(stats: MonthStats, currency: string, isCurr
   return locale.sentences.monthSummary(stats, moneyFn(currency, locale), monthName(stats.month, dateFmt(locale)), isCurrentMonth);
 }
 
-/** True when the period is exactly a calendar month (pay mode falls back to months until there is a payday on each side). */
-export function isWholeMonth(period: Period): boolean {
-  const r = monthRange(monthKey(period.start));
-  return period.start === r.start && period.end === r.end;
-}
 
 /** The month sentence, or the payday-to-payday one when the period is not a whole month. */
 export function periodSummarySentence(stats: MonthStats, currency: string, isCurrent: boolean, mode: BudgetPeriodMode, todayStr: string, locale: LocaleDef = en): string {
@@ -68,7 +66,7 @@ export function goalProgress(goal: Goal, currency: string, todayStr: string, loc
   const money = moneyFn(currency, locale);
   const S = locale.sentences;
   const fmt = dateFmt(locale);
-  const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
+  const remaining = Math.max(0, Math.round((goal.targetAmount - goal.currentAmount) * 100) / 100);
   const fraction = goal.targetAmount > 0 ? Math.min(1, goal.currentAmount / goal.targetAmount) : 0;
 
   if (goal.completed || remaining === 0) return { remaining: 0, fraction: 1, status: 'done', sentence: goal.kind === 'debt' ? S.goalDoneDebt(goal, money) : S.goalDone(goal, money) };

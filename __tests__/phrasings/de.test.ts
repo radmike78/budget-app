@@ -351,7 +351,7 @@ const corrections: Case[] = [
   ['Pack das unter Freizeit', fix({ categoryId: 'entertainment' })],
   ['Tu das zu Essen gehen', fix({ categoryId: 'dining' })],
   ['Ändere die Kategorie auf Lebensmittel', fix({ categoryId: 'groceries' })],
-  ['Ändere das in Verkehr', fix({ categoryId: 'transport' })],
+  ['Ändere das in Mobilität', fix({ categoryId: 'transport' })],
   ['Mach das zu Lebensmittel', fix({ categoryId: 'groceries' })],
   ['Mach daraus Freizeit', fix({ categoryId: 'entertainment' })],
   ['Das gehört zu Lebensmittel', fix({ categoryId: 'groceries' })],
@@ -709,7 +709,7 @@ const moreCorrections: Case[] = [
   ['Das Uber war eigentlich 32', named('uber', { amount: 32 })],
   ['Ändere das Uber auf 32', named('uber', { amount: 32 })],
   ['Mach das Mittagessen 15', fix({ amount: 15, categoryId: 'dining' })],
-  ['Das Uber auf Verkehr umbuchen', named('uber', { categoryId: 'transport', amount: null })],
+  ['Das Uber auf Mobilität umbuchen', named('uber', { categoryId: 'transport', amount: null })],
 ];
 
 const moreReminders: Case[] = [

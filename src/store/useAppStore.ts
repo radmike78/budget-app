@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping, MonthStats, Period, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 import type { StatementLine, Tradeline } from '@/statements';
-import { getDb, type DB } from '@/db/database';
+import { getDb, resetDb, type DB } from '@/db/database';
 import * as repo from '@/db/repositories';
 import { addDays, nowIso, toDateString, today } from '@/lib/dates';
 import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
@@ -54,12 +54,16 @@ interface AppState {
   lastSavedId: string | null;
   /** Last week and the week before, for the recap card at the start of a week. */
   recap: WeekRecap | null;
+  /** The expenses logged most often lately, for the one-tap row under the entry bar. */
+  frequent: repo.FrequentEntry[];
   /** The look back at the period just ended, for the first days of a new one (src/lib/review.ts). */
   review: PeriodReview | null;
   /** Where the 30-day trial stands (null until read). The web build is always unlocked. */
   license: License | null;
 
   init: () => Promise<void>;
+  /** Forgets a start that never finished, so `init` can be called again. */
+  resetInit: () => void;
   refresh: () => Promise<void>;
   /** Moves the shown period by `delta` (negative = earlier), or back to the one containing today. */
   shiftPeriod: (delta: number) => Promise<void>;
@@ -180,6 +184,7 @@ async function showPeriod(period: Period): Promise<void> {
 
 /** Logs every repeating entry that has fallen due. Run through `runRecurringCatchUp`, never twice at once. */
 let catchUpRun: Promise<number> | null = null;
+let catchUpAgain = false;
 const CATCH_UP_LIMIT = 2000;
 async function catchUp(): Promise<number> {
   const db = await getDb();
@@ -236,10 +241,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastDeleted: null,
   lastSavedId: null,
   recap: null,
+  frequent: [],
   review: null,
   license: null,
   trialNoticeDismissed: false,
   backupNudgeDismissedOn: null,
+
+  // A start that hung (the database never opened) is forgotten so Try again starts from the beginning.
+  resetInit: () => {
+    if (!get().ready) { initPromise = null; resetDb(); }
+  },
 
   init: () => {
     if (!initPromise) {
@@ -270,7 +281,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   refresh: async () => {
     const run = ++refreshRun;
     const db = await getDb();
-    const [settings, categories, goals, rules, keywords, recent, lifetime, reminders, debts, imports, fingerprints, carryovers] = await Promise.all([
+    const [settings, categories, goals, rules, keywords, recent, lifetime, reminders, debts, imports, fingerprints, carryovers, frequent] = await Promise.all([
       repo.getSettings(db),
       repo.allCategories(db),
       repo.allGoals(db),
@@ -283,6 +294,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       repo.allImports(db),
       repo.allFingerprints(db),
       repo.allCarryovers(db),
+      repo.frequentEntries(db, addDays(today(), -90)),
     ]);
     const keywordMap: Record<string, string> = {};
     for (const k of keywords) keywordMap[k.word] = k.categoryId;
@@ -314,7 +326,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       review = periodReview(lastStats, beforeStats.expenses > 0 || beforeStats.income > 0 ? beforeStats : null);
     }
     if (run !== refreshRun) return;
-    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry, recap, review });
+    set({ settings, categories, goals, rules, keywords, keywordMap, recent, period, stats, lifetime, reminders, debts, imports, fingerprints, carryovers, carry, recap, review, frequent });
   },
 
   shiftPeriod: async (delta) => {
@@ -356,7 +368,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // put back the entry that *was* removed has to survive it.
     if (tx) set({ lastDeleted: { tx, at: Date.now() } });
     // The entry "fix that" would change is gone: there is nothing to reach back to until the next save or an undo.
-    if (tx && (get().lastSavedId === id || get().lastSavedId == null)) set({ lastSavedId: '' });
+    const lastId = get().lastSavedId;
+    if (tx && (lastId === id || (lastId == null && (await repo.latestSavedTransaction(db))?.id === id))) set({ lastSavedId: '' });
     await get().refresh();
   },
 
@@ -432,7 +445,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     const goal = get().goals.find((g) => g.id === goalId);
     if (!goal) return;
-    const current = Math.max(0, goal.currentAmount + amount);
+    const current = Math.max(0, Math.round((goal.currentAmount + amount) * 100) / 100);
     await repo.upsertGoal(db, { ...goal, currentAmount: current, completed: goal.completed || current >= goal.targetAmount });
     // "delete that" right after means the transfer just logged, or (with none logged) nothing to change by voice.
     let transferId = '';
@@ -630,8 +643,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   /** Logs every due occurrence of every active rule. Returns how many entries were created. */
   runRecurringCatchUp: () => {
-    // One run at a time: two overlapping runs (a launch and a save) would both log the same due dates.
-    if (!catchUpRun) catchUpRun = catchUp().finally(() => { catchUpRun = null; });
+    // One run at a time: two overlapping runs (a launch and a save) would both log the same due dates. A rule saved
+    // while a run is under way was not in that run's list, so one more run follows before the promise settles.
+    if (catchUpRun) { catchUpAgain = true; return catchUpRun; }
+    catchUpRun = (async () => {
+      let created = await catchUp();
+      while (catchUpAgain) { catchUpAgain = false; created += await catchUp(); }
+      return created;
+    })().finally(() => { catchUpRun = null; catchUpAgain = false; });
     return catchUpRun;
   },
 
@@ -666,7 +685,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   learnCategory: async (rawInput, categoryId) => {
     const db = await getDb();
-    const words = learnableWords(rawInput, resolveLanguage(get().settings?.language));
+    const words = learnableWords(redactSensitive(rawInput), resolveLanguage(get().settings?.language));
     for (const w of words) await repo.upsertKeyword(db, w, categoryId);
     if (words.length) await get().refresh();
   },

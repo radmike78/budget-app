@@ -6,7 +6,7 @@
  */
 import type { Category, MonthStats, Period, RecurringRule, Transaction } from '@/types';
 import type { ParsedQuestion, QuestionPeriod } from '@/parser';
-import { addDays, fromDateString, monthKey, monthRange, shiftMonthKey, toDateString } from '@/lib/dates';
+import { addDays, daysBetween, fromDateString, monthKey, monthRange, shiftMonthKey, toDateString } from '@/lib/dates';
 import { effectivePlan, type CarryState } from '@/lib/rollover';
 import { safeToSpend } from '@/lib/safeToSpend';
 
@@ -172,9 +172,20 @@ export interface CompareRanges {
  * the same day, the week so far against last week to the same weekday, the pay period so far against the same
  * number of days into the one before (`previous`, from shiftPeriod).
  */
-export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0): CompareRanges {
+export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0, days = 7): CompareRanges {
   const d = fromDateString(todayStr);
   const clamp = (from: string, to: string, end: string): DateRange => ({ from, to: to > end ? end : to });
+  // A period that is over is compared whole with the one before it: last week with the week before, yesterday with
+  // the day before, the last 30 days with the 30 before them; today, with all of yesterday.
+  if (period === 'lastMonth') return { now: periodRange('lastMonth', todayStr), before: monthRangeOf(shiftMonthKey(monthKey(todayStr), -2)) };
+  if (period === 'lastYear') { const y = d.getFullYear() - 1; return { now: { from: `${y}-01-01`, to: `${y}-12-31` }, before: { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` } }; }
+  if (period === 'lastWeek' || period === 'yesterday' || period === 'weekend' || period === 'recentDays' || period === 'today') {
+    const now = periodRange(period, todayStr, current, days, firstDay);
+    if (period === 'today') { const y = addDays(todayStr, -1); return { now, before: { from: y, to: y } }; }
+    // The weekend before is a week back whatever today is; other spans sit right before their own length.
+    const len = period === 'weekend' ? 7 : daysBetween(now.from, now.to) + 1;
+    return { now, before: { from: addDays(now.from, -len), to: addDays(now.to, -len) } };
+  }
   if (period === 'week') {
     const now = periodRange('week', todayStr, undefined, 7, firstDay);
     return { now, before: { from: addDays(now.from, -7), to: addDays(todayStr, -7) } };
@@ -192,6 +203,11 @@ export function compareRanges(period: QuestionPeriod, todayStr: string, current?
   const last = monthRange(shiftMonthKey(monthKey(todayStr), -1));
   const elapsed = d.getDate() - 1;
   return { now: { from: month.start, to: todayStr }, before: clamp(last.start, addDays(last.start, elapsed), last.end) };
+}
+
+function monthRangeOf(key: string): DateRange {
+  const r = monthRange(key);
+  return { from: r.start, to: r.end };
 }
 
 export interface TopAnswer {

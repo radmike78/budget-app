@@ -34,6 +34,8 @@ export interface QuestionPack {
   weakLead?: RegExp;
   /** "did I spend more than last month?", "how does this month compare": spending so far against the same point last time. */
   compareLead?: RegExp;
+  /** "the week before", "the day before": the comparison is a finished period against the one before it. */
+  compareBefore?: RegExp;
   /** "what did I spend the most on?", "where did most of my money go?" */
   topLead?: RegExp;
   /** "can I afford a $200 jacket?": the one question that carries an amount. */
@@ -85,6 +87,8 @@ export interface QuestionContext {
 const COMPARE_PERIOD: Partial<Record<QuestionPeriod, QuestionPeriod>> = {
   week: 'week', lastWeek: 'week', month: 'month', lastMonth: 'month', year: 'year', lastYear: 'year', budget: 'budget',
 };
+/** Periods that are over, compared whole against the one before them ("last week than the week before"). */
+const WHOLE_PERIODS = new Set<QuestionPeriod>(['lastWeek', 'lastMonth', 'lastYear', 'yesterday', 'weekend', 'recentDays', 'today']);
 
 /** Word boundary that also works for scripts without spaces. */
 const trimPunct = (s: string) => s.replace(/^[\s,.;:!?¿¡'"()]+|[\s,.;:!?¿¡'"()]+$/gu, '').trim();
@@ -164,7 +168,10 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   // A comparison is between this week, month, year or pay period so far and the same point in the one before;
   // "than last month" names the one before, so it means this month.
   if (compare) {
-    period = COMPARE_PERIOD[period] ?? 'budget';
+    // "last week than the week before" keeps last week whole; "than last week" means this week against last.
+    const before = pack.compareBefore ? pack.compareBefore.exec(rest) : null;
+    if (before) rest = rest.replace(pack.compareBefore!, ' ');
+    if (!(WHOLE_PERIODS.has(period) && (before || !(period in COMPARE_PERIOD)))) period = COMPARE_PERIOD[period] ?? 'budget';
     // "this week than last week" names both sides: neither is the thing asked about.
     for (const p of pack.periods) rest = rest.replace(new RegExp(p.re.source, `${p.re.flags.replace('g', '')}g`), ' ');
   }

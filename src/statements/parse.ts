@@ -4,7 +4,7 @@
  * from plain text (columns inferred from headings, signs and running balances).
  */
 import type { Category } from '@/types';
-import { detectCategory, type ParseContext } from '@/parser';
+import { categoryFromWords, detectCategory, type ParseContext } from '@/parser';
 import { addDays, daysBetween, daysInMonth } from '@/lib/dates';
 import { defaultDateOrder, findDates, findPeriod, monthOf, numericDateOrder, resolveDate, type DateHit } from './dates';
 import { findMoney, findPercent, type MoneyToken } from './money';
@@ -99,6 +99,8 @@ interface Candidate {
 
 /** A description wrapped onto the next line may carry the amount; at most this many continuation rows are joined. */
 const MAX_CONTINUATION_ROWS = 2;
+/** No statement line carries more amounts than this; a row that does is a crafted file, not a transaction. */
+const MAX_LINE_AMOUNTS = 24;
 
 /** True for a row that starts with a date, i.e. a new entry rather than the tail of the previous one. */
 function startsWithDate(text: string, language: string): boolean {
@@ -135,12 +137,24 @@ function lineCandidates(rows: Row[], cols: Column[] | null, language: string): {
     // Amounts sit at the end of the line; anything before the last date-free amount run is description.
     const firstDateEnd = dates.length > 1 && dates[1].start - dates[0].end <= 3 ? dates[1].end : dates[0].end;
     const amounts = money.filter((m) => m.start >= firstDateEnd);
-    if (!amounts.length) continue;
+    if (!amounts.length || amounts.length > MAX_LINE_AMOUNTS) continue;
     const descText = text.slice(firstDateEnd, amounts[0].start).trim();
     if (!/\p{L}/u.test(descText)) continue;
+    // Each cell is read once: by its text without spaces, and as a cell holding exactly one amount.
+    let byText: Map<string, { x: number; str: string }> | null = null;
+    let singles: { x: number; str: string }[] = [];
+    if (cols) {
+      byText = new Map();
+      for (const c of cells) {
+        const key = c.str.replace(/\s/g, '');
+        if (!byText.has(key)) byText.set(key, c);
+        if (findMoney(c.str).length === 1) singles.push(c);
+      }
+    }
     const amountCols = amounts.map((a) => {
-      if (!cols) return null;
-      const cell = cells.find((c) => c.str.replace(/\s/g, '') === a.raw.replace(/\s/g, '') || (c.str.includes(a.raw.trim()) && findMoney(c.str).length === 1));
+      if (!cols || !byText) return null;
+      const raw = a.raw.trim();
+      const cell = byText.get(a.raw.replace(/\s/g, '')) ?? singles.find((c) => c.str.includes(raw));
       return cell ? nearestColumn(cell.x, cols) : null;
     });
     for (let k = 1; k <= joined; k += 1) consumed.add(rows[i + k]);
@@ -205,9 +219,24 @@ function decideAmount(c: Candidate, kind: StatementKind, section: 'in' | 'out' |
   return { amount: amountTok.value, direction, balance, sure };
 }
 
-function categorize(rawDescription: string, cleaned: string, direction: 'in' | 'out', kind: StatementKind, ctx: ParseContext, categories: Category[]): { categoryId: string | null; confidence: number; lineKind: StatementLine['kind'] } {
+function categorize(rawDescription: string, cleaned: string, direction: 'in' | 'out', kind: StatementKind, ctx: ParseContext, categories: Category[], fileCategory?: string): { categoryId: string | null; confidence: number; lineKind: StatementLine['kind'] } {
   const guess = guessKind(rawDescription, direction, kind);
   const has = (id: string | null) => !!id && categories.some((c) => c.id === id && !c.archived);
+  // The category another app gave the line ("Everyday Expenses: Groceries") names this app's own category when
+  // its words match one; a payment or a transfer stays what it is, whatever the file called it.
+  if (fileCategory && guess.kind !== 'transfer' && guess.kind !== 'payment') {
+    const income = guess.kind === 'income' || guess.kind === 'refund';
+    // "Fun Money: Dining Out" (a YNAB group and category): the category itself is read before the group.
+    const parts = fileCategory.split(/[:>/]/).map((x) => x.trim()).filter(Boolean);
+    for (const candidate of [...parts.reverse(), fileCategory]) {
+      // The app's own category names first ("Dining out"), the way a spoken "make that dining" is read; then the dictionary.
+      const named = categoryFromWords(candidate, ctx);
+      const cat = named ? categories.find((c) => c.id === named.categoryId && !c.archived) : null;
+      if (cat && cat.kind === (income ? 'income' : 'expense')) return { categoryId: cat.id, confidence: 0.95, lineKind: guess.kind };
+      const fromFile = detectCategory(candidate.toLowerCase(), ctx);
+      if (fromFile && has(fromFile.categoryId) && fromFile.kind === (income ? 'income' : 'expense')) return { categoryId: fromFile.categoryId, confidence: Math.max(0.9, fromFile.confidence), lineKind: guess.kind };
+    }
+  }
   // The user's own learned words and custom categories beat the built-in vocabulary.
   const learned = detectCategory(cleaned.toLowerCase(), ctx);
   const wantIncome = guess.kind === 'income' || guess.kind === 'refund';
@@ -311,7 +340,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
     const date = resolveDate(c.hit, period, opts.today);
     if (!date) continue;
     const description = cleanDescription(c.descText);
-    const cat = categorize(c.descText, description, decided.direction, kind, ctx, ctx.categories);
+    const cat = categorize(c.descText, description, decided.direction, kind, ctx, ctx.categories, c.row.category);
     // Two identical lines on one statement (two 2.90 fares on the same day) are two real entries:
     // the second gets an occurrence index, so only lines already in the app's history count as duplicates.
     const base = fingerprintOf(date, decided.amount, decided.direction, c.descText);

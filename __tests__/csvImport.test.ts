@@ -5,10 +5,11 @@
  */
 import type { ParseContext } from '@/parser';
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
+import { en } from '@/i18n/locales/en';
 import { csvAmount, csvToRows, fingerprintOf, normalizeCsvDate, parseCsv, parseStatement, type ParsedStatement, type StatementLine } from '@/statements';
 
 const TODAY = '2026-03-20';
-const ctx = (language = 'en'): ParseContext => ({ categories: DEFAULT_CATEGORIES, goals: [], keywordMap: {}, today: TODAY, language });
+const ctx = (language = 'en'): ParseContext => ({ categories: DEFAULT_CATEGORIES, goals: [], keywordMap: {}, today: TODAY, language, categoryLabels: language === 'en' ? en.s.categoryNames : undefined });
 const read = (csv: string, language = 'en', known?: Set<string>, region?: string) => {
   const c = csvToRows(csv, language, TODAY);
   const p = parseStatement(c.rows, ctx(language), { language, region, today: TODAY, knownFingerprints: known, period: c.period, kind: c.kind });
@@ -245,5 +246,48 @@ describe('decodeTextBytes', () => {
   it('reads UTF-16 with a byte-order mark, as Excel saves it', () => {
     const le = new Uint8Array([0xff, 0xfe, ...Buffer.from('a,b', 'utf16le')]);
     expect(decodeTextBytes(le)).toBe('a,b');
+  });
+});
+
+describe('exports from other budget apps keep their categories', () => {
+  it('reads a YNAB register export: payee, category group/category, outflow and inflow', () => {
+    const csv = `"Account","Flag","Date","Payee","Category Group/Category","Category Group","Category","Memo","Outflow","Inflow","Cleared"
+"Checking","","03/02/2026","Bob's Corner Market","Everyday Expenses: Groceries","Everyday Expenses","Groceries","","$54.20","$0.00","Cleared"
+"Checking","","03/03/2026","Luigi's","Fun Money: Dining Out","Fun Money","Dining Out","","$31.00","$0.00","Cleared"
+"Checking","","03/05/2026","Acme Corp","Inflow: Ready to Assign","Inflow","Ready to Assign","","$0.00","$2,100.00","Cleared"`;
+    const p = read(csv, 'en', undefined, 'US');
+    const l = by(p);
+    expect(l["Bob's Corner Market"]).toMatchObject({ direction: 'out', amount: 54.2, categoryId: 'groceries' });
+    expect(l["Luigi's"]).toMatchObject({ direction: 'out', amount: 31, categoryId: 'dining' });
+    expect(p.lines.find((x) => x.amount === 2100)).toMatchObject({ direction: 'in' });
+  });
+  it('reads a Mint export with a category column and a debit/credit type column', () => {
+    const csv = `"Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"
+"3/04/2026","Shell","SHELL OIL 57444","40.00","debit","Gas & Fuel","Checking","",""
+"3/06/2026","Paycheck","ACME CORP PAYROLL","2100.00","credit","Paycheck","Checking","",""
+"3/07/2026","Corner Pharmacy","CORNER PHARM 221","12.99","debit","Pharmacy","Checking","",""`;
+    const p = read(csv, 'en', undefined, 'US');
+    const l = by(p);
+    expect(l['Shell']).toMatchObject({ direction: 'out', amount: 40, categoryId: 'transport' });
+    expect(l['Paycheck']).toMatchObject({ direction: 'in', amount: 2100 });
+    expect(l['Corner Pharmacy']).toMatchObject({ direction: 'out', amount: 12.99, categoryId: 'health' });
+  });
+  it('reads a Goodbudget export, where the envelope is the category', () => {
+    const csv = `Date,Envelope,Account,Name,Notes,Amount,Status,Details
+03/02/2026,Groceries,Checking,Trader Joe's,,-62.15,CLR,
+03/04/2026,Entertainment,Checking,AMC Theatres,,-28.00,CLR,`;
+    const l = by(read(csv, 'en', undefined, 'US'));
+    expect(l["Trader Joe's"]).toMatchObject({ direction: 'out', amount: 62.15, categoryId: 'groceries' });
+    expect(l['AMC Theatres']).toMatchObject({ direction: 'out', amount: 28, categoryId: 'entertainment' });
+  });
+  it('a card payment seen from the bank side is a debt payment, whatever the file calls it', () => {
+    const csv = `Date,Merchant,Category,Amount
+2026-03-06,Chase Card Autopay Payment Thank You,Credit Card Payment,-250.00
+2026-03-07,Whole Foods,Groceries,-80.00
+2026-03-08,Uber,Transport,-14.00
+2026-03-09,Shell,Transport,-30.00`;
+    const p = read(csv, 'en', undefined, 'US');
+    expect(p.lines.find((x) => x.amount === 250)).toMatchObject({ direction: 'out', categoryId: 'debt', include: true });
+    expect(by(p)['Whole Foods']).toMatchObject({ categoryId: 'groceries' });
   });
 });

@@ -76,7 +76,7 @@ note that the purchase was made (or restored), plus the day the app was first
 opened and the day it was last opened, so it knows where the trial stands. None
 of that is sent anywhere, and none of it is in your backups.
 
-### 3. Nothing else
+### Nothing else
 
 Beyond those two, this version of the app makes no network requests of its
 own: there is no server, no account, no analytics and no crash reporting. The

@@ -63,7 +63,7 @@ export default function ImportScreen() {
       const picked = await pickStatement();
       if (!picked) return;
       setStage('reading');
-      const ctx = { categories, goals, keywordMap, today: today(), language };
+      const ctx = { categories, goals, keywordMap, today: today(), language, categoryLabels: t.categoryNames };
       let rows;
       let result: ParsedStatement;
       if (picked.kind === 'csv') {
@@ -145,7 +145,8 @@ export default function ImportScreen() {
     setBusy(true);
     try {
       const n = await mergeTradelines(tradelines);
-      setToast(t.reportSaved(n));
+      // Said here: the screen leaves for the debts list next, where a toast on this screen would never be seen.
+      notify(t.reportSaved(n));
       setStage('idle');
       // Back to the debts screen if the import was opened from it, rather than stacking a second one.
       router.dismissTo('/debts');
@@ -210,7 +211,7 @@ export default function ImportScreen() {
                 <Text variant="money">{tl.balance != null ? money(tl.balance, { compact: true }) : '–'}</Text>
               </Row>
               <Text variant="small" style={{ marginTop: 2 }}>
-                {t.debtTypes[tl.type]}{tl.monthlyPayment != null ? ` · ${t.debtMinPayment}: ${money(tl.monthlyPayment, { compact: true })}` : ''}{tl.apr != null ? ` · ${tl.apr}%` : ''}{!tl.consumer ? ` · ${t.excludedFromPlan}` : ''}
+                {t.debtTypes[tl.type]}{tl.monthlyPayment != null ? ` · ${t.debtMinPayment}: ${money(tl.monthlyPayment, { compact: true })}` : ''}{tl.apr != null ? ` · ${String(tl.apr).replace('.', locale.format.decimal)}%` : ''}{!tl.consumer ? ` · ${t.excludedFromPlan}` : ''}
               </Text>
             </Card>
           ))}

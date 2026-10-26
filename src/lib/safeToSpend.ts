@@ -8,6 +8,7 @@
 import type { MonthStats, RecurringRule } from '@/types';
 import { addDays, daysBetween, fromDateString } from './dates';
 import { advance } from './recurring';
+import { isWholeMonth } from './periods';
 
 export interface SafeToSpend {
   /** Income minus spending minus bills still due. Can be negative. */
@@ -33,6 +34,16 @@ function datesBetween(r: Rule, after: string, until: string): string[] {
     d = advance(d, r.frequency, anchor);
   }
   return out;
+}
+
+/** The repeating bills due in the next `days` days, soonest first: what Today lists as coming up. */
+export function upcomingBills<R extends Rule>(rules: R[], todayStr: string, days = 31, limit = 3): { rule: R; date: string }[] {
+  const out: { rule: R; date: string }[] = [];
+  for (const r of rules) {
+    if (!r.active || r.type !== 'expense') continue;
+    for (const date of datesBetween(r, todayStr, addDays(todayStr, days))) out.push({ rule: r, date });
+  }
+  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : b.rule.amount - a.rule.amount)).slice(0, limit);
 }
 
 /** How far ahead a bill bigger than the paychecks before it is seen. */
@@ -78,7 +89,9 @@ export function safeToSpend(stats: MonthStats, rules: Pick<RecurringRule, 'type'
       d = advance(d, r.frequency, anchor);
     }
   }
-  upcoming += reserveForLater(rules, end);
+  // A calendar month pays its own bills from its own income, so nothing is kept for the month after; a pay
+  // period ends where the next paycheck starts, so a bill soon after it has to come out of this one.
+  if (!isWholeMonth(stats.period)) upcoming += reserveForLater(rules, end);
   const amount = Math.round((stats.income - stats.expenses - upcoming) * 100) / 100;
   const daysLeft = daysBetween(today, end) + 1;
   const perDay = amount > 0 && daysLeft > 0 ? Math.round((amount / daysLeft) * 100) / 100 : null;

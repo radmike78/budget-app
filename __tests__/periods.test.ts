@@ -85,6 +85,19 @@ describe('safeToSpend counts every occurrence before the period ends', () => {
     expect(safeToSpend(stats, [monthly], '2026-09-17')).toMatchObject({ amount: 2450, upcoming: 50 });
   });
 
+  it('a calendar month pays its own bills: nothing is kept for the month after', () => {
+    // Paid on the 25th, rent on the 1st: October's income already covered October's rent, so November's is
+    // November's business. In a pay period (25th to 24th) the same rent falls inside and is counted there.
+    const stats = { period: { start: '2026-10-01', end: '2026-10-31' }, income: 2000, expenses: 1000, month: '2026-10', byCategory: [] } as any;
+    const rules = [
+      { type: 'income', active: true, amount: 2000, nextOccurrence: '2026-11-25', frequency: 'monthly', anchorDay: 25 },
+      { type: 'expense', active: true, amount: 1000, nextOccurrence: '2026-11-01', frequency: 'monthly', anchorDay: 1 },
+    ] as any;
+    expect(safeToSpend(stats, rules, '2026-10-26')).toMatchObject({ amount: 1000, upcoming: 0 });
+    const pay = { period: { start: '2026-10-25', end: '2026-11-24' }, income: 2000, expenses: 0, month: '2026-10', byCategory: [] } as any;
+    expect(safeToSpend(pay, rules, '2026-10-26')).toMatchObject({ amount: 1000, upcoming: 1000 });
+  });
+
   it('counts nothing that has already happened, however far behind the rule sits', () => {
     const stats = { period: { start: '2026-09-01', end: '2026-09-30' }, income: 3000, expenses: 500, month: '2026-09', byCategory: [] } as any;
     // Already due this period but in the past: it is in `expenses` already, never in "still to come".
@@ -93,5 +106,23 @@ describe('safeToSpend counts every occurrence before the period ends', () => {
     // A rule the catch-up has not finished walking forward still reports the right bills ahead.
     const behind = { type: 'expense', active: true, amount: 50, nextOccurrence: '2019-01-02', frequency: 'weekly', anchorDay: null } as any;
     expect(safeToSpend(stats, [behind], '2026-09-17')).toMatchObject({ upcoming: 100 });
+  });
+});
+
+describe('the bills coming up', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { upcomingBills } = require('@/lib/safeToSpend') as typeof import('@/lib/safeToSpend');
+  it('lists the next month of repeating bills, soonest first, and skips income and paused rules', () => {
+    const rules = [
+      { id: 'rent', type: 'expense', active: true, amount: 1000, nextOccurrence: '2026-11-01', frequency: 'monthly', anchorDay: 1 },
+      { id: 'gym', type: 'expense', active: true, amount: 30, nextOccurrence: '2026-10-28', frequency: 'monthly', anchorDay: 28 },
+      { id: 'pay', type: 'income', active: true, amount: 2000, nextOccurrence: '2026-10-30', frequency: 'monthly', anchorDay: 30 },
+      { id: 'old', type: 'expense', active: false, amount: 9, nextOccurrence: '2026-10-27', frequency: 'weekly', anchorDay: null },
+      { id: 'far', type: 'expense', active: true, amount: 500, nextOccurrence: '2026-12-15', frequency: 'monthly', anchorDay: 15 },
+    ] as unknown as RecurringRule[];
+    expect(upcomingBills(rules, '2026-10-26').map((b) => [b.rule.id, b.date])).toEqual([['gym', '2026-10-28'], ['rent', '2026-11-01']]);
+    // A weekly bill appears once per week, and the list stops at the limit.
+    const weekly = { id: 'w', type: 'expense', active: true, amount: 5, nextOccurrence: '2026-10-27', frequency: 'weekly', anchorDay: null } as any;
+    expect(upcomingBills([weekly], '2026-10-26', 31, 3).map((b) => b.date)).toEqual(['2026-10-27', '2026-11-03', '2026-11-10']);
   });
 });

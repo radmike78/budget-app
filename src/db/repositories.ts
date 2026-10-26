@@ -151,6 +151,12 @@ export async function recentTransactions(db: DB, limit = 10): Promise<Transactio
   return rows.map(toTx);
 }
 
+/** The entries saved most recently, whatever day they are dated: what "that uber" is most likely to mean. */
+export async function recentlySavedTransactions(db: DB, limit = 500): Promise<Transaction[]> {
+  const rows = await db.getAllAsync<TxRow>('SELECT * FROM transactions ORDER BY created_at DESC LIMIT ?', [limit]);
+  return rows.map(toTx);
+}
+
 export async function allTransactions(db: DB): Promise<Transaction[]> {
   const rows = await db.getAllAsync<TxRow>('SELECT * FROM transactions ORDER BY occurred_at DESC, created_at DESC');
   return rows.map(toTx);
@@ -254,6 +260,16 @@ export async function allCarryovers(db: DB): Promise<CarryDecision[]> {
 
 export async function upsertCarryover(db: DB, d: CarryDecision): Promise<void> {
   await db.runAsync('INSERT INTO carryovers (category_id, period, amount) VALUES (?, ?, ?) ON CONFLICT(category_id, period) DO UPDATE SET amount = excluded.amount', [d.categoryId, d.period, d.amount]);
+}
+
+export interface FrequentEntry { note: string | null; categoryId: string | null; amount: number; count: number }
+
+/** The expenses typed most often in the last while (same words, category and amount, at least twice): one tap logs them again. */
+export async function frequentEntries(db: DB, since: string, limit = 4): Promise<FrequentEntry[]> {
+  return db.getAllAsync<FrequentEntry>(
+    "SELECT note, category_id AS categoryId, amount, COUNT(*) AS count FROM transactions WHERE type = 'expense' AND occurred_at >= ? AND is_recurring_instance = 0 AND import_id IS NULL AND goal_id IS NULL GROUP BY lower(coalesce(note, '')), category_id, amount HAVING COUNT(*) >= 2 ORDER BY count DESC, MAX(occurred_at) DESC LIMIT ?",
+    [since, limit],
+  );
 }
 
 export async function lifetimeTotals(db: DB): Promise<{ income: number; expenses: number }> {

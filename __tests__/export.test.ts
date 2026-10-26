@@ -33,7 +33,7 @@ describe('summaryText', () => {
     const en = summaryText([], DEFAULT_CATEGORIES, goals, 'USD', '2026-09-10T00:00:00.000Z');
     expect(en).toContain('  Trip: $120.00 of $500.00 by December 24');
     const german = summaryText([], DEFAULT_CATEGORIES, goals, 'EUR', '2026-09-10T00:00:00.000Z', de);
-    expect(german).toContain('Trip: 120,00 € von 500,00 € bis 24. Dezember');
+    expect(german).toContain('Trip: 120,00\u00a0€ von 500,00\u00a0€ bis 24. Dezember');
     expect(german).not.toContain(' of ');
   });
 });

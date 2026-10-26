@@ -42,6 +42,8 @@ describe('extractPastDate', () => {
     ['gas last thursday', '2026-09-03'],
     ['rent on the 1st', '2026-09-01'],
     ['rent on the 15th', '2026-08-15'],
+    // The most recent month that has such a day, never a clamp: said on 10 September, the 31st is in August.
+    ['card on the 31st', '2026-08-31'],
     ['dinner on sept 3', '2026-09-03'],
     ['dinner september 3rd', '2026-09-03'],
     ['dinner dec 20', '2025-12-20'],
