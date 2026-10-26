@@ -516,3 +516,287 @@ const INSIGHTS_STAY_ENTRIES: Case[] = [
 
 describe('zh: comparing, the most, affording', () => runCases('zh', INSIGHTS, labels));
 describe('zh: entries near those words stay entries', () => runCases('zh', INSIGHTS_STAY_ENTRIES, labels));
+
+/* ------------------------------------------------------------------------------------------------
+ * More everyday speech, as dictation writes it (no punctuation): setting money aside, the small
+ * daily spends, money coming in, questions, fixes, reminders and the ways amounts are said.
+ * ---------------------------------------------------------------------------------------------- */
+
+/** Money put aside, with no goal named: a savings entry. */
+const SAVING_ENTRIES: Case[] = [
+  ['存了2000', { kind: 'transaction', type: 'expense', amount: 2000, categoryId: 'savings' }],
+  ['今天存了50', { kind: 'transaction', amount: 50, categoryId: 'savings', occurredAt: '2026-09-16' }],
+  ['攒了500', { kind: 'transaction', amount: 500, categoryId: 'savings' }],
+  ['私房钱500', { kind: 'transaction', amount: 500, categoryId: 'savings' }],
+  ['转了3000到储蓄卡', { kind: 'transaction', amount: 3000, categoryId: 'savings' }],
+  ['应急金放了1000', { kind: 'transaction', amount: 1000, categoryId: 'savings' }],
+  ['存定期1万', { kind: 'transaction', amount: 10000, categoryId: 'savings' }],
+  ['买了基金2000', { kind: 'transaction', amount: 2000, categoryId: 'savings' }],
+  ['余额宝转入500', { kind: 'transaction', amount: 500, categoryId: 'savings' }],
+  ['定投了1000', { kind: 'transaction', amount: 1000, categoryId: 'savings' }],
+  ['每个月存了2000', { kind: 'transaction', amount: 2000, categoryId: 'savings' }],
+  // set aside for a trip that is not a goal yet: the amount is right, the words are kept
+  ['为了旅行先放一千', { kind: 'transaction', type: 'expense', amount: 1000 }],
+  // a yearly total said this way is a plain entry too; nothing marks it as a plan
+  ['一年存5万', { kind: 'transaction', amount: 50000 }],
+];
+
+/** A plan said per period: the amount is a pace, so the card asks for the total (hint.goalPace). */
+const PACED_GOALS: Case[] = [
+  ['想每个月存2000买车', { kind: 'goal', goalKind: 'saving', amount: null, goalName: '买车' }],
+  ['每月存2000', { kind: 'goal', goalKind: 'saving', amount: null }],
+  ['打算每周存500', { kind: 'goal', goalKind: 'saving', amount: null }],
+  ['我想存一万块去日本', { kind: 'goal', goalKind: 'saving', amount: 10000 }],
+  ['要攒三万买摩托', { kind: 'goal', goalKind: 'saving', amount: 30000, goalName: '摩托' }],
+  ['打算一个月内还清借呗8000', { kind: 'goal', goalKind: 'debt', amount: 8000 }],
+];
+
+describe('zh: money put aside', () => runCases('zh', SAVING_ENTRIES, labels));
+describe('zh: saving plans said per period', () => runCases('zh', PACED_GOALS, labels));
+
+describe('zh: paying into a goal, more ways', () => {
+  it.each([
+    ['往日本旅行的钱里加了200', { kind: 'contribution', amount: 200, goalId: 'g1' }],
+    ['日本旅行又加了300', { kind: 'contribution', amount: 300, goalId: 'g1' }],
+    ['给应急基金转了1000', { kind: 'contribution', amount: 1000, goalId: 'g2' }],
+    ['买车的钱又存了2000', { kind: 'contribution', amount: 2000, goalId: 'g3' }],
+    ['存到买车里500', { kind: 'contribution', amount: 500, goalId: 'g3' }],
+  ] as Case[])('%s', (text, expected) => {
+    const r = parseOne(text, 'zh', labels, CHINESE_GOALS);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected);
+  });
+});
+
+const DAILY_SPENDS: Case[] = [
+  ['便利店8块', { kind: 'transaction', type: 'expense', amount: 8, categoryId: 'groceries' }],
+  ['中午吃饭花了30', { type: 'expense', amount: 30, categoryId: 'dining' }],
+  ['加满油400', { type: 'expense', amount: 400, categoryId: 'transport' }],
+  ['交了电费80', { type: 'expense', amount: 80, categoryId: 'utilities' }],
+  ['房租转了3000', { type: 'expense', amount: 3000, categoryId: 'rent' }],
+  ['聚餐AA 120', { type: 'expense', amount: 120, categoryId: 'dining' }],
+  ['打车20', { type: 'expense', amount: 20, categoryId: 'transport' }],
+  ['星巴克35', { type: 'expense', amount: 35, categoryId: 'dining' }],
+  ['优衣库买了300', { type: 'expense', amount: 300, categoryId: 'shopping' }],
+  ['看病花了200', { type: 'expense', amount: 200, categoryId: 'health' }],
+  ['药店50', { type: 'expense', amount: 50, categoryId: 'health' }],
+  ['停车10', { type: 'expense', amount: 10, categoryId: 'transport' }],
+  ['高速费80', { type: 'expense', amount: 80, categoryId: 'transport' }],
+  ['孩子补习班1000', { type: 'expense', amount: 1000, categoryId: 'shopping' }],
+  ['会员订阅15', { type: 'expense', amount: 15, categoryId: 'subscriptions' }],
+  ['淘宝剁手300', { type: 'expense', amount: 300, categoryId: 'shopping' }],
+  ['外卖点了40', { type: 'expense', amount: 40, categoryId: 'dining' }],
+  ['跟同事吃面25', { type: 'expense', amount: 25, categoryId: 'dining' }],
+  ['地铁4块', { type: 'expense', amount: 4, categoryId: 'transport' }],
+  ['撸串150', { type: 'expense', amount: 150, categoryId: 'dining' }],
+  ['晚上撸串人均80', { type: 'expense', amount: 80, categoryId: 'dining' }],
+  ['喝了杯奶茶18', { type: 'expense', amount: 18, categoryId: 'dining' }],
+  ['早上买了个包子3块', { type: 'expense', amount: 3, categoryId: 'dining' }],
+  ['吃了碗牛肉面28', { type: 'expense', amount: 28, categoryId: 'dining' }],
+  ['肯德基套餐39', { type: 'expense', amount: 39, categoryId: 'dining' }],
+  ['请客吃饭500', { type: 'expense', amount: 500, categoryId: 'dining' }],
+  ['午饭和同事AA了60', { type: 'expense', amount: 60, categoryId: 'dining' }],
+  ['午饭一人30', { type: 'expense', amount: 30, categoryId: 'dining' }],
+  ['公交2块', { type: 'expense', amount: 2, categoryId: 'transport' }],
+  ['共享单车1.5', { type: 'expense', amount: 1.5, categoryId: 'transport' }],
+  ['洗车50', { type: 'expense', amount: 50, categoryId: 'transport' }],
+  ['给孩子买了奶粉300', { type: 'expense', amount: 300, categoryId: 'shopping' }],
+  ['理发30', { type: 'expense', amount: 30, categoryId: 'shopping' }],
+  ['买了件T恤99', { type: 'expense', amount: 99, categoryId: 'shopping' }],
+  ['猫粮120', { type: 'expense', amount: 120, categoryId: 'shopping' }],
+  ['水果店45', { type: 'expense', amount: 45, categoryId: 'groceries' }],
+  ['和女朋友看电影120', { type: 'expense', amount: 120, categoryId: 'entertainment' }],
+  ['游戏充值100', { type: 'expense', amount: 100, categoryId: 'entertainment' }],
+  ['网费一年600', { type: 'expense', amount: 600, categoryId: 'utilities' }],
+  ['煤气费60', { type: 'expense', amount: 60, categoryId: 'utilities' }],
+  ['保险交了5000', { type: 'expense', amount: 5000, categoryId: 'other_expense' }],
+  ['给老婆转了2000', { type: 'expense', amount: 2000 }],
+  ['买了瓶水2块', { type: 'expense', amount: 2 }],
+  ['月卡200', { type: 'expense', amount: 200 }],
+  // Taiwan
+  ['高鐵票1490', { type: 'expense', amount: 1490, categoryId: 'transport' }],
+  ['便當85', { type: 'expense', amount: 85, categoryId: 'dining' }],
+  ['手搖飲55', { type: 'expense', amount: 55, categoryId: 'dining' }],
+  ['搭公車15', { type: 'expense', amount: 15, categoryId: 'transport' }],
+  ['繳水費300', { type: 'expense', amount: 300, categoryId: 'utilities' }],
+];
+
+const MORE_INCOME: Case[] = [
+  ['工资到账', { kind: 'transaction', type: 'income', amount: null, categoryId: 'salary' }],
+  ['工资发了 12000', { type: 'income', amount: 12000, categoryId: 'salary' }],
+  ['发工资一万五', { type: 'income', amount: 15000, categoryId: 'salary' }],
+  ['公司打了5000', { type: 'income', amount: 5000, categoryId: 'salary' }],
+  ['发奖金了3000', { type: 'income', amount: 3000, categoryId: 'salary' }],
+  ['年终奖2万', { type: 'income', amount: 20000, categoryId: 'salary' }],
+  ['兼职赚了500', { type: 'income', amount: 500, categoryId: 'freelance' }],
+  ['副业收入2000', { type: 'income', amount: 2000, categoryId: 'freelance' }],
+  ['闲鱼卖了300', { type: 'income', amount: 300, categoryId: 'freelance' }],
+  ['做家教赚了400', { type: 'income', amount: 400, categoryId: 'freelance' }],
+  ['卖闲置赚了200', { type: 'income', amount: 200, categoryId: 'freelance' }],
+  ['收到稿费2000', { type: 'income', amount: 2000, categoryId: 'freelance' }],
+  ['收到了客户的尾款5000', { type: 'income', amount: 5000, categoryId: 'freelance' }],
+  ['卖了旧电脑800', { type: 'income', amount: 800 }],
+  ['退款200', { type: 'income', amount: 200, categoryId: 'other_income' }],
+  ['退税1000', { type: 'income', amount: 1000, categoryId: 'other_income' }],
+  ['报销了300', { type: 'income', amount: 300, categoryId: 'other_income' }],
+  ['退了押金1000', { type: 'income', amount: 1000, categoryId: 'other_income' }],
+  ['中了彩票200', { type: 'income', amount: 200, categoryId: 'other_income' }],
+  ['收到转账500', { type: 'income', amount: 500 }],
+  // family: 给了 alone is giving, but grandma giving is money that came in
+  ['奶奶给了500', { type: 'income', amount: 500, categoryId: 'gift_income' }],
+  ['爸妈给了2000', { type: 'income', amount: 2000, categoryId: 'gift_income' }],
+  ['家里给了3000', { type: 'income', amount: 3000, categoryId: 'gift_income' }],
+  ['红包500', { type: 'income', amount: 500, categoryId: 'gift_income' }],
+  ['老板发了红包888', { type: 'income', amount: 888, categoryId: 'gift_income' }],
+  ['微信红包收了66', { type: 'income', amount: 66, categoryId: 'gift_income' }],
+  ['領了年終獎金60000', { type: 'income', amount: 60000, categoryId: 'salary' }],
+  ['媽媽給了我2000', { type: 'income', amount: 2000, categoryId: 'gift_income' }],
+];
+
+describe('zh: the small daily spends', () => runCases('zh', DAILY_SPENDS, labels));
+describe('zh: more money coming in', () => runCases('zh', MORE_INCOME, labels));
+
+const MORE_QUESTIONS: Case[] = [
+  // spent
+  ['这周花了多少', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  ['今天花了多少钱', { kind: 'question', question: { ask: 'spent', period: 'today', target: null } }],
+  ['这个月咖啡花了多少', { kind: 'question', question: { ask: 'spent', period: 'month', target: '咖啡', fallbackCategoryId: 'dining' } }],
+  ['上个月打车花了多少钱', { kind: 'question', question: { ask: 'spent', period: 'lastMonth', target: '打车', fallbackCategoryId: 'transport' } }],
+  ['这个礼拜吃饭花了多少', { kind: 'question', question: { ask: 'spent', period: 'week', categoryIds: FOOD } }],
+  ['最近7天花了多少', { kind: 'question', question: { ask: 'spent', period: 'recentDays', days: 7, target: null } }],
+  ['周末花了多少', { kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } }],
+  ['今年旅游花了多少', { kind: 'question', question: { ask: 'spent', period: 'year', target: '旅游' } }],
+  // "how much did I drink / order" is money when 钱 is said
+  ['这个月奶茶喝了多少钱', { kind: 'question', question: { ask: 'spent', period: 'month', target: '奶茶', fallbackCategoryId: 'dining' } }],
+  ['这个月外卖点了多少钱', { kind: 'question', question: { ask: 'spent', period: 'month', target: '外卖', fallbackCategoryId: 'dining' } }],
+  // left
+  ['还剩多少', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['买菜还剩多少钱', { kind: 'question', question: { ask: 'left', target: '买菜', fallbackCategoryId: 'groceries' } }],
+  ['还有多少预算', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['还剩多少钱可以用', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['这个月的预算还够吗', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['交通还剩多少预算', { kind: 'question', question: { ask: 'left', categoryId: 'transport' } }],
+  ['买菜的钱还够吗', { kind: 'question', question: { ask: 'left', target: '买菜', fallbackCategoryId: 'groceries' } }],
+  // compare
+  ['比上个月花得多吗', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['比上个月多花了吗', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['跟去年比呢', { kind: 'question', question: { ask: 'compare', period: 'year', target: null } }],
+  ['这周比上周多花了多少', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['比上个发薪周期花得多吗', { kind: 'question', question: { ask: 'compare', period: 'budget', target: null } }],
+  // top
+  ['这个月钱都花哪了', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['最大的一笔开销是什么', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['这个月最大的开销是啥', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
+  ['大头是什么', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['哪里花得最多', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['钱都花到哪去了', { kind: 'question', question: { ask: 'top', target: null } }],
+  // afford
+  ['80块的鞋买得起吗', { kind: 'question', question: { ask: 'afford', price: 80, target: '鞋', fallbackCategoryId: 'shopping' } }],
+  ['买个1500的手机行不行', { kind: 'question', question: { ask: 'afford', price: 1500, fallbackCategoryId: 'shopping' } }],
+  ['请客花500可以吗', { kind: 'question', question: { ask: 'afford', price: 500, fallbackCategoryId: 'dining' } }],
+  ['买个200的包没问题吧', { kind: 'question', question: { ask: 'afford', price: 200, fallbackCategoryId: 'shopping' } }],
+  ['1000块的健身卡买得起吗', { kind: 'question', question: { ask: 'afford', price: 1000, fallbackCategoryId: 'health' } }],
+  ['现在能花300吃顿好的吗', { kind: 'question', question: { ask: 'afford', price: 300, target: null } }],
+  // income
+  ['这个月赚了多少', { kind: 'question', question: { type: 'income', period: 'month' } }],
+  ['这个月进账了多少', { kind: 'question', question: { type: 'income', period: 'month' } }],
+  ['上个月一共进账多少', { kind: 'question', question: { type: 'income', period: 'lastMonth', target: null } }],
+  ['去年赚了多少钱', { kind: 'question', question: { type: 'income', period: 'lastYear' } }],
+  ['兼职这个月赚了多少', { kind: 'question', question: { type: 'income', period: 'month', categoryId: 'freelance' } }],
+];
+
+describe('zh: more questions', () => runCases('zh', MORE_QUESTIONS, labels));
+
+/** Fixes that name the entry ("午饭改成45", "把打车删了") or state the right value after the wrong one. */
+const MORE_CORRECTIONS: Case[] = [
+  ['不对是140', { kind: 'correction', correction: { remove: false, amount: 140 } }],
+  ['其实是45', { kind: 'correction', correction: { amount: 45 } }],
+  ['不是35是45', { kind: 'correction', correction: { amount: 45 } }],
+  ['换成50块5', { kind: 'correction', correction: { amount: 50.5 } }],
+  ['改成外食', { kind: 'correction', correction: { categoryId: 'dining' } }],
+  ['改成买菜', { kind: 'correction', correction: { categoryId: 'groceries' } }],
+  ['分类改成交通', { kind: 'correction', correction: { categoryId: 'transport' } }],
+  ['是昨天的', { kind: 'correction', correction: { date: '2026-09-15', amount: null } }],
+  ['改成上周三', { kind: 'correction', correction: { date: '2026-09-09' } }],
+  // naming the entry
+  ['午饭改成45', { kind: 'correction', correction: { target: '午饭', amount: 45, remove: false } }],
+  ['把午饭改成45块', { kind: 'correction', correction: { target: '午饭', amount: 45 } }],
+  ['午饭应该是45', { kind: 'correction', correction: { target: '午饭', amount: 45 } }],
+  ['把打车那笔改成32', { kind: 'correction', correction: { target: '打车', amount: 32 } }],
+  ['星巴克那笔其实是38', { kind: 'correction', correction: { target: '星巴克', amount: 38 } }],
+  ['打车是32不是23', { kind: 'correction', correction: { target: '打车', amount: 32 } }],
+  ['打车不是23是32', { kind: 'correction', correction: { target: '打车', amount: 32 } }],
+  // removing one by name
+  ['删掉刚才那条', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['撤回', { kind: 'correction', correction: { remove: true } }],
+  ['刪掉那筆', { kind: 'correction', correction: { remove: true } }],
+  ['把打车删了', { kind: 'correction', correction: { remove: true, target: '打车' } }],
+  ['删掉星巴克那条', { kind: 'correction', correction: { remove: true, target: '星巴克' } }],
+  ['把星巴克的删掉', { kind: 'correction', correction: { remove: true, target: '星巴克' } }],
+  ['星巴克那笔删了', { kind: 'correction', correction: { remove: true, target: '星巴克' } }],
+  ['把那笔房租删了', { kind: 'correction', correction: { remove: true, target: '房租' } }],
+  ['给妈妈的转账删掉', { kind: 'correction', correction: { remove: true, target: '妈妈的转账' } }],
+];
+
+describe('zh: more corrections', () => runCases('zh', MORE_CORRECTIONS, labels));
+
+const MORE_REMINDERS: Case[] = [
+  ['1号提醒我交房租', { kind: 'reminder', occurredAt: '2026-10-01', reminderText: '交房租' }],
+  ['20号提醒我还花呗', { kind: 'reminder', occurredAt: '2026-09-20' }],
+  ['周五别让我忘了电费', { kind: 'reminder', occurredAt: '2026-09-18', reminderText: '电费' }],
+  ['晚上8点提醒我记账', { kind: 'reminder', reminderTime: '20:00', reminderText: '记账' }],
+  ['每周一提醒我看预算', { kind: 'reminder', reminderRepeat: 'weekly', reminderText: '看预算' }],
+  ['每天晚上九点提醒我记账', { kind: 'reminder', reminderRepeat: 'daily', reminderTime: '21:00' }],
+  ['提醒我后天还信用卡', { kind: 'reminder', occurredAt: '2026-09-18' }],
+  ['下周三提醒我交保险', { kind: 'reminder', occurredAt: '2026-09-23' }],
+  ['月底提醒我交房租', { kind: 'reminder', occurredAt: '2026-09-30' }],
+  ['明天中午12点提醒我转账', { kind: 'reminder', occurredAt: '2026-09-17', reminderTime: '12:00' }],
+  ['提醒我每月10号交水电费', { kind: 'reminder', reminderRepeat: 'monthly', reminderText: '交水电费' }],
+  ['记得明天交话费', { kind: 'reminder', occurredAt: '2026-09-17' }],
+  ['睡前提醒我记账', { kind: 'reminder', reminderTime: '19:00' }],
+  ['每月5號提醒我繳卡費', { kind: 'reminder', reminderRepeat: 'monthly' }],
+];
+
+describe('zh: more reminders', () => runCases('zh', MORE_REMINDERS, labels));
+
+/** The ways an amount is said or typed. */
+const AMOUNTS: Case[] = [
+  ['一千二', { kind: 'transaction', amount: 1200 }],
+  ['午饭1,200', { kind: 'transaction', amount: 1200, categoryId: 'dining' }],
+  ['两千五', { kind: 'transaction', amount: 2500 }],
+  ['1.2万', { kind: 'transaction', amount: 12000 }],
+  ['一万二', { kind: 'transaction', amount: 12000 }],
+  ['1万2', { kind: 'transaction', amount: 12000 }],
+  ['12万', { kind: 'transaction', amount: 120000 }],
+  ['两万', { kind: 'transaction', amount: 20000 }],
+  ['五百块', { kind: 'transaction', amount: 500 }],
+  ['三十块钱', { kind: 'transaction', amount: 30 }],
+  ['一百五', { kind: 'transaction', amount: 150 }],
+  ['二十', { kind: 'transaction', amount: 20 }],
+  ['15.5', { kind: 'transaction', amount: 15.5 }],
+  ['10块8', { kind: 'transaction', amount: 10.8 }],
+  ['房租两千八', { kind: 'transaction', amount: 2800, categoryId: 'rent' }],
+  ['房租3,500', { kind: 'transaction', amount: 3500, categoryId: 'rent' }],
+  ['奶茶十二块五', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['三块五的可乐', { kind: 'transaction', amount: 3.5, categoryId: 'dining' }],
+  ['打车十八块八', { kind: 'transaction', amount: 18.8, categoryId: 'transport' }],
+  ['两百块的鞋', { kind: 'transaction', amount: 200, categoryId: 'shopping' }],
+  ['买了台电脑8999', { kind: 'transaction', amount: 8999, categoryId: 'shopping' }],
+];
+
+/** Sentences near question, plan or correction words that must stay plain entries. */
+const STILL_ENTRIES: Case[] = [
+  ['一个月2000', { kind: 'transaction', amount: 2000 }],
+  ['每月房租3000', { kind: 'transaction', amount: 3000, categoryId: 'rent' }],
+  // 周一 inside 这周一共 is not Monday
+  ['这周一共花了300', { kind: 'transaction', amount: 300, dateExplicit: false }],
+  ['周一花了300', { kind: 'transaction', amount: 300, occurredAt: '2026-09-14' }],
+  ['上周一午饭35', { kind: 'transaction', amount: 35, categoryId: 'dining', occurredAt: '2026-09-14' }],
+  ['还剩的钱买了菜50', { kind: 'transaction', amount: 50, categoryId: 'groceries' }],
+  ['比萨外卖68', { kind: 'transaction', amount: 68, categoryId: 'dining' }],
+  ['最后一杯咖啡28', { kind: 'transaction', amount: 28, categoryId: 'dining' }],
+  ['预算内买了双鞋300', { kind: 'transaction', amount: 300, categoryId: 'shopping' }],
+];
+
+describe('zh: how amounts are said', () => runCases('zh', AMOUNTS, labels));
+describe('zh: still plain entries', () => runCases('zh', STILL_ENTRIES, labels));

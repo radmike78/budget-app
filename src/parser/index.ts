@@ -389,7 +389,8 @@ export function detectCategory(text: string, ctx: ParseContext, pack: LanguagePa
       if (len === 1 && phrase.includes('-')) for (const part of phrase.split('-')) if (part.length > 2) variants.push(part, ...(pack.singularForms?.(part) ?? []));
       for (const v of variants) {
         const r = lookup(v, len);
-        if (r) return r;
+        // Matched through a singular form or a hyphen part: the words as said are what the caller removes.
+        if (r) return v === phrase ? r : { ...r, matched: phrase };
       }
     }
   }
@@ -741,7 +742,7 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
   }
 
   let leftover = text;
-  if (typeGuess.verb) leftover = leftover.replace(typeGuess.verb, ' ');
+  if (typeGuess.verb) leftover = leftover.replace(new RegExp(`${WB_START}${escapeRegex(typeGuess.verb)}${WB_END}`, 'iu'), ' ');
   r.note = restoreCase(deriveNote(leftover, pack), raw);
   // "me pagaron 2400" with nothing else said: the verb alone means a paycheck.
   if (type === 'income' && !cat && !r.note && typeGuess.verb && pack.bareIncomeIsPay?.test(typeGuess.verb.trim()) && has('salary')) {
@@ -899,6 +900,9 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   if (!rules || raw.length > MAX_CORRECTION_LENGTH) return null;
   const text = prepare(raw, pack).replace(/[.。]+$/u, '').trim();
   if (!text) return null;
+  // "erano 14 non 12", "it was 14 not 12": for the plain lead the number being corrected is dropped first, so only
+  // the new one is left. The named forms ("that uber was 32 not 23") read the whole sentence, tail included.
+  const noTail = rules.notTail ? text.replace(rules.notTail, '').trim() : text;
   const base = baseResult(raw, ctx.today);
   if (rules.remove.test(text)) {
     return { ...base, kind: 'correction', correction: { remove: true, target: null, amount: null, categoryId: null, date: null }, confidence: 0.9, needsReview: false };
@@ -911,9 +915,9 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   }
   let target: string | null = null;
   let rest: string;
-  const lead = rules.lead.exec(text);
+  const lead = rules.lead.exec(noTail);
   if (lead && lead.index === 0) {
-    rest = text.slice(lead[0].length).trim();
+    rest = noTail.slice(lead[0].length).trim();
   } else {
     // "that uber was 32 not 23", "change the uber to 32": a named entry and its new value.
     let named: RegExpExecArray | null = null;

@@ -94,6 +94,8 @@ export interface CorrectionPack {
    * "i didn't spend 23 on uber it was 32". Groups `target` (the entry's words) and `rest` (the new value). Anchored.
    */
   targetLeads?: RegExp[];
+  /** A trailing "not 12" / "non 12" (the number being corrected), dropped before anything else is read. */
+  notTail?: RegExp;
   /**
    * The start of an utterance that changes the last entry ("actually it was", "make that", "change it to").
    * Must match at the start. What follows may only be a new amount, category or date, with filler words.
