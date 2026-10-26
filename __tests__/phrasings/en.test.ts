@@ -390,3 +390,233 @@ const INSIGHTS_STAY_ENTRIES: Case[] = [
 ];
 describe('English: comparing, the most, affording', () => runCases('en', INSIGHTS));
 describe('English: entries near those words stay entries', () => runCases('en', INSIGHTS_STAY_ENTRIES));
+
+/**
+ * Everyday speech, second pass: putting money away, spending slang, money in, questions people really ask,
+ * fixes, reminders and dictation quirks. Each block is run through the same harness.
+ */
+const PUTTING_AWAY: Case[] = [
+  // plain savings: money moved out of the spendable pot, nothing names the open goal
+  ['put 200 away', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings' }],
+  ['stashed 50', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'savings' }],
+  ['squirreled away 100', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  ['socked away 300 this month', { kind: 'transaction', type: 'expense', amount: 300, categoryId: 'savings' }],
+  ['tucked 40 into savings', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'savings' }],
+  ['moved 500 to savings', { kind: 'transaction', type: 'expense', amount: 500, categoryId: 'savings' }],
+  ['put 200 in savings', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings' }],
+  ['stuck 100 in my savings', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  ['chucked 20 in the holiday pot', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'savings' }],
+  ['saved 50 today', { kind: 'transaction', type: 'expense', amount: 50, categoryId: 'savings', occurredAt: '2026-09-16' }],
+  ['transferred 200 to my savings account', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings', note: 'Savings account' }],
+  ['topped up my emergency fund by 100', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings', note: 'Emergency fund' }],
+  ['auto transfer to savings 150', { kind: 'transaction', type: 'expense', amount: 150, categoryId: 'savings' }],
+  ['moved a hundred over to savings', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  // "set aside 100 for rent" is money earmarked, not rent paid
+  ['set aside 100 for rent', { kind: 'transaction', type: 'expense', amount: 100, categoryId: 'savings' }],
+  // the words name the open goal "Trip to Japan"
+  ['threw 100 at the Japan trip', { kind: 'contribution', amount: 100, goalId: 'g1' }],
+  ['chucked 50 into the Japan fund', { kind: 'contribution', amount: 50, goalId: 'g1' }],
+  ['dropped 50 into the trip fund', { kind: 'contribution', amount: 50, goalId: 'g1' }],
+  ['tossed 25 into the Japan pot', { kind: 'contribution', amount: 25, goalId: 'g1' }],
+  ['put a hundred into the Japan trip', { kind: 'contribution', amount: 100, goalId: 'g1' }],
+  // future intent with a pace is a new goal; the pace is not the total
+  ['I want to put away 200 a month for a car', { kind: 'goal', amount: null, goalName: 'Car' }],
+  ['I want to save 300 a month for a house deposit', { kind: 'goal', amount: null, goalName: 'House deposit' }],
+];
+describe('English: putting money away', () => runCases('en', PUTTING_AWAY));
+
+const SLANG: Case[] = [
+  ['dropped 40 on drinks', { type: 'expense', amount: 40, categoryId: 'dining', note: 'Drinks' }],
+  ['blew 60 at the bar', { type: 'expense', amount: 60, categoryId: 'dining' }],
+  ['wasted 20 on a cab', { type: 'expense', amount: 20, categoryId: 'transport', note: 'Cab' }],
+  ['threw away 15 on parking', { type: 'expense', amount: 15, categoryId: 'transport', note: 'Parking' }],
+  ['shelled out 90 for a haircut', { type: 'expense', amount: 90, note: 'Haircut' }],
+  ['coughed up 45 for parking', { type: 'expense', amount: 45, categoryId: 'transport', note: 'Parking' }],
+  ['forked out 300 for tires', { type: 'expense', amount: 300, categoryId: 'transport', note: 'Tires' }],
+  ['splashed out 150 on a new coat', { type: 'expense', amount: 150, categoryId: 'shopping', note: 'Coat' }],
+  ['treated the kids to ice cream 12', { type: 'expense', amount: 12, categoryId: 'dining' }],
+  ['picked up a coffee 4', { type: 'expense', amount: 4, categoryId: 'dining', note: 'Coffee' }],
+  ['grabbed a sandwich for 9', { type: 'expense', amount: 9, categoryId: 'dining', note: 'Sandwich' }],
+  ['ran to the store, 35', { type: 'expense', amount: 35, categoryId: 'shopping', note: 'Store' }],
+  ['swung by Starbucks 6', { type: 'expense', amount: 6, categoryId: 'dining', note: 'Starbucks' }],
+  ['hit up Chipotle 14', { type: 'expense', amount: 14, categoryId: 'dining', note: 'Chipotle' }],
+  ['went to the movies 30', { type: 'expense', amount: 30, categoryId: 'entertainment' }],
+  ['popped into Tesco for 22', { type: 'expense', amount: 22, categoryId: 'groceries', note: 'Tesco' }],
+  ['stopped for gas 45', { type: 'expense', amount: 45, categoryId: 'transport', note: 'Gas' }],
+  ['did a Target run 80', { type: 'expense', amount: 80, categoryId: 'shopping' }],
+  ['Costco trip 180', { type: 'expense', amount: 180, categoryId: 'groceries' }],
+  ['20 at the pump', { type: 'expense', amount: 20, categoryId: 'transport' }],
+  ['filled up 55', { type: 'expense', amount: 55, categoryId: 'transport' }],
+  ['topped up the car 40', { type: 'expense', amount: 40, categoryId: 'transport' }],
+  ['round of drinks 40', { type: 'expense', amount: 40, categoryId: 'dining' }],
+  ['a round at the pub 24', { type: 'expense', amount: 24, categoryId: 'dining' }],
+  ['chipped in 20 for the gift', { type: 'expense', amount: 20, categoryId: 'shopping', note: 'Gift' }],
+  ['split the bill, my half was 30', { kind: 'transaction', type: 'expense', amount: 30 }],
+  ['venmoed Sarah 25 for dinner', { type: 'expense', amount: 25, categoryId: 'dining' }],
+  // money sent to a person is money out, whoever they are
+  ['sent mom 100', { type: 'expense', amount: 100, note: 'Mom' }],
+  ['paid the babysitter 60', { type: 'expense', amount: 60, note: 'Babysitter' }],
+  ['parking meter 3', { type: 'expense', amount: 3, categoryId: 'transport' }],
+  ['tolls 8', { type: 'expense', amount: 8, categoryId: 'transport' }],
+  ['an oil change, 70', { type: 'expense', amount: 70, categoryId: 'transport', note: 'Oil change' }],
+  // a plain statement with "the ... was" is an entry; only "actually", an opener or "not 23" makes it a fix
+  ['the dentist was 150', { kind: 'transaction', type: 'expense', amount: 150, categoryId: 'health', note: 'Dentist' }],
+  ['co-pay 25', { type: 'expense', amount: 25, categoryId: 'health' }],
+  // a monthly thing said in passing is an expense with the pace dropped from the note, never a goal
+  ['gym 40 a month', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'health', note: 'Gym' }],
+  ['Netflix 15.99 a month', { kind: 'transaction', type: 'expense', amount: 15.99, categoryId: 'subscriptions', note: 'Netflix' }],
+  ['um like 23 on uber', { type: 'expense', amount: 23, categoryId: 'transport', note: 'Uber' }],
+  ['so I went and got groceries and it was like 85', { type: 'expense', amount: 85, categoryId: 'groceries', note: 'Groceries' }],
+  ['beers with the lads 30 quid', { type: 'expense', amount: 30, categoryId: 'dining' }],
+  ['takeaway curry 25', { type: 'expense', amount: 25, categoryId: 'dining' }],
+  ['petrol 60', { type: 'expense', amount: 60, categoryId: 'transport' }],
+  ['chippy 12', { type: 'expense', amount: 12, categoryId: 'dining' }],
+  ['50 dollars worth of gas', { type: 'expense', amount: 50, categoryId: 'transport', note: 'Gas' }],
+];
+describe('English: spending slang', () => runCases('en', SLANG));
+
+const MONEY_IN: Case[] = [
+  ['got paid', { kind: 'transaction', type: 'income', amount: null, categoryId: 'salary' }],
+  ['payday! 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['my check came in 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['paycheck hit 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['pay came in 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['wages 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['overtime 200', { type: 'income', amount: 200, categoryId: 'salary' }],
+  ['made 300 on the side', { type: 'income', amount: 300, categoryId: 'freelance' }],
+  ['side hustle 300', { type: 'income', amount: 300, categoryId: 'freelance' }],
+  ['a client paid me 500', { type: 'income', amount: 500, categoryId: 'freelance' }],
+  ['tips tonight 85', { type: 'income', amount: 85, occurredAt: '2026-09-16' }],
+  ['sold my couch for 120', { type: 'income', amount: 120, categoryId: 'other_income', note: 'Couch' }],
+  ['cash from grandma 50', { type: 'income', amount: 50, categoryId: 'gift_income' }],
+  ['birthday money 100', { type: 'income', amount: 100, categoryId: 'gift_income' }],
+  ['my mum sent me 50', { type: 'income', amount: 50, categoryId: 'gift_income' }],
+  ['refund from Amazon 32', { type: 'income', amount: 32, categoryId: 'other_income', note: 'Amazon' }],
+  ['got 40 back from Dave', { type: 'income', amount: 40, categoryId: 'other_income', note: 'Dave' }],
+  ['venmo from Sarah 25', { type: 'income', amount: 25, categoryId: 'other_income' }],
+  ['got my tax refund, 900', { type: 'income', amount: 900, categoryId: 'other_income' }],
+  ['bonus 1000', { type: 'income', amount: 1000, categoryId: 'other_income' }],
+  ['got a bonus of 1000', { type: 'income', amount: 1000, categoryId: 'other_income' }],
+  ['unemployment came through 450', { type: 'income', amount: 450, categoryId: 'other_income', note: 'Unemployment' }],
+  ['child benefit 90', { type: 'income', amount: 90, categoryId: 'other_income' }],
+  ['dividends 25', { type: 'income', amount: 25, categoryId: 'other_income' }],
+  ['got reimbursed 80 for the train', { type: 'income', amount: 80, categoryId: 'other_income', note: 'Train' }],
+  ['work reimbursed me 80', { type: 'income', amount: 80, categoryId: 'other_income', note: 'Work' }],
+];
+describe('English: money in, said the way people say it', () => runCases('en', MONEY_IN));
+
+const REAL_QUESTIONS: Case[] = [
+  ['what did I spend on food this week', { kind: 'question', question: { ask: 'spent', categoryIds: ['groceries', 'dining'], period: 'week' } }],
+  ["what's left for groceries", { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['whats left in groceries', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['how much left on groceries', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['how much do I have for groceries', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ["what's my remaining for dining", { kind: 'question', question: { ask: 'left', categoryId: 'dining' } }],
+  ['am I over on dining', { kind: 'question', question: { ask: 'left', categoryId: 'dining' } }],
+  ['am I under on groceries', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['am I over for the month', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['where did my money go this month', { kind: 'question', question: { ask: 'top', period: 'month' } }],
+  ['what was my biggest expense', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['whats my top category', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['what did I spend most on last month', { kind: 'question', question: { ask: 'top', period: 'lastMonth', target: null } }],
+  ['can I afford 80 for shoes', { kind: 'question', question: { ask: 'afford', price: 80, target: 'Shoes' } }],
+  ['can I swing 200 for a jacket', { kind: 'question', question: { ask: 'afford', price: 200, target: 'Jacket' } }],
+  ['is 40 ok for drinks tonight', { kind: 'question', question: { ask: 'afford', price: 40, fallbackCategoryId: 'dining' } }],
+  ['can I spend 80 on shoes', { kind: 'question', question: { ask: 'afford', price: 80, fallbackCategoryId: 'shopping' } }],
+  ['did I spend less this week', { kind: 'question', question: { ask: 'compare', period: 'week' } }],
+  ['is my dining spending up', { kind: 'question', question: { ask: 'compare', categoryId: 'dining' } }],
+  ['how much did I earn this week', { kind: 'question', question: { type: 'income', period: 'week' } }],
+  ['how much did I make freelancing', { kind: 'question', question: { type: 'income', fallbackCategoryId: 'freelance' } }],
+  // what has been put away: the transfers toward the goal mention its name, so "Japan" finds them
+  ['how much have I saved for Japan', { kind: 'question', question: { ask: 'spent', target: 'Japan' } }],
+  ['how much have I put towards Japan', { kind: 'question', question: { ask: 'spent', target: 'Japan' } }],
+  ['how much have I put away this month', { kind: 'question', question: { ask: 'spent', period: 'month', fallbackCategoryId: 'savings' } }],
+  ['how much have I spent on uber this month', { kind: 'question', question: { ask: 'spent', target: 'Uber', period: 'month' } }],
+  ['how much on groceries so far', { kind: 'question', question: { ask: 'spent', categoryId: 'groceries', period: 'all' } }],
+  ['how much did the weekend cost', { kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } }],
+  ['how much have I spent on takeout in the last 30 days', { kind: 'question', question: { ask: 'spent', period: 'recentDays', days: 30, target: 'Takeout' } }],
+  ['what did I spend on amazon last week', { kind: 'question', question: { ask: 'spent', target: 'Amazon', period: 'lastWeek' } }],
+  ['what did I drop on drinks this week', { kind: 'question', question: { ask: 'spent', target: 'Drinks', period: 'week' } }],
+  ['how much did I blow on takeout last month', { kind: 'question', question: { ask: 'spent', target: 'Takeout', period: 'lastMonth' } }],
+  ["what's my grocery spending this month", { kind: 'question', question: { ask: 'spent', period: 'month', fallbackCategoryId: 'groceries' } }],
+];
+describe('English: questions people really ask', () => runCases('en', REAL_QUESTIONS));
+
+const MORE_CORRECTIONS: Case[] = [
+  ['no wait that was 14', { kind: 'correction', correction: { remove: false, amount: 14, target: null } }],
+  ['oops, that was 14', { kind: 'correction', correction: { amount: 14, target: null } }],
+  ['no it was 12.50', { kind: 'correction', correction: { amount: 12.5, target: null } }],
+  ['nope, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['wait, make that 20', { kind: 'correction', correction: { amount: 20 } }],
+  ['make that last one 25', { kind: 'correction', correction: { amount: 25 } }],
+  ['that should have been 30', { kind: 'correction', correction: { amount: 30 } }],
+  ['sorry I meant 40', { kind: 'correction', correction: { amount: 40 } }],
+  ['oops wrong amount, 14', { kind: 'correction', correction: { amount: 14 } }],
+  ['make it dining', { kind: 'correction', correction: { categoryId: 'dining', amount: null } }],
+  ['that was yesterday actually', { kind: 'correction', correction: { date: '2026-09-15', amount: null } }],
+  ['that was the day before yesterday', { kind: 'correction', correction: { date: '2026-09-14' } }],
+  ['delete the uber', { kind: 'correction', correction: { remove: true, target: 'uber' } }],
+  ['change the lunch to 15', { kind: 'correction', correction: { amount: 15, target: 'lunch' } }],
+  ['the lunch should be 15', { kind: 'correction', correction: { amount: 15, target: 'lunch' } }],
+  ['the coffee was 4.50 not 5', { kind: 'correction', correction: { amount: 4.5, target: 'coffee' } }],
+  ['undo that', { kind: 'correction', correction: { remove: true } }],
+  ['get rid of the last one', { kind: 'correction', correction: { remove: true } }],
+  ['kill the last one', { kind: 'correction', correction: { remove: true } }],
+  ['bin that', { kind: 'correction', correction: { remove: true } }],
+];
+describe('English: more fixes by voice', () => runCases('en', MORE_CORRECTIONS));
+
+const MORE_REMINDERS: Case[] = [
+  ['remind me rent is due on the 1st', { kind: 'reminder', occurredAt: '2026-10-01', reminderText: 'Rent is due' }],
+  ["don't let me forget the electric bill friday", { kind: 'reminder', occurredAt: '2026-09-18' }],
+  ['ping me at 8 to log receipts', { kind: 'reminder', reminderTime: '08:00', reminderText: 'Log receipts' }],
+  ['remind me every monday to check my budget', { kind: 'reminder', reminderRepeat: 'weekly', reminderText: 'Check my budget' }],
+  ['remind me the car insurance is due on the 20th', { kind: 'reminder', occurredAt: '2026-09-20' }],
+  ['heads up on friday to pay the water bill', { kind: 'reminder', occurredAt: '2026-09-18', reminderText: 'Pay the water bill' }],
+  ['remind me tomorrow morning to transfer rent', { kind: 'reminder', occurredAt: '2026-09-17', reminderTime: '08:00' }],
+  ['every evening at 9 remind me to log my spending', { kind: 'reminder', reminderRepeat: 'daily', reminderTime: '21:00' }],
+  ['remind me to cancel the free trial in 3 days', { kind: 'reminder', occurredAt: '2026-09-19', reminderText: 'Cancel the free trial' }],
+  ['can you remind me at 5pm to pay sarah back', { kind: 'reminder', reminderTime: '17:00' }],
+  ['remind me on the first of every month to pay rent', { kind: 'reminder', reminderRepeat: 'monthly', reminderText: 'Pay rent' }],
+  ["don't forget the gas bill is due thursday", { kind: 'reminder', occurredAt: '2026-09-17' }],
+  ['remind me at 9 30 to check the budget', { kind: 'reminder', reminderTime: '09:30', reminderText: 'Check the budget' }],
+];
+describe('English: more reminders', () => runCases('en', MORE_REMINDERS));
+
+const DICTATION: Case[] = [
+  ['lunch four fifty', { kind: 'transaction', amount: 4.5, categoryId: 'dining' }],
+  ['3 50 for a coffee', { kind: 'transaction', amount: 3.5, categoryId: 'dining', note: 'Coffee' }],
+  ['two fifty for a coffee', { kind: 'transaction', amount: 2.5, categoryId: 'dining' }],
+  ['twenty bucks on gas', { kind: 'transaction', amount: 20, categoryId: 'transport' }],
+  ['a grand on rent', { kind: 'transaction', amount: 1000, categoryId: 'rent' }],
+  ['twenty five hundred rent', { kind: 'transaction', amount: 2500, categoryId: 'rent' }],
+  ['1,200 rent', { kind: 'transaction', amount: 1200, categoryId: 'rent' }],
+  ['12 dollars 50 for lunch', { kind: 'transaction', amount: 12.5, categoryId: 'dining', note: 'Lunch' }],
+  ['$12.50 lunch', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  // UK: a fiver, a tenner, quid
+  ['fiver for coffee', { kind: 'transaction', amount: 5, categoryId: 'dining', note: 'Coffee' }],
+  ['a tenner on lunch', { kind: 'transaction', amount: 10, categoryId: 'dining', note: 'Lunch' }],
+  ['50 quid groceries', { kind: 'transaction', amount: 50, categoryId: 'groceries' }],
+  ['a buck fifty for gum', { kind: 'transaction', amount: 1.5, note: 'Gum' }],
+];
+describe('English: numbers as dictation writes them', () => runCases('en', DICTATION));
+
+/** Sentences that brush against a question, goal or correction but are plain entries. */
+const STILL_ENTRIES: Case[] = [
+  ['groceries 85 this week', { kind: 'transaction', amount: 85, categoryId: 'groceries' }],
+  // a discount is not money that moved; "saved" alone reads as putting money away, and the card is there to change it.
+  // What matters is that it is never a goal or a contribution.
+  ['saved 50 on the sale', { kind: 'transaction', amount: 50 }],
+  ['total 60 on drinks', { kind: 'transaction', amount: 60, categoryId: 'dining' }],
+  ['gas 40 for the week', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['coffee 4 like every morning', { kind: 'transaction', amount: 4, categoryId: 'dining' }],
+  ['more groceries 30', { kind: 'transaction', amount: 30, categoryId: 'groceries' }],
+  ['the most expensive coffee ever 7', { kind: 'transaction', amount: 7, categoryId: 'dining' }],
+  ['dropped 12 on lunch', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  // "at" now introduces a goal name ("threw 100 at the Japan trip"), yet a place that merely contains a goal word stays a place
+  ['paid 30 at Japan House', { kind: 'transaction', amount: 30, note: 'Japan House' }],
+  ['spent 12 at the pub', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  ['that was 40 for gas', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['put 200 away for a rainy day', { kind: 'transaction', amount: 200, categoryId: 'savings' }],
+];
+describe('English: still entries', () => runCases('en', STILL_ENTRIES));
