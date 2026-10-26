@@ -14,8 +14,11 @@ import { defaultDateOrder, findDates, numericDateOrder, resolveDate } from './da
 export const MAX_CSV_BYTES = 5 * 1024 * 1024;
 /** Lines past this are ignored: a year of daily spending is well under it. */
 export const MAX_CSV_LINES = 20000;
+/** No export has more columns than this, or a longer cell; the rest is dropped before any parsing. */
+export const MAX_CSV_COLUMNS = 64;
+const MAX_CSV_CELL = 400;
 
-type Role = 'date' | 'desc' | 'amount' | 'in' | 'out' | 'balance' | 'sign' | 'skip';
+type Role = 'date' | 'desc' | 'amount' | 'in' | 'out' | 'balance' | 'sign' | 'category' | 'skip';
 
 /** Header words, in the eight app languages plus what common exports use. Longer, more specific words first. */
 const HEADER_ROLES: { re: RegExp; role: Role }[] = [
@@ -25,6 +28,8 @@ const HEADER_ROLES: { re: RegExp; role: Role }[] = [
   { re: /^(?:balance|running balance|closing balance|available balance|balance after transaction|saldo|solde|kontostand|残高|잔액|余额|馀额)$/i, role: 'balance' },
   { re: /^(?:date|transaction date|trans date|posting date|post date|posted date|booking date|value date|date posted|started date|completed date|fecha|fecha operaci[oó]n|fecha valor|date d'op[ée]ration|date de valeur|datum|buchungstag|buchungsdatum|wertstellung|valuta|data|data operazione|data valuta|日付|取引日|利用日|거래일|거래일자|日期|交易日期|记账日期)$/i, role: 'date' },
   { re: /^(?:description|details|transaction details|transaction description|narrative|memo|payee|merchant|name|counterparty|beneficiary|reference|particulars|descripci[oó]n|concepto|libell[ée]|intitul[ée]|verwendungszweck|buchungstext|auftraggeber ?\/? ?empf[äa]nger|beg[üu]nstigter|descrizione|dettagli|operazione|causale|摘要|内容|利用店名|적요|내용|거래내용|交易摘要|交易说明|商户)$/i, role: 'desc' },
+  // Another app's export (YNAB, Mint, Monarch, Goodbudget, EveryDollar): its category lands in this app's category.
+  { re: /^(?:category|categories|category group\/category|category group|subcategory|envelope|budget category|budget|categor[ií]a|cat[ée]gorie|kategorie|カテゴリ|カテゴリー|分類|분류|카테고리|分类|类别)$/i, role: 'category' },
   { re: /^(?:type|transaction type|cr\/dr|dr\/cr|d\/c|c\/d|debit\/credit|credit\/debit|direction|flow|indicator|tipo|type d'op[ée]ration|soll\/haben|art|区分|입출금구분|借贷)$/i, role: 'sign' },
 ];
 
@@ -63,7 +68,7 @@ export function parseCsv(text: string): string[][] {
   }
   row.push(cell);
   if (row.some((c) => c.trim())) rows.push(row);
-  return rows.map((r) => r.map((c) => c.trim()));
+  return rows.map((r) => r.slice(0, MAX_CSV_COLUMNS).map((c) => c.trim().slice(0, MAX_CSV_CELL)));
 }
 
 function detectDelimiter(src: string): string {
@@ -131,6 +136,7 @@ interface Plan {
   outCol: number | null;
   balance: number | null;
   sign: number | null;
+  category: number | null;
   headerRow: number;
 }
 
@@ -149,7 +155,7 @@ function planFromHeader(header: string[]): Plan | null {
   const outCol = first('out');
   if (amount < 0 && (inCol < 0 || outCol < 0)) return null;
   const desc = roles.map((r, i) => (r === 'desc' ? i : -1)).filter((i) => i >= 0);
-  return { date, desc, amount: amount >= 0 ? amount : null, inCol: inCol >= 0 ? inCol : null, outCol: outCol >= 0 ? outCol : null, balance: first('balance') >= 0 ? first('balance') : null, sign: first('sign') >= 0 ? first('sign') : null, headerRow: 0 };
+  return { date, desc, amount: amount >= 0 ? amount : null, inCol: inCol >= 0 ? inCol : null, outCol: outCol >= 0 ? outCol : null, balance: first('balance') >= 0 ? first('balance') : null, sign: first('sign') >= 0 ? first('sign') : null, category: first('category') >= 0 ? first('category') : null, headerRow: 0 };
 }
 
 /** Moves a "description" column whose cells are all credit/debit flags over to the sign role. */
@@ -182,7 +188,7 @@ function planFromShape(rows: string[][], language: string): Plan | null {
   const avgLen = (col: number) => sample.reduce((a, r) => a + (r[col]?.length ?? 0), 0) / sample.length;
   const desc = textCols.filter((i) => avgLen(i) >= 3).sort((a, b) => avgLen(b) - avgLen(a)).slice(0, 2).sort((a, b) => a - b);
   // One number is the amount; two are amount and balance; three are out, in and balance.
-  const plan: Plan = { date, desc, amount: null, inCol: null, outCol: null, balance: null, sign: null, headerRow: -1 };
+  const plan: Plan = { date, desc, amount: null, inCol: null, outCol: null, balance: null, sign: null, category: null, headerRow: -1 };
   if (numeric.length === 1) plan.amount = numeric[0];
   else if (numeric.length === 2) { plan.amount = numeric[0]; plan.balance = numeric[1]; }
   else { plan.outCol = numeric[0]; plan.inCol = numeric[1]; plan.balance = numeric[2]; }
@@ -231,7 +237,11 @@ export function csvToRows(text: string, language: string, today: string): CsvRow
     const signed = data.map((r) => ({ v: amountOf(r, plan!.amount), d: plan!.desc.map((i) => r[i] ?? '').join(' ') })).filter((x): x is { v: number; d: string } => x.v != null && x.v !== 0);
     const negatives = signed.filter((x) => x.v < 0);
     // Only positives: charges as a card prints them; payments and refunds are money in.
-    if (!negatives.length && signed.length) splitUnsigned = true;
+    if (!negatives.length && signed.length) {
+      splitUnsigned = true;
+      // With no payment or refund line to go by, every line is read as money out: worth a look in the review.
+      if (!signed.some((x) => CARD_CREDIT.test(x.d))) warnings.push('directionGuessed');
+    }
     // Mostly positives, and what is negative reads as a payment or refund: a card export (Amex, Discover), where
     // a plus is spending. A bank export is the other way round, and keeps its signs.
     else if (signed.length >= 3 && negatives.length && negatives.length <= signed.length / 2 && negatives.filter((x) => CARD_CREDIT.test(x.d)).length >= Math.ceil(negatives.length * 0.6)) cardStyle = true;
@@ -280,7 +290,9 @@ export function csvToRows(text: string, language: string, today: string): CsvRow
       const b = amountOf(r, plan.balance);
       if (b != null) parts.push({ x: X.balance, str: fmt(b) });
     }
-    const row = cellsOf(parts);
+    const row: Row = cellsOf(parts);
+    const fileCategory = plan.category != null ? (r[plan.category] ?? '').replace(/\s+/g, ' ').trim() : '';
+    if (fileCategory) row.category = fileCategory;
     rows.push(row);
     dateOrderRows.push(row);
   }

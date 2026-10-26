@@ -153,8 +153,12 @@ export async function buyUnlock(): Promise<BuyResult> {
 export async function restore(): Promise<StoreState | null> {
   if (!(await connect())) return null;
   try {
-    await restorePurchases();
-    lastKnown = stateFrom(await getAvailablePurchases());
+    // A store that does not answer (offline, a stalled StoreKit) gives up like `readStore`, never a spinner for ever.
+    const restored = await withTimeout(restorePurchases().then(() => true), false);
+    if (!restored) return null;
+    const purchases = await withTimeout(getAvailablePurchases().then((p) => ({ p })), null);
+    if (!purchases) return null;
+    lastKnown = stateFrom(purchases.p);
     return lastKnown;
   } catch {
     return null;
@@ -167,7 +171,10 @@ export async function restore(): Promise<StoreState | null> {
  */
 export async function recordTrialStart(): Promise<void> {
   // A reinstall already owns the trial product; asking again would only show "already purchased".
-  if (Platform.OS !== 'ios' || lastKnown?.trialStartedOn || !(await connect())) return;
+  if (Platform.OS !== 'ios') return;
+  // What the store already knows (a reinstall mid-trial) is read first, so the sheet is not shown twice.
+  if (!lastKnown) await readStore().catch(() => null);
+  if (lastKnown?.trialStartedOn || !(await connect())) return;
   try {
     const result = await requestPurchase({ type: 'in-app', request: { apple: { sku: PRODUCT_TRIAL }, google: { skus: [PRODUCT_TRIAL] } } });
     const purchases = result == null ? [] : Array.isArray(result) ? result : [result];

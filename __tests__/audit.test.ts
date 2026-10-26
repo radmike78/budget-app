@@ -93,6 +93,7 @@ describe('day numbers before amounts in decimal-comma languages', () => {
   it('mixed separators: the last one is the decimal', () => {
     expect(one('spent 1,234.56 on a laptop', 'es').amount).toBe(1234.56);
     expect(one('spent 1.234,56 on a laptop', 'en').amount).toBe(1234.56);
+    expect(one('spent 1,5 on gum', 'en').amount).toBe(1.5);
   });
 });
 

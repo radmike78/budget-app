@@ -36,7 +36,7 @@ export default function RootLayout() {
   // A start that hangs (a database that never opens) shows the error screen with Try again rather than a spinner for ever.
   const start = React.useCallback(() => {
     setError(null);
-    const timer = setTimeout(() => { if (!useAppStore.getState().ready) setError(t.screenError); }, START_TIMEOUT_MS);
+    const timer = setTimeout(() => { if (!useAppStore.getState().ready) { useAppStore.getState().resetInit(); setError(t.screenError); } }, START_TIMEOUT_MS);
     init().catch((e: Error) => setError(e.message)).finally(() => clearTimeout(timer));
   }, [init, t.screenError]);
   useEffect(() => { start(); }, [start]);

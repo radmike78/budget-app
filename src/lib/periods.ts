@@ -7,6 +7,12 @@ import type { BudgetPeriodMode, Frequency, Period, RecurringRule } from '@/types
 import { addDays, addMonths, addYears, fromDateString, longDate, monthKey, monthRange, type DateFormat, EN_DATE_FORMAT } from './dates';
 import { advance, monthlyEquivalent } from './recurring';
 
+/** True when the period is exactly a calendar month (pay mode falls back to months until there is a payday on each side). */
+export function isWholeMonth(period: Period): boolean {
+  const r = monthRange(monthKey(period.start));
+  return period.start === r.start && period.end === r.end;
+}
+
 type PayRule = Pick<RecurringRule, 'type' | 'active' | 'frequency' | 'nextOccurrence' | 'anchorDay' | 'amount'>;
 
 /** An income worth at least this share of the largest a month is pay; anything smaller (a side gig, interest) never splits a period. */

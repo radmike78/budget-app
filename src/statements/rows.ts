@@ -2,6 +2,9 @@ import type { Row, TextItem } from './types';
 
 /** Items closer than this vertically (in PDF points) are on the same row. */
 const ROW_TOLERANCE = 3.5;
+/** A printed line never holds more cells, or a longer cell, than this; the rest of a crafted row is dropped. */
+const MAX_ROW_CELLS = 200;
+const MAX_CELL_CHARS = 400;
 /** A horizontal gap wider than this becomes a column break (two spaces). */
 const COLUMN_GAP = 12;
 
@@ -24,7 +27,7 @@ export function rowsFromItems(items: TextItem[]): Row[] {
     let currentY = NaN;
     const flush = () => {
       if (!current.length) return;
-      const cells = current.sort((a, b) => a.x - b.x).map((c) => ({ x: c.x, str: c.str.trim() })).filter((c) => c.str);
+      const cells = current.sort((a, b) => a.x - b.x).slice(0, MAX_ROW_CELLS).map((c) => ({ x: c.x, str: c.str.trim().slice(0, MAX_CELL_CHARS) })).filter((c) => c.str);
       rows.push({ page, y: currentY, cells, text: joinCells(cells, current) });
       current = [];
     };

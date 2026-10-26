@@ -310,10 +310,10 @@ export const en = {
     pickIconTitle: 'Pick an icon',
     spendingKind: 'Spending',
     incomeKind: 'Income',
-    monthlyLimit: 'Monthly limit (optional)',
-    periodLimit: 'Limit per pay period (optional)',
+    monthlyLimit: 'Monthly plan (optional)',
+    periodLimit: 'Plan per pay period (optional)',
     limitPlaceholder: 'Leave blank for none',
-    limitHint: 'A limit only adds a quiet progress bar. Nothing turns red.',
+    limitHint: 'A plan only adds a quiet progress bar. Nothing turns red.',
     giveName: 'Give it a name.',
     addCategory: 'Add category',
     archive: 'Archive',
@@ -339,7 +339,7 @@ export const en = {
     removeGoalBody: 'Entries you logged as transfers stay in your history.',
     goalMeta: (target: string, created: string) => `Target: ${target}. Created ${created}.`,
     // recurring
-    recurringIntro: 'Set up once. Each period OnlyBudget logs the entry for you and moves the next date forward. You can edit or remove any logged entry like normal.',
+    recurringIntro: 'Set up once. Each period OnlyBudget logs the entry for you and moves the next date forward. You can edit or remove any logged entry like normal. Today lists the bills due in the next month under Coming up.',
     newRecurring: 'New repeating entry',
     recurringTotals: (outAmt: string, inAmt: string) => `About ${outAmt} out and ${inAmt} in per month.`,
     nothingRepeating: 'Nothing repeating yet',
@@ -362,7 +362,7 @@ export const en = {
     yourData: 'Your data',
     backupExport: 'Backup & export',
     backupExportSub: 'CSV, a readable summary, or a full backup you can restore from.',
-    lastBackupShort: (when: string) => `Last backup ${when}.`,
+    lastBackupShort: (when: string) => `Last backup: ${when}.`,
     noBackupYetShort: 'No backup yet.',
     backupNudgeFirst: 'Your entries live only on this phone. A backup takes a minute and keeps them safe if the phone is lost.',
     backupNudgeStale: (when: string) => `Your last backup was ${when}. Everything since lives only on this phone.`,
@@ -424,7 +424,7 @@ export const en = {
     answerModeSub: 'Ask "how much have I spent this week on coffee?" on the Today tab.',
     answerText: 'On screen',
     answerSpeak: 'Read aloud',
-    answerAuto: 'Aloud when I ask by voice',
+    answerAuto: 'Aloud if spoken',
     budgetPeriod: 'Budget period',
     budgetPeriodSub: 'Paydays come from your repeating income. With "My paydays" a new period starts on each one, so a three-paycheck month takes care of itself. Category limits and the overall plan then apply per pay period.',
     budgetPeriodNeedsIncome: 'Add a repeating income first, so the app knows when your paydays are.',
@@ -504,6 +504,8 @@ export const en = {
     perDayShort: (amount: string) => `about ${amount} a day`,
     afterBillsShort: (amount: string) => `after ${amount} in bills still due`,
     spendRest: 'Everything else',
+    comingUp: 'Coming up',
+    logAgain: (what: string) => `Log ${what} again`,
     planShort: (spent: string, plan: string, left: string) => `${left} left of ${plan}`,
     toGoShort: (toGo: string) => `${toGo} to go`,
     pastPlanShort: (over: string, plan: string) => `${over} past the ${plan} plan`,
@@ -535,13 +537,15 @@ export const en = {
     },
     answerNone: (period: string, what: string | null, income: boolean) => (income ? `Nothing came in${what ? ` from ${what}` : ''} ${period}.` : `Nothing logged${what ? ` for ${what}` : ''} ${period}.`),
     answerFallback: (target: string, category: string) => `No entry mentions ${target}, so this is the ${category} total.`,
-    answerCompare: (period: string, amount: string, what: string | null, direction: 'less' | 'more' | 'same' | 'first', diff: string, prev: string): string => {
-      const base = `${period.charAt(0).toUpperCase() + period.slice(1)} you've spent ${amount}${what ? ` on ${what}` : ''}`;
+    // `whole`: the period is over and is compared whole with the one before it ("last week ... than the week before").
+    answerCompare: (period: string, amount: string, what: string | null, direction: 'less' | 'more' | 'same' | 'first', diff: string, prev: string, whole = false): string => {
+      const base = `${period.charAt(0).toUpperCase() + period.slice(1)} you${whole ? '' : "'ve"} spent ${amount}${what ? ` on ${what}` : ''}`;
       if (direction === 'first') return `${base}. There's nothing from ${prev} to compare with yet.`;
-      if (direction === 'same') return `${base}, about the same as by this point ${prev}.`;
-      return `${base}, ${diff} ${direction} than by this point ${prev}.`;
+      if (direction === 'same') return whole ? `${base}, about the same as ${prev}.` : `${base}, about the same as by this point ${prev}.`;
+      return whole ? `${base}, ${diff} ${direction} than ${prev}.` : `${base}, ${diff} ${direction} than by this point ${prev}.`;
     },
-    comparePrev: { week: 'last week', month: 'last month', year: 'last year', budget: 'last pay period' } as Record<string, string>,
+    comparePrev: { week: 'last week', month: 'last month', year: 'last year', budget: 'last pay period', lastWeek: 'the week before', lastMonth: 'the month before', lastYear: 'the year before', yesterday: 'the day before', today: 'yesterday', weekend: 'the weekend before' } as Record<string, string>,
+    comparePrevDays: (n: number): string => `the ${n} days before`,
     answerTop: (period: string, category: string, amount: string, total: string): string => `${period.charAt(0).toUpperCase() + period.slice(1)} the most went to ${category}: ${amount} of ${total}.`,
     answerAffordFits: (price: string, left: string, what: string | null, until: string): string => (what ? `After ${price} you'd still have ${left} of the ${what} plan, until ${until}.` : `After ${price} you'd still have ${left}, until ${until}.`),
     answerAffordShort: (price: string, short: string, what: string | null, until: string): string => (what ? `${price} is ${short} more than what's left of the ${what} plan until ${until}.` : `${price} is ${short} more than what's left until ${until}.`),
@@ -563,14 +567,14 @@ export const en = {
     helpSub: 'How to say, type, ask and fix things.',
     helpIntro: 'Everything here works by voice or by typing. Nothing new is saved until you tap Save on the card.',
     helpTopics: [
-      ['Adding an entry', 'Tap the mic and say what happened, or type it: "spent 12 on lunch", "got paid 2400", "gas 40 yesterday". Several in one breath work too: "9.87 at Starbucks and 58 at Korean BBQ". A card shows what was understood; tap Save to keep it.'],
+      ['Adding an entry', 'Tap the mic and say what happened, or type it: "spent 12 on lunch", "got paid 2400", "gas 40 yesterday". Several in one breath work too: "9.87 at Starbucks and 58 at Korean BBQ". A card shows what was understood; tap Save to keep it. Under the bar, what you log most often is one tap away: the same card opens, filled in.'],
       ['Fixing an entry', 'On the card, tap the amount, category or date to change it before saving. Later, tap any entry under Recent or History to edit it. When you change a category, the words are remembered so the next one lands right. Or just say it: "actually it was 14", "make that dining", "that was yesterday" or "delete that".'],
       ['Removing an entry', 'Open the entry and tap Remove entry. It goes at once, and an Undo bar stays for a few seconds in case you did not mean it.'],
       ['Asking a question', 'Ask "how much have I spent this week on coffee?" or "how much did I spend on groceries last month?". The answer is shown on screen or read aloud, as set under Settings → Answers to questions. Weeks start on Sunday. Ask "what\'s my remaining budget?" or "how much do I have left for groceries?" to hear what is left of your plan, or of your income once the bills still due are paid. "This pay period" and "since payday" work too, and "food" counts groceries and eating out together. "Over the weekend" and "in the last 7 days" work as well. You can also ask "did I spend more than last month?", "what did I spend the most on?" or "can I afford a $200 jacket?".'],
       ['Goals', 'Say "goal: save 500 for a trip by December" or "pay off my credit card in 6 months". The card shows the plan before you save it. Add money with "add 50 to the trip goal".'],
       ['Reminders', 'Say "remind me to pay rent on the 1st at 9am" or "remind me to log receipts every evening at 8". Reminders are phone notifications, so the first one asks for permission. They live under Settings → Reminders.'],
       ['Repeating entries', 'Rent, salary, subscriptions: set them once under Settings → Repeating entries and each one is logged for you when it is due. You can edit or remove any logged entry like normal.'],
-      ['Limits and what happens at period end', 'A limit on a category only adds a quiet progress bar; nothing turns red. Each category with a limit chooses what happens to the unspent part when the period ends: start fresh, carry it over, or ask you each time.'],
+      ['Plans and what happens at period end', 'A plan for a category only adds a quiet progress bar; nothing turns red. Each category with a plan chooses what happens to the unspent part when the period ends: start fresh, carry it over, or ask you each time.'],
       ['Where the money goes', 'The Budget tab splits a period\'s spending three ways: needs that keep the lights on, debts you owe, and wants, which is everything else. These are the three buckets of the 50/30/20 rule, so most people already know them. Every category starts somewhere sensible, so there is nothing to set up. Change one on its category screen.'],
       ['Budget period and the overall plan', 'Budget by calendar month, or by your paydays (Settings → Budget period; paydays come from your repeating income). One overall plan for all spending can be set from the Budget tab. Categories and limits stay optional.'],
       ['Importing a statement', 'Settings → Import a statement reads a bank or card statement PDF, or a CSV export from your bank, on your phone, shows every line for review, and keeps only what you approve. Account and card numbers are never kept, and the file is deleted afterwards. Imported the wrong statement? Earlier imports are listed on the same screen and can be removed in one go.'],

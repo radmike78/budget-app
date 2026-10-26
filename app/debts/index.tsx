@@ -122,11 +122,11 @@ export default function DebtsScreen() {
               <Text variant="money">{money(d.balance, { compact: true })}</Text>
             </Row>
             <Text variant="small" style={{ marginTop: 2 }}>
-              {t.debtTypes[d.type]}{d.monthlyPayment != null ? ` · ${t.debtMinPayment}: ${money(d.monthlyPayment, { compact: true })}` : ''}{d.apr != null ? ` · ${d.apr}%` : ''}{!CONSUMER.has(d.type) ? ` · ${t.excludedFromPlan}` : ''}
+              {t.debtTypes[d.type]}{d.monthlyPayment != null ? ` · ${t.debtMinPayment}: ${money(d.monthlyPayment, { compact: true })}` : ''}{d.apr != null ? ` · ${String(d.apr).replace('.', locale.format.decimal)}%` : ''}{!CONSUMER.has(d.type) ? ` · ${t.excludedFromPlan}` : ''}
             </Text>
             <Row style={{ marginTop: spacing.sm, flexWrap: 'wrap' }}>
               <Button tone="ghost" small title={t.edit} onPress={() => openEditor(d)} />
-              <Button tone="ghost" small title={t.makeGoal} onPress={() => makeGoal(d)} />
+              {adding ? <Button tone="ghost" small title={t.makeGoal} onPress={() => makeGoal(d)} /> : null}
               <Button tone="ghost" small title={t.remove} onPress={() => remove(d)} />
             </Row>
           </Card>

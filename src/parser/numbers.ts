@@ -23,7 +23,7 @@ export function normalizeDecimalPoint(text: string): string {
     .replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, ''))
     // "12,50" with no space after the comma is a decimal comma (people in comma countries use the English app
     // too); "12, 50" stays two numbers, and three digits after it ("2,400") were grouping, handled above.
-    .replace(/(?<![\d.,])(\d+),(\d{2})(?![\d,])/g, '$1.$2');
+    .replace(/(?<![\d.,])(\d+),(\d{1,2})(?![\d,])/g, '$1.$2');
 }
 
 /** "2.4k" -> "2400". */

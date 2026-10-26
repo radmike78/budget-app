@@ -17,7 +17,7 @@ describe('money never reads "minus nothing"', () => {
     expect(formatMoney(0.3 - 0.1 - 0.2, 'USD')).toBe('$0.00');
     expect(formatMoney(-0.004, 'USD')).toBe('$0.00');
     expect(formatMoney(-0.4, 'JPY')).toBe('¥0');
-    expect(formatMoney(-0.000001, 'EUR', { compact: true, format: de.format })).toBe('0 €');
+    expect(formatMoney(-0.000001, 'EUR', { compact: true, format: de.format })).toBe('0\u00a0€');
   });
   it('keeps the sign on a real negative', () => {
     expect(formatMoney(-0.005, 'USD')).toBe('-$0.01');

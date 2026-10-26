@@ -15,13 +15,13 @@ const ALL = [en, es, fr, itLocale, de, zh, ja, ko];
 
 describe('money formatting per locale', () => {
   it('uses locale separators and symbol placement', () => {
-    expect(formatMoney(1234.5, 'EUR', { format: de.format })).toBe('1.234,50 €');
-    expect(formatMoney(1234.5, 'EUR', { format: fr.format })).toBe('1 234,50 €');
-    expect(formatMoney(1234.5, 'EUR', { format: es.format, compact: true })).toBe('1.234,50 €');
+    expect(formatMoney(1234.5, 'EUR', { format: de.format })).toBe('1.234,50\u00a0€');
+    expect(formatMoney(1234.5, 'EUR', { format: fr.format })).toBe('1 234,50\u00a0€');
+    expect(formatMoney(1234.5, 'EUR', { format: es.format, compact: true })).toBe('1.234,50\u00a0€');
     expect(formatMoney(1200, 'JPY', { format: ja.format })).toBe('¥1,200');
     expect(formatMoney(25000, 'KRW', { format: ko.format })).toBe('₩25,000');
     expect(formatMoney(12, 'CNY', { format: zh.format })).toBe('¥12.00');
-    expect(formatMoney(-12, 'EUR', { format: itLocale.format })).toBe('-12,00 €');
+    expect(formatMoney(-12, 'EUR', { format: itLocale.format })).toBe('-12,00\u00a0€');
   });
   it('parses typed amounts with decimal commas', () => {
     expect(parseMoneyInput('12,50', true)).toBe(12.5);

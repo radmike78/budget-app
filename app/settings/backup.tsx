@@ -44,7 +44,8 @@ export default function Backup() {
     setBusy(label);
     setStatus(null);
     try {
-      setStatus({ text: await fn(), error: false });
+      const text = await fn();
+      setStatus(text ? { text, error: false } : null); // '' is a share sheet dismissed: nothing to report
     } catch (e) {
       const msg = (e as Error).message === 'SHARING_UNAVAILABLE' ? t.sharingUnavailable : t.didntWork((e as Error).message);
       setStatus({ text: msg, error: true });
@@ -75,7 +76,8 @@ export default function Backup() {
 
   const exportBackup = () => run('backup', async () => {
     const payload = await snapshot();
-    await shareTextFile(`onlybudget-backup-${timestampForFilename()}.json`, JSON.stringify(payload, null, 2));
+    const shared = await shareTextFile(`onlybudget-backup-${timestampForFilename()}.json`, JSON.stringify(payload, null, 2));
+    if (!shared) return '';
     await updateSettings({ lastBackupAt: nowIso() });
     return t.backupReady;
   });
@@ -85,9 +87,10 @@ export default function Backup() {
     if (pass !== pass2) throw new Error(t.passphraseMismatch);
     const payload = await snapshot();
     const file = await encryptBackup(JSON.stringify(payload), pass, (n) => Crypto.getRandomBytes(n));
-    await shareTextFile(`onlybudget-backup-${timestampForFilename()}.onlybudget.json`, JSON.stringify(file));
-    await updateSettings({ lastBackupAt: nowIso() });
+    const shared = await shareTextFile(`onlybudget-backup-${timestampForFilename()}.onlybudget.json`, JSON.stringify(file));
     setAskPass(null); setPass(''); setPass2('');
+    if (!shared) return '';
+    await updateSettings({ lastBackupAt: nowIso() });
     return t.encryptedReady;
   });
 
@@ -143,6 +146,8 @@ export default function Backup() {
       throw new Error(t.wrongPassphrase);
     }
     setAskPass(null); setPass('');
+    // The passphrase sheet is a Modal: an alert shown while it is still closing can be swallowed on iOS.
+    await new Promise((r) => setTimeout(r, 400));
     return applyRestore(parseFile(json));
   });
 

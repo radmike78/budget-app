@@ -69,7 +69,7 @@ export default function HistoryScreen() {
     }
     if (range === 'month') return monthRange(monthKey(now));
     if (range === 'last_month') return monthRange(shiftMonthKey(monthKey(now), -1));
-    if (range === '90d') return { start: addDays(now, -90), end: now };
+    if (range === '90d') return { start: addDays(now, -89), end: now };
     return { start: null, end: null };
   }, [range, day, payMode, rules]);
 

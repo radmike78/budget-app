@@ -7,4 +7,6 @@
  * on for a later release: flip this to true, then put the Smart parsing sentence back into the "No ads"
  * commitment in every locale, and update `store/listing.md` and `docs/PRIVACY.md` (section "Smart parsing").
  */
+// Switching it on also means adding `https://api.anthropic.com` back to `connect-src` in deploy/nginx/default.conf,
+// scripts/postbuild-web.js and the CSP test in __tests__/security.test.ts.
 export const SMART_ASSIST = false;

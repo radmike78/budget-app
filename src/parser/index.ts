@@ -876,7 +876,7 @@ function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): 
 const MAX_CORRECTION_LENGTH = 100;
 
 /** A category named by the words: its name or label, a word that starts it ("dining" is "Dining out"), then the dictionary. */
-function categoryFromWords(words: string, ctx: ParseContext, pack: LanguagePack): { categoryId: string; matched: string } | null {
+export function categoryFromWords(words: string, ctx: ParseContext, pack: LanguagePack = getPack(ctx.language)): { categoryId: string; matched: string } | null {
   const key = words.toLowerCase().replace(/\s+/g, ' ').trim();
   if (!key) return null;
   const compact = key.replace(/\s+/g, '');

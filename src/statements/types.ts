@@ -19,6 +19,8 @@ export interface Row {
   y: number;
   cells: { x: number; str: string }[];
   text: string;
+  /** The category another app's export gave the line (a CSV column); matched against this app's own words. */
+  category?: string;
 }
 
 export type StatementKind = 'bank' | 'card' | 'credit_report' | 'unknown';

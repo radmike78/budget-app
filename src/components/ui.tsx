@@ -193,13 +193,13 @@ export function Button({ title, tone = 'primary', loading, disabled, style, smal
   );
 }
 
-export function Chip({ label, selected, onPress, tone = 'default', style }: { label: string; selected?: boolean; onPress?: () => void; tone?: 'default' | 'danger'; style?: StyleProp<ViewStyle> }) {
+export function Chip({ label, selected, onPress, tone = 'default', style, accessibilityLabel }: { label: string; selected?: boolean; onPress?: () => void; tone?: 'default' | 'danger'; style?: StyleProp<ViewStyle>; accessibilityLabel?: string }) {
   const { colors } = useTheme();
   const scale = useTypeScale();
   const bg = selected ? (tone === 'danger' ? colors.dangerSoft : colors.accent) : colors.cardAlt;
   const fg = selected ? (tone === 'danger' ? colors.danger : colors.onAccent) : colors.text;
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!selected }} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: !!selected }} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
       <RNText style={{ color: fg, fontSize: 14 * scale, fontWeight: selected ? '600' : '500' }}>{label}</RNText>
     </Pressable>
   );
@@ -215,7 +215,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
         // The chosen segment is a tinted pill with accent text: card-on-cardAlt was 1.1:1 in dark mode, bold text alone.
         return (
           <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent }]}>
-            <RNText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: active ? colors.accent : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale }}>{o.label}</RNText>
+            <RNText numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: active ? colors.accent : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale, textAlign: 'center' }}>{o.label}</RNText>
           </Pressable>
         );
       })}

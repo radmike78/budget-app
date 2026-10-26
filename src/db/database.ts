@@ -5,6 +5,11 @@ export type DB = SQLite.SQLiteDatabase;
 
 let dbPromise: Promise<DB> | null = null;
 
+/** Forgets a database that never opened, so the next `getDb` tries again (Try again on the start screen). */
+export function resetDb(): void {
+  dbPromise = null;
+}
+
 export function getDb(): Promise<DB> {
   if (!dbPromise) {
     dbPromise = (async () => {

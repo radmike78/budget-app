@@ -7,11 +7,13 @@ OnlyBudget
 Only a budget. Nothing else.
 
 ## Short description (Play, 80 chars)
-No bank account required. No ads. No subscriptions. Just tell it what you spent.
+No bank linking. No ads. No subscriptions. Just tell it what you spent.
 
 ## Description
 
-**No bank account required. No ads. No subscriptions. Just tell it what you spent.**
+**No bank linking. No ads. No subscriptions. Just tell it what you spent.**
+
+Free for 30 days, with no card and nothing that turns into anything. After that, one purchase keeps it going for good. The price is shown up front and never changes after you buy.
 
 OnlyBudget is a budget you talk to. Tap the mic (or type) and say it the way you'd say it to a friend:
 
@@ -27,7 +29,12 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 - Categories with optional limits, shown as a quiet progress bar, never a red alert
 - Repeating entries for rent, salary and subscriptions. Set up once, logged automatically
 - Savings goals with honest pace: "You're $180 away, on pace to hit it 2 weeks early"
+- Questions, answered out loud if you like: "how much did I spend on coffee this week?", "what's left for groceries?", "can I afford 80 on shoes?"
+- Budget by calendar month or from payday to payday, with a "safe to spend until payday" number that keeps the bills back
+- Statement import: a PDF or CSV from your bank or card, read on your phone, every line shown before anything is saved
+- Reminders you set yourself. The app never notifies you on its own
 - Searchable history, by category, date and type
+- An app lock with Face ID, Touch ID or your passcode
 - Export to CSV, a readable summary, or a full backup. Passphrase-encrypted backups you can keep in your own cloud drive
 - Light and dark themes
 - Works in English, Spanish, French, Italian, German, Chinese, Japanese and Korean, including the voice entry
@@ -36,6 +43,7 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 - Bank linking. Not now, not later, not as an upgrade. OnlyBudget never asks for bank credentials.
 - Ads, trackers or analytics. There is no server. Your data lives on your phone and nothing is sent anywhere.
 - Accounts. You never sign up.
+- Lock-in. Export everything as CSV or a full backup any time. The source code is public, so the app cannot quietly change what it does with your data.
 - Subscriptions or trials that turn into subscriptions. The price you see is the price, and nothing you entered is ever put behind a paywall.
 - Guilt. No streaks, no badges, no "you failed".
 

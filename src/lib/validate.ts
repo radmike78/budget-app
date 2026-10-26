@@ -18,6 +18,8 @@ export const MAX_NOTE_LENGTH = 500;
 export const MAX_ROWS = 200_000;
 /** Nobody has a thousand repeating entries; a file that claims to is refused rather than logged on every launch. */
 export const MAX_RULES = 1000;
+/** Every reminder is scheduled with the phone at each start; more than this is not a backup anyone made. */
+export const MAX_REMINDERS = 500;
 export { MAX_AMOUNT } from './money';
 import { MAX_AMOUNT } from './money';
 /** Backup files above this are refused before JSON.parse runs. */
@@ -28,7 +30,9 @@ export const MIN_PASSPHRASE_LENGTH = 8;
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]', 'g');
 const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 /** Ids that would read as something else: a route ("new") or a built-in property of every object ("constructor"). */
-const isReservedId = (v: string): boolean => v === 'new' || v in Object.prototype;
+// A row id becomes part of a route (`/recurring/<id>`), so names the router treats specially are refused.
+const ROUTE_NAMES = new Set(['new', 'index', '_layout', '_sitemap', '+not-found']);
+const isReservedId = (v: string): boolean => ROUTE_NAMES.has(v) || v in Object.prototype;
 const DEFAULT_CATEGORY_IDS = new Set(DEFAULT_CATEGORIES.map((c) => c.id));
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?$/;
@@ -315,7 +319,9 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
 
   const reminders: Reminder[] = [];
   const seenReminder = new Set<string>();
-  for (const raw of list(o.reminders, 'reminders')) {
+  const reminderList = list(o.reminders, 'reminders');
+  if (reminderList.length > MAX_REMINDERS) fail('reminders too many rows');
+  for (const raw of reminderList) {
     assertObj(raw, 'reminder');
     const rid = id(raw.id, 'reminder');
     if (seenReminder.has(rid)) fail('duplicate reminder id');
