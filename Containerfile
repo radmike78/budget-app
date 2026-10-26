@@ -8,10 +8,13 @@
 FROM docker.io/library/node:22-alpine AS build
 WORKDIR /app
 ENV CI=1 EXPO_NO_TELEMETRY=1
+# scripts/ comes in with the lockfile: npm's postinstall builds the PDF extractor from it.
 COPY package.json package-lock.json ./
+COPY scripts ./scripts
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npx expo export --platform web --output-dir dist && node scripts/postbuild-web.js dist
+# The same build as `npm run build:web`: copies the pdf.js worker and fonts into public/ first.
+RUN npm run build:web
 
 # ---- runtime stage ----
 FROM docker.io/nginxinc/nginx-unprivileged:1.27-alpine
