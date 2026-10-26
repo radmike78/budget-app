@@ -244,6 +244,7 @@ export const en: LanguagePack = {
     ],
   },
   correction: {
+    notTail: /,?\s+(?:and )?not [$€£]?\d[\d.,]*(?: ?(?:dollars?|bucks|quid|euros?))?$/iu,
     removeTarget: /^(?:(?:oh|oops|sorry|actually|wait|no|nope|nah|hmm|please|ok|okay)[, ]+)*(?:delete|remove|erase|scratch|cancel|drop|get rid of|take out|forget|undo|kill|ditch|zap|nix) (?:the |that |this |my |our )?(?<target>(?!that\b|this\b|it\b|last\b)[\p{L}' ]+?)(?: (?:one|1|entry|expense|purchase|item|charge|thing))?(?: please)?$/iu,
     targetLeads: [
       // "change the uber to 32", "move the lunch to groceries", "make the coffee 4.50"

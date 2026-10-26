@@ -759,9 +759,9 @@ const MORE_CORRECTIONS: Case[] = [
   ['sposta il pranzo in trasporti', { kind: 'correction', correction: { target: 'pranzo', categoryId: 'transport', amount: null } }],
   ['metti il caffè in svago', { kind: 'correction', correction: { target: 'caffè', categoryId: 'entertainment' } }],
   ['il pranzo era ieri', { kind: 'correction', correction: { target: 'pranzo', date: '2026-09-15', amount: null } }],
-  // These need a change in the core (`parseCorrectionText` rejects a second number): see the note at the end.
-  // ['erano 14 non 12', { kind: 'correction', correction: { amount: 14, target: null } }],
-  // ['ho detto 14 non 12', { kind: 'correction', correction: { amount: 14, target: null } }],
+  // The number being corrected is dropped first (the pack's `notTail`), so only the new one is read.
+  ['erano 14 non 12', { kind: 'correction', correction: { amount: 14, target: null } }],
+  ['ho detto 14 non 12', { kind: 'correction', correction: { amount: 14, target: null } }],
 ];
 /** ... and sentences near those words that stay entries. */
 const MORE_NOT_CORRECTIONS: Case[] = [

@@ -349,6 +349,13 @@ const CORRECTIONS: Case[] = [
 ];
 
 /** Sentences that sound a little like a correction but are new entries. */
+const NOT_TAILS: Case[] = [
+  ['actually it was 14 not 12', { kind: 'correction', correction: { amount: 14, target: null } }],
+  ['no it was 14, not 12', { kind: 'correction', correction: { amount: 14, target: null } }],
+  ['make that 14 not 12', { kind: 'correction', correction: { amount: 14 } }],
+];
+describe('English corrections that name the old number', () => runCases('en', NOT_TAILS));
+
 const NOT_CORRECTIONS: Case[] = [
   ['it was 12 for lunch', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
   ['that was 40 for gas', { kind: 'transaction', amount: 40 }],
