@@ -539,3 +539,242 @@ const insightsStayEntries: Case[] = [
 
 describe('German phrasings: comparing, the most, affording', () => runCases('de', insights, labels));
 describe('German phrasings: entries near those words stay entries', () => runCases('de', insightsStayEntries, labels));
+
+// Money put aside: into the savings category, or into the one open goal when it is named ("der Japan-Topf").
+// An amount said per period ("200 im Monat") is a pace, so the goal's total is still asked for.
+const pacedGoal = { kind: 'goal', amount: null, goalKind: 'saving' };
+const putAside: Case[] = [
+  ['200 zurückgelegt', ex(200, 'savings')],
+  ['300 aufs Sparkonto geschoben', ex(300, 'savings')],
+  ['50 gespart', ex(50, 'savings')],
+  ['100 in den Notgroschen gesteckt', ex(100, 'savings')],
+  ['Heute 50 auf die hohe Kante gelegt', ex(50, 'savings', { occurredAt: '2026-09-16' })],
+  ['200 rübergeschoben', ex(200, 'savings')],
+  ['200 aufs Tagesgeld überwiesen', ex(200, 'savings')],
+  ['50 in den Sparplan eingezahlt', ex(50, 'savings')],
+  ['Hab 100 in den ETF gesteckt', ex(100, 'savings')],
+  ['200 Euro gespart diesen Monat', ex(200, 'savings')],
+  ['Sparen 200', ex(200, 'savings')],
+  ['Zurückgelegt 200', ex(200, 'savings')],
+  ['100 für später beiseitegelegt', ex(100, 'savings')],
+  ['100 für die Reise beiseitegelegt', { kind: 'transaction', type: 'expense', amount: 100, note: 'Reise' }],
+  ['20 in den Japan-Topf getan', contribution(20)],
+  ['50 Euro in die Japan Kasse geworfen', contribution(50)],
+  ['200 fürs Japan Ziel zurückgelegt', contribution(200)],
+  ['Hab 30 in die Japan-Reisekasse gebuttert', contribution(30)],
+  ['50 ins Japan Sparschwein gesteckt', contribution(50)],
+  ['Ich will 200 im Monat für ein Auto zurücklegen', { ...pacedGoal, goalName: 'Auto' }],
+  ['Ich will 50 pro Woche sparen', pacedGoal],
+  ['Jeden Monat 100 fürs Fahrrad zur Seite legen', { ...pacedGoal, goalName: 'Fahrrad' }],
+  ['Ich möchte monatlich 150 für den Urlaub ansparen', { ...pacedGoal, goalName: 'Urlaub' }],
+  ['Ich will 5000 für ein Auto zurücklegen', goal(5000)],
+];
+
+// Casual spending: slang verbs, bare nouns, Austrian and Swiss everyday words.
+const casualSpending: Case[] = [
+  ['40 verballert', ex(40)],
+  ['200 rausgehauen', ex(200)],
+  ['60 hingeblättert', ex(60)],
+  ['Hab 40 verbraten', ex(40)],
+  ['30 Euro verpulvert', ex(30)],
+  ['Hat mich 30 gekostet', ex(30)],
+  ['Beim Aldi 85 gelassen', ex(85, 'groceries')],
+  ['Hab beim Rewe 60 geblecht', ex(60, 'groceries')],
+  ['Vollgetankt 60', ex(60, 'transport')],
+  ['Tanken 50', ex(50, 'transport')],
+  ['Kaffee 3', ex(3, 'dining')],
+  ['Mittag 12', ex(12, 'dining')],
+  ['Strom bezahlt 80', ex(80, 'utilities')],
+  ['Miete überwiesen 900', ex(900, 'rent')],
+  ['Ne Runde Bier 24', ex(24, 'dining')],
+  ['Dem Taxi 20 gegeben', ex(20, 'transport')],
+  ['Döner 6', ex(6, 'dining')],
+  ['Kita 300', ex(300, 'other_expense')],
+  ['Zahnarzt 70', ex(70, 'health')],
+  ['Parkschein 3', ex(3, 'transport')],
+  ['Maut 8', ex(8, 'transport')],
+  ['Beim Dealer 20 fürn Döner', ex(20, 'dining')],
+  ['Bahnticket 49', ex(49, 'transport')],
+  ['Deutschlandticket 49', ex(49, 'transport')],
+  ['Pizza bestellt 22', ex(22, 'dining')],
+  ['Lieferando gestern 28', ex(28, 'dining', { occurredAt: '2026-09-15' })],
+  ['Gestern Abend in der Kneipe 45 gelassen', ex(45, 'dining', { occurredAt: '2026-09-15' })],
+  ['Hab heute 15 für Mittagessen hingelegt', ex(15, 'dining', { occurredAt: '2026-09-16' })],
+  ['Rossmann 18', ex(18, 'shopping')],
+  ['Kinoabend 25', ex(25, 'entertainment')],
+  ['Playstation Spiel 70', ex(70, 'entertainment')],
+  ['Für die Katze Futter 20', ex(20, 'shopping')],
+  ['Haftpflicht 60 abgebucht', ex(60, 'other_expense')],
+  ['Rundfunkbeitrag 55', ex(55, 'utilities')],
+  ['Nen Zehner Trinkgeld gegeben', ex(10)],
+  ['Glühwein aufm Weihnachtsmarkt 8', ex(8, 'dining')],
+  ['Leberkassemmel 3,50', ex(3.5)],
+  ['Brotzeit 9', ex(9, 'dining')],
+  ['Apéro mit Kollegen 35', ex(35, 'dining')],
+  ['Leasingrate 320', ex(320, 'transport')],
+  ['Schlüsseldienst 150, so ein Mist', ex(150, 'other_expense')],
+  ['Kurz beim Bäcker 2,80', ex(2.8, 'groceries')],
+];
+
+// Two coffees for eight: a small count before a word is not the money.
+const counted: Case[] = [
+  ['2 Kaffee 8', ex(8, 'dining', { note: '2 Kaffee' })],
+  ['3 Bier 12', ex(12, 'dining', { note: '3 Bier' })],
+  ['Zwei Döner 14', ex(14, 'dining')],
+  ['4 Tickets fürs Kino 48', ex(48, 'entertainment')],
+  ['2 Pizzen bestellt 24', ex(24, 'dining')],
+];
+
+const moreIncome: Case[] = [
+  ['Gehalt ist da 2400', inc(2400, 'salary')],
+  ['Lohn gekommen 2400', inc(2400, 'salary')],
+  ['Gehalt eingegangen 2400', inc(2400, 'salary')],
+  ['Lohn ist drauf 2400', inc(2400, 'salary')],
+  ['2400 überwiesen bekommen', inc(2400)],
+  ['Hab 2400 Netto bekommen', inc(2400, 'salary')],
+  ['Kunde hat 500 gezahlt', inc(500, 'freelance')],
+  ['Kundin hat 300 überwiesen', inc(300, 'freelance')],
+  ['Trinkgeld 85', inc(85)],
+  ['Fahrrad verkauft 120', inc(120)],
+  ['32 zurückbekommen', inc(32)],
+  ['Oma hat 50 geschenkt', inc(50, 'gift_income')],
+  ['Opa hat mir 100 zugesteckt', inc(100, 'gift_income')],
+  ['Weihnachtsgeld 1000', inc(1000, 'salary')],
+  ['Urlaubsgeld 800', inc(800, 'salary')],
+  ['Kindergeld 250', inc(250, 'other_income')],
+  ['Bürgergeld 500', inc(500, 'other_income')],
+  ['Elterngeld 1200', inc(1200, 'other_income')],
+  ['Wohngeld 180', inc(180, 'other_income')],
+  ['Rückerstattung 32', inc(32, 'other_income')],
+  ['Pfand 4,50 zurück', inc(4.5, 'other_income')],
+  ['Nebenjob 400', inc(400, 'freelance')],
+  ['Honorar 800 reingekommen', inc(800, 'freelance')],
+  ['Vom Finanzamt 300 zurück', inc(300, 'other_income')],
+  ['Hab 60 kassiert fürs Babysitten', inc(60)],
+  ['Überstunden ausgezahlt 350', inc(350, 'salary')],
+  ['Nebenkostenrückzahlung 240', inc(240, 'other_income')],
+];
+
+const moreQuestions: Case[] = [
+  ['Wie viel hab ich diese Woche ausgegeben', spent({ target: null, period: 'week' })],
+  ['Was ist noch übrig', left({ target: null })],
+  ['Wie viel bleibt für Lebensmittel', left({ categoryId: 'groceries' })],
+  ['Hab ich mehr ausgegeben als letzten Monat', compare({ period: 'month', target: null })],
+  ['Wo ist mein Geld hin', top({ target: null })],
+  ['Größte Ausgabe', top({ target: null })],
+  ['Kann ich mir Schuhe für 80 leisten', afford(80, { target: 'Schuhe', fallbackCategoryId: 'shopping' })],
+  ['Wie viel hab ich diesen Monat verdient', earned({ period: 'month' })],
+  ['Was hab ich am Wochenende ausgegeben', spent({ target: null, period: 'weekend' })],
+  ['Wie viel ging in den letzten 10 Tagen drauf', spent({ target: null, period: 'recentDays', days: 10 })],
+  ['Was hab ich diesen Monat für Döner ausgegeben', spent({ target: 'Döner', period: 'month', fallbackCategoryId: 'dining' })],
+  ['Wie viel Kohle hab ich noch', left({ target: null })],
+  ['Wie viel hab ich noch bis zum Ersten', left({ target: null })],
+  ['Was bleibt mir noch diese Woche', left({ target: null })],
+  ['Was hab ich für Sprit gelatzt', spent({ target: 'Sprit', fallbackCategoryId: 'transport' })],
+  ['Wie viel hab ich bei Lidl gelassen', spent({ target: 'Lidl', fallbackCategoryId: 'groceries' })],
+  ['Was kam letzten Monat rein', earned({ period: 'lastMonth', target: null })],
+  ['Wie viel ist diesen Monat für Abos weggegangen', spent({ categoryId: 'subscriptions', period: 'month' })],
+  ["Reicht's noch für Essen gehen", left({ categoryId: 'dining' })],
+  ['Wie viel darf ich noch für Freizeit ausgeben', left({ categoryId: 'entertainment' })],
+  ['Wie viel geb ich für Essen aus', spent({ categoryIds: ['groceries', 'dining'] })],
+  ['Wo ist das ganze Geld geblieben', top({ target: null })],
+  ['Was war mein größter Posten letzten Monat', top({ period: 'lastMonth', target: null })],
+  ['Hab ich diese Woche weniger ausgegeben als letzte', compare({ period: 'week', target: null })],
+  ['Was hab ich dieses Jahr eingenommen', earned({ period: 'year' })],
+  ['Wie viel hab ich für Restaurants hingeblättert', spent({ target: 'Restaurants', fallbackCategoryId: 'dining' })],
+  ['Was hab ich seit Zahltag verballert', spent({ target: null, period: 'budget' })],
+];
+
+// Fixing an entry by name: "das Uber weg", "ändere das Uber auf 32", "Mittagessen auf 15 ändern".
+const named = (target: string, correction: Record<string, unknown>) => ({ kind: 'correction', correction: { remove: false, target, ...correction } });
+const removeNamed = (target: string) => ({ kind: 'correction', correction: { remove: true, target, amount: null, categoryId: null, date: null } });
+const moreCorrections: Case[] = [
+  ['Nee, waren 14', fix({ amount: 14, categoryId: null, date: null })],
+  ['Nee, 14 Euro waren das', fix({ amount: 14 })],
+  ['Ne, das war Freizeit', fix({ categoryId: 'entertainment', amount: null })],
+  ['Pack das in Restaurants', fix({ categoryId: 'dining' })],
+  ['Pack das zu Essen gehen', fix({ categoryId: 'dining' })],
+  ['Das war gestern', fix({ date: '2026-09-15' })],
+  ['Das war am Dienstag', fix({ date: '2026-09-15' })],
+  ['Nein, das war vorgestern', fix({ date: '2026-09-14' })],
+  ['Lösch das', removeLast],
+  ['Das Uber weg', removeNamed('uber')],
+  ['Lösch den Döner', removeNamed('döner')],
+  ['Vergiss das mit dem Spotify', removeNamed('spotify')],
+  ['Nimm das Netflix wieder raus', removeNamed('netflix')],
+  ['Den Kaffee von heute löschen', removeNamed('kaffee von heute')],
+  ['Mittagessen auf 15 ändern', named('mittagessen', { amount: 15, categoryId: null })],
+  ['Das Uber war 32 nicht 23', named('uber', { amount: 32 })],
+  ['Nee, das Uber war 32', named('uber', { amount: 32 })],
+  ['Das Uber war eigentlich 32', named('uber', { amount: 32 })],
+  ['Ändere das Uber auf 32', named('uber', { amount: 32 })],
+  ['Mach das Mittagessen 15', fix({ amount: 15, categoryId: 'dining' })],
+  ['Das Uber auf Verkehr umbuchen', named('uber', { categoryId: 'transport', amount: null })],
+];
+
+const moreReminders: Case[] = [
+  ['Erinner mich an die Miete am 1.', { ...reminder, occurredAt: '2026-10-01' }],
+  ['Ich darf den Strom am Freitag nicht vergessen', { ...reminder, occurredAt: '2026-09-18' }],
+  ['Sag mir um 20 Uhr Bescheid, Belege eintragen', { ...reminder, reminderTime: '20:00' }],
+  ['Jeden Montag ans Budget erinnern', { ...reminder, reminderRepeat: 'weekly' }],
+  ['Erinner mich jeden Monat am 15. an die Kreditrate', { ...reminder, reminderRepeat: 'monthly' }],
+  ['Erinnerung morgen um 8 Uhr: Rechnung zahlen', { ...reminder, occurredAt: '2026-09-17', reminderTime: '08:00' }],
+  ['Erinnere mich Montag an die GEZ', { ...reminder, occurredAt: '2026-09-21' }],
+  ['Nicht vergessen Freitag Miete', { ...reminder, occurredAt: '2026-09-18' }],
+  ['Mach mir eine Erinnerung für Sonntag 18 Uhr', { ...reminder, occurredAt: '2026-09-20', reminderTime: '18:00' }],
+  ['Erinner mich nächste Woche an die Versicherung', reminder],
+];
+
+// Dictation writes "vier fünfzig" as "4 50", and people say a Fuffi or a Hunni.
+const dictated: Case[] = [
+  ['Vier fünfzig Kaffee', ex(4.5, 'dining')],
+  ['Kaffee 4 50', ex(4.5, 'dining')],
+  ['Kaffee vier fünfzig', ex(4.5, 'dining')],
+  ['Zwanzig Euro Mittagessen', ex(20, 'dining')],
+  ['Hundert für Lebensmittel', ex(100, 'groceries')],
+  ['Zwölfhundert Miete', ex(1200, 'rent')],
+  ['12 Euro 50 Mittagessen', ex(12.5, 'dining')],
+  ['Mittagessen 12,50', ex(12.5, 'dining')],
+  ['Mittag 12 Euro 50', ex(12.5, 'dining')],
+  ['Fünf Euro fünfzig Kaffee', ex(5.5, 'dining')],
+  ['Tausend Euro Miete', ex(1000, 'rent')],
+  ['Dreihundertfünfzig Kreditrate', ex(350, 'debt')],
+  ['Zweieinhalb Euro Brötchen', ex(2.5, 'groceries')],
+  ['Anderthalb Euro für ein Brötchen', ex(1.5, 'groceries')],
+  ['N Fuffi getankt', ex(50, 'transport')],
+  ['N Hunni für Klamotten', ex(100, 'shopping')],
+  ['Fürn Zehner Pommes', ex(10, 'dining')],
+  ['Fuffi fürs Tanken', ex(50, 'transport')],
+  ['Hunni Lebensmittel', ex(100, 'groceries')],
+  ['Nen Zwanni fürs Kino', ex(20, 'entertainment')],
+];
+
+// With a digit in the sentence a loose question word never makes it a question, and plain plurals stay entries.
+const stillEntries: Case[] = [
+  ['Mittag 12 gesamt', ex(12, 'dining')],
+  ['Einkauf 85 diese Woche', ex(85, 'groceries')],
+  ['Kaffee 3 heute', ex(3, 'dining', { occurredAt: '2026-09-16' })],
+  ['Tanken 60 letzten Monat', ex(60, 'transport')],
+  ['Ausgaben 30 Kino', ex(30, 'entertainment')],
+  ['Mehr Bier 12', ex(12, 'dining')],
+  ['Noch ein Kaffee 3', ex(3, 'dining')],
+  ['Übrig gebliebene Pizza 8', ex(8, 'dining')],
+  ['Das Mittagessen waren 15', ex(15, 'dining')],
+  ['Restaurants 40', ex(40, 'dining')],
+  ['Tickets 30', ex(30, 'entertainment')],
+  ['Geschenk für Oma 30', ex(30, 'other_expense')],
+  ['Trinkgeld 5 gegeben', ex(5)],
+  ['Netto 45', ex(45, 'groceries')],
+  ['Reise nach Wien 300', ex(300, 'other_expense')],
+  ['Vergiss nicht, die Miete zu überweisen', reminder],
+];
+
+describe('German phrasings: money put aside', () => runCases('de', putAside, labels));
+describe('German phrasings: casual spending', () => runCases('de', casualSpending, labels));
+describe('German phrasings: counted things', () => runCases('de', counted, labels));
+describe('German phrasings: more income', () => runCases('de', moreIncome, labels));
+describe('German phrasings: more questions', () => runCases('de', moreQuestions, labels));
+describe('German phrasings: corrections by name and more', () => runCases('de', moreCorrections, labels));
+describe('German phrasings: more reminders', () => runCases('de', moreReminders, labels));
+describe('German phrasings: dictation and slang amounts', () => runCases('de', dictated, labels));
+describe('German phrasings: still entries', () => runCases('de', stillEntries, labels));
