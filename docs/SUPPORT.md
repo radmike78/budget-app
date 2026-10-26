@@ -29,6 +29,7 @@ and what you expected; that is usually enough to fix it in the next release.
   Play, and refunds go through them: Apple at
   [reportaproblem.apple.com](https://reportaproblem.apple.com), Google from the
   order in the Play Store.
+- **Can I bring in my bank's history?** Yes, without linking: download a PDF statement or a CSV export from your bank's website and open it under Settings → Import a statement. Every line is shown for review before anything is saved, lines already in your history are flagged, and an import can be taken back in one go.
 - **Does it link to my bank?** No, and it never will.
 
 ## Privacy policy

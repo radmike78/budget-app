@@ -117,7 +117,7 @@ Store settings: category **Finance**, tags *budget* and *expense tracker*; conta
 - Try: tap the mic, say "spent twelve dollars on lunch", confirm. Or type "goal: save 500 for a trip by December".
 - The app makes no network requests of its own; the only connection is the store's own purchase sheet (StoreKit / Play Billing). There is no server, no account and no analytics; speech is recognised by the phone's own recognizer.
 - The app is free for 30 days from first open, then a one-time in-app purchase (`full_unlock`) is offered under Settings → Your purchase. A fresh install is inside the trial, so every feature can be exercised without buying; the purchase sheet is the store's own and works in the sandbox. Nothing already entered is ever locked.
-- Bank or card statement PDFs (Settings → Import a statement) are read on the device in a sandboxed view with no network access, and are never uploaded.
+- Bank or card statement PDFs and CSV exports (Settings → Import a statement) are read on the device (PDFs in a sandboxed view with no network access), and are never uploaded.
 
 ## Pricing
 Free to install, with a 30-day trial of the whole app and one one-time in-app purchase after it. No subscription, no renewal, no other products.

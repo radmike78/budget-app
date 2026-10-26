@@ -107,4 +107,8 @@ export interface ParseOptions {
   today: string;
   /** Fingerprints already in the app, to flag duplicates. */
   knownFingerprints?: Set<string>;
+  /** The span of the lines when the file itself says it (a CSV), instead of reading it off the rows. */
+  period?: StatementPeriod | null;
+  /** The kind of account when the file itself shows it (a card export with charges positive), else it is read off the rows. */
+  kind?: StatementKind;
 }

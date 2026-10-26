@@ -274,11 +274,11 @@ export function summarizeMonths(lines: StatementLine[], period: StatementPeriod 
 /** The whole thing: kind, period, lines with categories, months, tradeline for a card. */
 export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOptions): ParsedStatement {
   const warnings: string[] = [];
-  const kind = detectKind(rows);
+  const kind = opts.kind ?? detectKind(rows);
   if (kind === 'credit_report') return { kind, period: null, lines: [], tradelines: [], months: [], warnings: ['isCreditReport'] };
   // "03/04" follows what the statement itself shows ("15/03" anywhere means day first), else the phone's region.
   const dateOrder = numericDateOrder(rows) ?? defaultDateOrder(opts.language, opts.region);
-  const period = findPeriod(rows, dateOrder, opts.today);
+  const period = opts.period !== undefined ? opts.period : findPeriod(rows, dateOrder, opts.today);
   if (!period) warnings.push('noPeriod');
   const cols = findColumns(rows);
   const { candidates, consumed } = lineCandidates(rows, cols, dateOrder);

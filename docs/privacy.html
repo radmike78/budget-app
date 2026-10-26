@@ -82,10 +82,10 @@ h1 + p + p { font-size: 19px; color: var(--ink-soft); }
 <h3 id="3-nothing-else">3. Nothing else</h3>
 <p>Beyond those two, this version of the app makes no network requests of its own: there is no server, no account, no analytics and no crash reporting. The only other outbound connection the app is built to be capable of, an optional parsing assist that would send a single unclear phrase to a language model with your own API key, is switched off in the code for this release and cannot be turned on from the app. If a later version offers it, this policy will describe it before it ships, it will be off by default, and turning it on will ask you first.</p>
 <h2 id="statements-you-import">Statements you import</h2>
-<p>If you import a bank or card statement, or a credit report, as a PDF:</p>
+<p>If you import a bank or card statement as a PDF or as a CSV export, or a credit report as a PDF:</p>
 <ul>
   <li>The file is read <strong>on your device</strong>. It is not uploaded anywhere.</li>
-  <li>Text extraction runs inside a sandboxed view with no network access at all.</li>
+  <li>For a PDF, text extraction runs inside a sandboxed view with no network access at all. A CSV is read as plain text and never run or opened by any other app.</li>
   <li>The file's bytes are wiped from memory as soon as the text has been read, and the app's copy of the file is deleted.</li>
   <li>The file's <strong>name is not kept</strong>, because file names often contain account numbers.</li>
   <li>Card, account, routing and IBAN numbers are removed from the text before any entry is saved. A line that reads <code>PAYMENT TO 4123456789019876 VISA</code> is stored as <code>PAYMENT TO VISA</code>.</li>

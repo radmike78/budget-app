@@ -5,9 +5,9 @@ import { useAppStore } from '@/store/useAppStore';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, monthLabel, toDateString, today } from '@/lib/dates';
 import { confirmDialog, notify } from '@/lib/dialogs';
-import { pickPdf, PdfBlockedError, PdfEncryptedError, PdfTooLargeError } from '@/lib/pdfBytes';
+import { pickStatement, PdfBlockedError, PdfEncryptedError, PdfTooLargeError } from '@/lib/pdfBytes';
 import { categoryName, deviceRegion, useDateFormat, useLanguageCode, useLocale, useMoney, useT } from '@/i18n';
-import { parseCreditReport, parseStatement, rowsFromItems, type ParsedStatement, type StatementLine, type Tradeline } from '@/statements';
+import { csvToRows, parseCreditReport, parseStatement, rowsFromItems, type ParsedStatement, type StatementLine, type Tradeline } from '@/statements';
 import { PdfExtractor, type PdfExtractorHandle } from '@/components/PdfExtractor';
 import { CategoryPicker } from '@/components/pickers';
 import { TrialEnded, useAdding } from '@/components/TrialGate';
@@ -60,20 +60,31 @@ export default function ImportScreen() {
   const choose = async () => {
     const token = ++readToken.current;
     try {
-      const picked = await pickPdf();
+      const picked = await pickStatement();
       if (!picked) return;
       setStage('reading');
-      let items: Awaited<ReturnType<PdfExtractorHandle['extract']>>['items'];
-      try {
-        items = (await extractor.current!.extract(picked.bytes)).items;
-      } finally {
-        // The file itself is never kept: wipe the bytes as soon as the text is out.
-        picked.bytes.fill(0);
-      }
-      if (token !== readToken.current) return; // cancelled while reading
-      const rows = rowsFromItems(items);
       const ctx = { categories, goals, keywordMap, today: today(), language };
-      const result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints });
+      let rows;
+      let result: ParsedStatement;
+      if (picked.kind === 'csv') {
+        // A CSV export is text already: the same rows, the same review, no extractor.
+        const csv = csvToRows(picked.text, language, today());
+        rows = csv.rows;
+        result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints, period: csv.period, kind: csv.kind });
+        result.warnings = [...csv.warnings, ...result.warnings.filter((w) => w !== 'noPeriod')];
+        if (token !== readToken.current) return;
+      } else {
+        let items: Awaited<ReturnType<PdfExtractorHandle['extract']>>['items'];
+        try {
+          items = (await extractor.current!.extract(picked.bytes)).items;
+        } finally {
+          // The file itself is never kept: wipe the bytes as soon as the text is out.
+          picked.bytes.fill(0);
+        }
+        if (token !== readToken.current) return; // cancelled while reading
+        rows = rowsFromItems(items);
+        result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints });
+      }
       if (result.kind === 'credit_report') {
         const tl = parseCreditReport(rows);
         setTradelines(tl);

@@ -89,10 +89,10 @@ first.
 
 ## Statements you import
 
-If you import a bank or card statement, or a credit report, as a PDF:
+If you import a bank or card statement as a PDF or as a CSV export, or a credit report as a PDF:
 
 - The file is read **on your device**. It is not uploaded anywhere.
-- Text extraction runs inside a sandboxed view with no network access at all.
+- For a PDF, text extraction runs inside a sandboxed view with no network access at all. A CSV is read as plain text and never run or opened by any other app.
 - The file's bytes are wiped from memory as soon as the text has been read, and
   the app's copy of the file is deleted.
 - The file's **name is not kept**, because file names often contain account
