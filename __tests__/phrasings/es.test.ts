@@ -493,3 +493,274 @@ const insightsStayEntries: Case[] = [
 
 describe('es: comparing, the most, affording', () => runCases('es', insights, labels));
 describe('es: entries near those words stay entries', () => runCases('es', insightsStayEntries, labels));
+
+/**
+ * Everyday Spanish from Spain and Latin America, in the register people speak (fillers, run-ons, regional words).
+ * Each sentence says what it must become; a wrong reading is fixed in the pack, never by softening the sentence.
+ */
+
+/** Putting money aside with no goal named: a transfer to Savings. The verb is not part of the note. */
+const savingEntries: Case[] = [
+  ['guardé 200', { kind: 'transaction', type: 'expense', amount: 200, categoryId: 'savings', note: null }],
+  ['aparté 100 para el viaje', { kind: 'transaction', amount: 100, categoryId: 'savings', note: 'Viaje' }],
+  ['metí 50 en el ahorro', { kind: 'transaction', amount: 50, categoryId: 'savings', note: null }],
+  ['pasé 300 a la cuenta de ahorros', { kind: 'transaction', amount: 300, categoryId: 'savings', note: 'Cuenta de ahorros' }],
+  ['ahorré 50 hoy', { kind: 'transaction', amount: 50, categoryId: 'savings', occurredAt: '2026-09-16' }],
+  ['puse 100 en el fondo de emergencia', { kind: 'transaction', amount: 100, categoryId: 'savings', note: 'Fondo de emergencia' }],
+  ['metí 100 en la alcancía', { kind: 'transaction', amount: 100, categoryId: 'savings', note: 'Alcancía' }],
+  ['guardé 150 en la hucha', { kind: 'transaction', amount: 150, categoryId: 'savings', note: 'Hucha' }],
+  ['aparté 200 para imprevistos', { kind: 'transaction', amount: 200, categoryId: 'savings', note: 'Imprevistos' }],
+  // An amount per period is a pace, not the goal's total: the card asks for the total.
+  ['quiero apartar 200 al mes para un coche', { kind: 'goal', amount: null, goalName: 'Coche', goalKind: 'saving', hints: ['hint.goalPace', 'hint.goalNoDate'] }],
+  ['quiero ahorrar 50 a la semana', { kind: 'goal', amount: null, goalName: null }],
+  ['ahorrar 100 cada mes para las vacaciones', { kind: 'goal', amount: null, goalName: 'Vacaciones' }],
+  ['quiero guardar 300 por mes para un depa', { kind: 'goal', amount: null, goalName: 'Depa' }],
+  ['quiero juntar 500 por quincena para la boda', { kind: 'goal', amount: null, goalName: 'Boda' }],
+];
+
+/** Spending the way it is actually said. */
+const colloquialExpenses: Case[] = [
+  ['me gasté 40 en gasolina', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'transport', note: 'Gasolina' }],
+  ['se me fueron 40 en gasolina', { kind: 'transaction', amount: 40, categoryId: 'transport', note: 'Gasolina' }],
+  ['dejé 30 en el súper', { kind: 'transaction', amount: 30, categoryId: 'groceries', note: 'Súper' }],
+  ['me clavaron 60 en el taller', { kind: 'transaction', amount: 60, categoryId: 'transport', note: 'Taller' }],
+  ['solté 200 en el dentista', { kind: 'transaction', amount: 200, categoryId: 'health', note: 'Dentista' }],
+  ['pagué la luz 80', { kind: 'transaction', amount: 80, categoryId: 'utilities', note: 'Luz' }],
+  ['cargué nafta 40', { kind: 'transaction', amount: 40, categoryId: 'transport', note: 'Nafta' }],
+  ['la cuenta del restaurante 45', { kind: 'transaction', amount: 45, categoryId: 'dining' }],
+  ['le di 20 al taxi', { kind: 'transaction', amount: 20, categoryId: 'transport', note: 'Taxi' }],
+  ['pasé por el chino y 15', { kind: 'transaction', type: 'expense', amount: 15, note: 'Chino' }],
+  ['una birra 5', { kind: 'transaction', amount: 5, categoryId: 'dining', note: 'Birra' }],
+  ['las chelas 30', { kind: 'transaction', amount: 30, categoryId: 'dining', note: 'Chelas' }],
+  ['la gasolina 40', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['el agua 25', { kind: 'transaction', amount: 25, categoryId: 'utilities', note: 'Agua' }],
+  ['el cole de los niños 300', { kind: 'transaction', amount: 300, categoryId: 'shopping' }],
+  ['la mensualidad del gym 40', { kind: 'transaction', amount: 40, categoryId: 'health' }],
+  ['me salió 25 el taxi', { kind: 'transaction', amount: 25, categoryId: 'transport', note: 'Taxi' }],
+  ['un uber de 12 pesos', { kind: 'transaction', amount: 12, categoryId: 'transport', note: 'Uber' }],
+  ['se me fue un dineral en el súper, 150', { kind: 'transaction', amount: 150, categoryId: 'groceries' }],
+  ['compré el mandado 450', { kind: 'transaction', amount: 450, categoryId: 'groceries', note: 'Mandado' }],
+  ['pagué el internet 600', { kind: 'transaction', amount: 600, categoryId: 'utilities', note: 'Internet' }],
+  ['me cobraron 15 de comisión', { kind: 'transaction', type: 'expense', amount: 15, note: 'Comisión' }],
+  ['tomé un camión 12', { kind: 'transaction', amount: 12, categoryId: 'transport', note: 'Camión' }],
+  ['le pagué 50 a la señora de la limpieza', { kind: 'transaction', type: 'expense', amount: 50, note: 'Señora de la limpieza' }],
+  ['fui al súper y gasté 85', { kind: 'transaction', amount: 85, categoryId: 'groceries', note: 'Súper' }],
+  ['hoy comí fuera 12', { kind: 'transaction', amount: 12, categoryId: 'dining', occurredAt: '2026-09-16' }],
+  ['desayuné por 6', { kind: 'transaction', amount: 6, categoryId: 'dining' }],
+  ['una cañita y una tapa 7', { kind: 'transaction', amount: 7, categoryId: 'dining' }],
+  ['un menú del día 12', { kind: 'transaction', amount: 12, categoryId: 'dining', note: 'Menú del día' }],
+  ['pedí unas pizzas 30', { kind: 'transaction', amount: 30, categoryId: 'dining', note: 'Pizzas' }],
+  ['cena con los amigos 45', { kind: 'transaction', amount: 45, categoryId: 'dining' }],
+  ['la boleta de la luz 45', { kind: 'transaction', amount: 45, categoryId: 'utilities' }],
+  ['el pesero 8', { kind: 'transaction', amount: 8, categoryId: 'transport', note: 'Pesero' }],
+  ['el bondi 150', { kind: 'transaction', amount: 150, categoryId: 'transport', note: 'Bondi' }],
+  ['la verdulería 20', { kind: 'transaction', amount: 20, categoryId: 'groceries' }],
+  ['pagué la tenencia 3000', { kind: 'transaction', amount: 3000, categoryId: 'transport', note: 'Tenencia' }],
+  ['unas empanadas 12', { kind: 'transaction', amount: 12, categoryId: 'dining', note: 'Empanadas' }],
+  ['el remis 500', { kind: 'transaction', amount: 500, categoryId: 'transport', note: 'Remis' }],
+  ['la prepaga 15000', { kind: 'transaction', amount: 15000, categoryId: 'health', note: 'Prepaga' }],
+  // A small number right before a thing, with the money after it, is a count: the note keeps it.
+  ['2 cafés 8', { kind: 'transaction', amount: 8, categoryId: 'dining', note: '2 cafés' }],
+  ['tres cervezas 12', { kind: 'transaction', amount: 12, categoryId: 'dining', note: '3 cervezas' }],
+  ['dos entradas de cine 20', { kind: 'transaction', amount: 20, categoryId: 'entertainment', note: '2 entradas de cine' }],
+  ['un café a dos con veinte', { kind: 'transaction', amount: 2.2, categoryId: 'dining', note: 'Café' }],
+];
+
+/** Money coming in: pay in its regional names, and the verb alone meaning a paycheck. */
+const colloquialIncome: Case[] = [
+  ['cobré 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['cobré, 1500', { type: 'income', amount: 1500, categoryId: 'salary' }],
+  ['me pagaron hoy 2400', { type: 'income', amount: 2400, categoryId: 'salary', occurredAt: '2026-09-16' }],
+  ['me cayó la nómina 2400', { type: 'income', amount: 2400, categoryId: 'salary', note: 'Nómina' }],
+  ['me depositaron 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['me consignaron 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['me consignaron el sueldo 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['me entró 300 de un cliente', { type: 'income', amount: 300, categoryId: 'freelance' }],
+  ['las propinas 85', { type: 'income', amount: 85 }],
+  ['vendí la bici por 120', { type: 'income', amount: 120, note: 'Bici' }],
+  ['me devolvieron 32', { type: 'income', amount: 32 }],
+  ['me regalaron 50', { type: 'income', amount: 50, categoryId: 'gift_income' }],
+  ['el aguinaldo 1000', { type: 'income', amount: 1000 }],
+  ['la quincena 1200', { type: 'income', amount: 1200, categoryId: 'salary' }],
+  ['me cayeron 12000 de la quincena', { type: 'income', amount: 12000, categoryId: 'salary' }],
+  ['ya me pagaron, 2400', { type: 'income', amount: 2400, categoryId: 'salary', note: null }],
+  ['me llegó el sueldo, 2400', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['me ingresaron 2400 de la nómina', { type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['me entraron 2400', { type: 'income', amount: 2400 }],
+  ['cobré el paro 900', { type: 'income', amount: 900, categoryId: 'other_income' }],
+  ['me pagaron las horas extra 300', { type: 'income', amount: 300, note: 'Horas extra' }],
+  ['me cayó un bono de 500', { type: 'income', amount: 500, note: 'Bono' }],
+  ['vendí el sofá viejo por 80', { type: 'income', amount: 80, note: 'Sofá viejo' }],
+  ['me transfirió mi hermano 100', { type: 'income', amount: 100 }],
+  ['cobré una factura de 600', { type: 'income', amount: 600, categoryId: 'freelance' }],
+  ['me pagó un cliente 450', { type: 'income', amount: 450, categoryId: 'freelance' }],
+  ['me dieron 200 de aguinaldo', { type: 'income', amount: 200 }],
+  ['me regalaron 50 por mi cumple', { type: 'income', amount: 50, categoryId: 'gift_income' }],
+  ['cobré la beca, 400', { type: 'income', amount: 400, categoryId: 'other_income' }],
+  ['me devolvió Hacienda 320', { type: 'income', amount: 320, note: 'Hacienda' }],
+];
+
+/** Questions without the question marks, as dictation writes them. */
+const spokenQuestions: Case[] = [
+  ['cuánto llevo gastado esta semana', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  ['cuánto llevo gastado hoy', { kind: 'question', question: { ask: 'spent', period: 'today', target: null } }],
+  ['cuánto llevo esta semana', { kind: 'question', question: { ask: 'spent', period: 'week', target: null } }],
+  ['cuánto me gasté el finde', { kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } }],
+  ['cuánto gasté el fin de semana', { kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } }],
+  ['y de gasolina cuánto llevo', { kind: 'question', question: { ask: 'spent', target: 'Gasolina', fallbackCategoryId: 'transport' } }],
+  ['cuánto he gastado en los últimos 10 días', { kind: 'question', question: { ask: 'spent', period: 'recentDays', days: 10, target: null } }],
+  ['cuánto llevo en el súper esta quincena', { kind: 'question', question: { ask: 'spent', period: 'budget', categoryIds: ['groceries'] } }],
+  ['cuánto me he gastado en el perro', { kind: 'question', question: { ask: 'spent', target: 'Perro', fallbackCategoryId: 'shopping' } }],
+  // The plural still finds the word: "cafés" is "café".
+  ['cuánto se me va en cafés', { kind: 'question', question: { ask: 'spent', target: 'Cafés', fallbackCategoryId: 'dining' } }],
+  // Asked per period, answered with the current one.
+  ['cuánto gasto al mes en suscripciones', { kind: 'question', question: { ask: 'spent', period: 'month', categoryId: 'subscriptions' } }],
+  ['cuánto gasto a la semana en café', { kind: 'question', question: { ask: 'spent', period: 'week', target: 'Café' } }],
+  ['cuánto gasto por semana en el súper', { kind: 'question', question: { ask: 'spent', period: 'week', categoryIds: ['groceries'] } }],
+  ['cuánto me cuesta el coche al año', { kind: 'question', question: { ask: 'spent', period: 'year', target: 'Coche', fallbackCategoryId: 'transport' } }],
+  ['en qué se me fue el dinero', { kind: 'question', question: { ask: 'spent', target: null } }],
+  ['qué me queda', { kind: 'question', question: { ask: 'left', period: 'budget', target: null } }],
+  ['cuánto me queda para la compra', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries'] } }],
+  ['cuánto me queda para comer fuera este mes', { kind: 'question', question: { ask: 'left', categoryId: 'dining' } }],
+  ['cuánto me queda hasta la próxima quincena', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['qué me queda del súper', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries'] } }],
+  ['cuánto tengo todavía para ocio', { kind: 'question', question: { ask: 'left', categoryId: 'entertainment' } }],
+  ['voy bien con el súper', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries'] } }],
+  ['cómo voy de súper', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries'] } }],
+  ['qué tal voy con el presupuesto', { kind: 'question', question: { ask: 'left', target: null } }],
+  ['me queda algo para salir', { kind: 'question', question: { ask: 'left', target: 'Salir' } }],
+  ['gasté más que el mes pasado', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['gasté más esta semana que la pasada', { kind: 'question', question: { ask: 'compare', period: 'week', target: null } }],
+  ['estoy gastando más que el mes pasado', { kind: 'question', question: { ask: 'compare', period: 'month', target: null } }],
+  ['cuál fue mi mayor gasto', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['en qué gasto más', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['dónde se me va la plata', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['cuál es mi gasto más grande', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['qué es lo que más me cuesta', { kind: 'question', question: { ask: 'top', target: null } }],
+  ['me alcanza para unos zapatos de 80', { kind: 'question', question: { ask: 'afford', price: 80, target: 'Zapatos', fallbackCategoryId: 'shopping' } }],
+  ['me alcanza para una cena de 60', { kind: 'question', question: { ask: 'afford', price: 60, target: 'Cena', fallbackCategoryId: 'dining' } }],
+  ['puedo gastarme 100 en ropa', { kind: 'question', question: { ask: 'afford', price: 100, target: 'Ropa' } }],
+  ['me da para un viaje de 300', { kind: 'question', question: { ask: 'afford', price: 300, target: 'Viaje' } }],
+  ['tengo para unas zapatillas de 90', { kind: 'question', question: { ask: 'afford', price: 90, target: 'Zapatillas' } }],
+  ['cuánto gané este mes', { kind: 'question', question: { type: 'income', period: 'month' } }],
+  ['cuánto me entró este mes', { kind: 'question', question: { type: 'income', period: 'month' } }],
+  ['cuánto he cobrado este año', { kind: 'question', question: { type: 'income', period: 'year' } }],
+  ['cuánto me ha entrado esta semana', { kind: 'question', question: { type: 'income', period: 'week' } }],
+];
+
+/** Fixing by voice, the entry named or not. The target is matched later as a plain substring of the note or category. */
+const spokenCorrections: Case[] = [
+  ['no, eran 14', { kind: 'correction', correction: { remove: false, target: null, amount: 14 } }],
+  ['no eran 14, eran 15', { kind: 'correction', correction: { remove: false, target: null, amount: 15 } }],
+  ['digo, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['en realidad fueron 14,50', { kind: 'correction', correction: { amount: 14.5 } }],
+  ['no no, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['ponlo en restaurantes', { kind: 'correction', correction: { target: null, categoryId: 'dining' } }],
+  ['mejor ponlo en ocio', { kind: 'correction', correction: { target: null, categoryId: 'entertainment' } }],
+  ['eso fue ayer', { kind: 'correction', correction: { target: null, date: '2026-09-15' } }],
+  ['eso era de ayer', { kind: 'correction', correction: { date: '2026-09-15' } }],
+  ['eso fue el lunes pasado', { kind: 'correction', correction: { date: '2026-09-14' } }],
+  ['borra eso', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['nada, bórralo', { kind: 'correction', correction: { remove: true, target: null } }],
+  ['eso no, quítalo', { kind: 'correction', correction: { remove: true, target: null } }],
+  // Naming the entry.
+  ['quita el uber', { kind: 'correction', correction: { remove: true, target: 'uber' } }],
+  ['borra el de spotify', { kind: 'correction', correction: { remove: true, target: 'spotify' } }],
+  ['borra el gasto de spotify', { kind: 'correction', correction: { remove: true, target: 'spotify' } }],
+  ['quita lo del uber', { kind: 'correction', correction: { remove: true, target: 'uber' } }],
+  ['elimina el café', { kind: 'correction', correction: { remove: true, target: 'café' } }],
+  ['cambia el almuerzo a 15', { kind: 'correction', correction: { remove: false, target: 'almuerzo', amount: 15 } }],
+  ['cambia el café a 4,50', { kind: 'correction', correction: { target: 'café', amount: 4.5 } }],
+  ['corrige el uber a 32', { kind: 'correction', correction: { target: 'uber', amount: 32 } }],
+  ['el uber era 32', { kind: 'correction', correction: { target: 'uber', amount: 32 } }],
+  ['el uber fueron 32, no 23', { kind: 'correction', correction: { target: 'uber', amount: 32 } }],
+  ['pon el almuerzo en restaurantes', { kind: 'correction', correction: { target: 'almuerzo', categoryId: 'dining' } }],
+  ['pasa lo del uber a transporte', { kind: 'correction', correction: { target: 'uber', categoryId: 'transport' } }],
+  ['el almuerzo va en restaurantes', { kind: 'correction', correction: { target: 'almuerzo', categoryId: 'dining' } }],
+  ['lo del uber fue ayer', { kind: 'correction', correction: { target: 'uber', date: '2026-09-15' } }],
+];
+
+/** Reminders as said, with voseo and the minutes in words. */
+const spokenReminders: Case[] = [
+  ['recuérdame el alquiler el 1', { kind: 'reminder', reminderText: 'El alquiler', occurredAt: '2026-10-01' }],
+  ['que no se me olvide la luz el viernes', { kind: 'reminder', reminderText: 'La luz', occurredAt: '2026-09-18' }],
+  ['avísame a las 8 para apuntar los tickets', { kind: 'reminder', reminderText: 'Apuntar los tickets', reminderTime: '08:00' }],
+  ['recuérdame todos los lunes revisar el presupuesto', { kind: 'reminder', reminderText: 'Revisar el presupuesto', reminderRepeat: 'weekly', occurredAt: '2026-09-21' }],
+  ['recuérdame mañana a las 9 pagar el gas', { kind: 'reminder', reminderText: 'Pagar el gas', reminderTime: '09:00', occurredAt: '2026-09-17' }],
+  ['acuérdate de la tarjeta el 15', { kind: 'reminder', reminderText: 'La tarjeta', occurredAt: '2026-10-15' }],
+  ['recordame pagar el alquiler el primero', { kind: 'reminder', reminderText: 'Pagar el alquiler', occurredAt: '2026-10-01' }],
+  ['acordate de pagar la luz el viernes', { kind: 'reminder', reminderText: 'Pagar la luz', occurredAt: '2026-09-18' }],
+  ['que no me olvide de la tarjeta el 15', { kind: 'reminder', reminderText: 'La tarjeta', occurredAt: '2026-10-15' }],
+  ['avisame el 5 de cada mes de la hipoteca', { kind: 'reminder', reminderText: 'La hipoteca', reminderRepeat: 'monthly', occurredAt: '2026-10-05' }],
+  ['recuérdame cada día apuntar los gastos', { kind: 'reminder', reminderText: 'Apuntar los gastos', reminderRepeat: 'daily' }],
+  ['que no se me pase el seguro del coche el 20', { kind: 'reminder', reminderText: 'El seguro del coche', occurredAt: '2026-09-20' }],
+  ['recuérdame el viernes a las 6 de la tarde pasar al banco', { kind: 'reminder', reminderText: 'Pasar al banco', reminderTime: '18:00', occurredAt: '2026-09-18' }],
+  ['recuérdame pagar la luz pasado mañana', { kind: 'reminder', reminderText: 'Pagar la luz', occurredAt: '2026-09-18' }],
+  ['recuérdame a las 9 y media apuntar los tickets', { kind: 'reminder', reminderText: 'Apuntar los tickets', reminderTime: '09:30' }],
+  ['recuérdame a las 8 y cuarto pagar el gas', { kind: 'reminder', reminderText: 'Pagar el gas', reminderTime: '08:15' }],
+  ['recuérdame el domingo por la noche revisar el presupuesto', { kind: 'reminder', reminderText: 'Revisar el presupuesto', reminderTime: '19:00', occurredAt: '2026-09-20' }],
+];
+
+/** Amounts the way dictation writes them: "con" between two numbers is the decimal point. */
+const dictatedAmounts: Case[] = [
+  ['cuatro con cincuenta de café', { kind: 'transaction', amount: 4.5, categoryId: 'dining', note: 'Café' }],
+  ['café 4 50', { kind: 'transaction', amount: 4.5, categoryId: 'dining', note: 'Café' }],
+  ['café 12 con 50', { kind: 'transaction', amount: 12.5, categoryId: 'dining', note: 'Café' }],
+  ['doce con cincuenta en el almuerzo', { kind: 'transaction', amount: 12.5, categoryId: 'dining', note: 'Almuerzo' }],
+  ['almuerzo 12,50', { kind: 'transaction', amount: 12.5, categoryId: 'dining' }],
+  ['veinte pesos de taxi', { kind: 'transaction', amount: 20, categoryId: 'transport', note: 'Taxi' }],
+  ['cien de súper', { kind: 'transaction', amount: 100, categoryId: 'groceries' }],
+  ['mil doscientos de alquiler', { kind: 'transaction', amount: 1200, categoryId: 'rent' }],
+  ['tres mil quinientos de renta', { kind: 'transaction', amount: 3500, categoryId: 'rent' }],
+  ['cinco y medio de café', { kind: 'transaction', amount: 5.5, categoryId: 'dining' }],
+  ['quinientos pesos de gasolina', { kind: 'transaction', amount: 500, categoryId: 'transport' }],
+  ['dos mil de alquiler', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
+  // "con" before a count of people is not a decimal.
+  ['cena con 3 amigos 60', { kind: 'transaction', amount: 60, categoryId: 'dining', note: 'Cena con 3 amigos' }],
+];
+
+/** Sentences near a question, a correction or a count that must stay plain entries. */
+const stayEntries: Case[] = [
+  ['almuerzo 12 total', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  ['compra 85 esta semana', { kind: 'transaction', amount: 85 }],
+  ['gasto de luz 60', { kind: 'transaction', amount: 60, categoryId: 'utilities' }],
+  ['café 3 más', { kind: 'transaction', amount: 3, categoryId: 'dining' }],
+  ['total café 12', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  ['gasolina 40 más o menos', { kind: 'transaction', amount: 40, categoryId: 'transport' }],
+  ['me queda 20 de propina', { kind: 'transaction', amount: 20 }],
+  // Stating what something cost is a new entry; only the imperfect ("era") or a second number ("no 50") makes it a fix.
+  ['la cena fueron 60', { kind: 'transaction', amount: 60, categoryId: 'dining' }],
+  ['la cena fue 60', { kind: 'transaction', amount: 60, categoryId: 'dining' }],
+  // "pon" and "apunta" without an article log something; "mete 20 en ahorros" is money moved.
+  ['pon café 4', { kind: 'transaction', amount: 4, categoryId: 'dining' }],
+  ['apunta café 4', { kind: 'transaction', amount: 4, categoryId: 'dining' }],
+  ['mete 20 en ahorros', { kind: 'transaction', amount: 20, categoryId: 'savings' }],
+  ['el pan de la panadería 3', { kind: 'transaction', amount: 3, categoryId: 'groceries' }],
+];
+
+describe('es: putting money aside', () => runCases('es', savingEntries, labels));
+describe('es: spending as it is said', () => runCases('es', colloquialExpenses, labels));
+describe('es: money coming in, as it is said', () => runCases('es', colloquialIncome, labels));
+describe('es: questions as dictated', () => runCases('es', spokenQuestions, labels));
+describe('es: fixing by voice, named or not', () => runCases('es', spokenCorrections, labels));
+describe('es: reminders as said', () => runCases('es', spokenReminders, labels));
+describe('es: dictated amounts', () => runCases('es', dictatedAmounts, labels));
+describe('es: near a question or a fix, still an entry', () => runCases('es', stayEntries, labels));
+
+/** Paying into a goal with the everyday verbs ("le eché", "le metí", "mandé al chanchito"). */
+const spokenContributions: Case[] = [
+  ['le eché 20 al fondo de Japón', { kind: 'contribution', amount: 20, goalId: 'g1' }],
+  ['le metí 50 más a Japón', { kind: 'contribution', amount: 50, goalId: 'g1' }],
+  ['mandé 200 al chanchito de Japón', { kind: 'contribution', amount: 200, goalId: 'g1' }],
+  ['ayer aparté 100 pal viaje a Japón', { kind: 'contribution', amount: 100, goalId: 'g1', occurredAt: '2026-09-15' }],
+  ['pasé 100 a los ahorros de Japón', { kind: 'contribution', amount: 100, goalId: 'g1' }],
+  ['puse 50 más en la hucha del viaje', { kind: 'contribution', amount: 50, goalId: 'g1' }],
+];
+
+describe('es: paying into a goal, as it is said', () => {
+  it.each(spokenContributions)('%s', (text, expected) => {
+    const r = parseOne(text, 'es', labels, SPANISH_GOALS);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected);
+  });
+});
