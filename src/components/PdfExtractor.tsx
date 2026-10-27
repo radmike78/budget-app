@@ -84,7 +84,8 @@ export const PdfExtractor = forwardRef<PdfExtractorHandle, object>(function PdfE
       }
       return new Promise((resolve, reject) => {
         pending.current = { resolve, reject };
-        const timer = setTimeout(() => { if (pending.current) { pending.current = null; reject(new Error('timeout')); } }, 120_000);
+        // On a timeout the page is restarted like a cancel: a job still running in it must never answer the next file.
+        const timer = setTimeout(() => { if (pending.current) { pending.current = null; restart(null); reject(new Error('timeout')); } }, 120_000);
         const done = pending.current;
         pending.current = {
           resolve: (v) => { clearTimeout(timer); done.resolve(v); },

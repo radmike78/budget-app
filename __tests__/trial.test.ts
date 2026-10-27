@@ -1,5 +1,5 @@
 /** The trial is arithmetic over dates; these pin the edges and the clock-back rule. */
-import { NOTICE_DAYS, TRIAL_DAYS, earlierDay, firstDayNeedsReset, licenseFrom } from '@/lib/trial';
+import { trialRestartsForBuild, NOTICE_DAYS, TRIAL_DAYS, earlierDay, firstDayNeedsReset, licenseFrom } from '@/lib/trial';
 
 const day0 = '2026-11-01';
 
@@ -52,3 +52,14 @@ function addDaysStr(d: string, n: number): string {
   x.setDate(x.getDate() + n);
   return x.toISOString().slice(0, 10);
 }
+
+describe('a tester’s month and the store build', () => {
+  it('restarts once when a build that was not production is followed by the production one', () => {
+    expect(trialRestartsForBuild('preview', 'production')).toBe(true);
+    expect(trialRestartsForBuild('development', 'production')).toBe(true);
+    expect(trialRestartsForBuild('production', 'production')).toBe(false);
+    expect(trialRestartsForBuild(null, 'production')).toBe(false);
+    expect(trialRestartsForBuild('preview', 'preview')).toBe(false);
+    expect(trialRestartsForBuild('production', null)).toBe(false);
+  });
+});

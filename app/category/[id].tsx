@@ -29,6 +29,10 @@ export default function CategoryEditor() {
   const payMode = useAppStore((s) => s.settings?.budgetPeriod === 'pay');
   const isNew = id === 'new';
   const existing = categories.find((c) => c.id === id);
+  // Opened from a stale link (a category removed meanwhile): nothing to edit here.
+  useEffect(() => {
+    if (!isNew && !existing) { if (router.canGoBack()) router.back(); else router.replace('/'); }
+  }, [isNew, existing, router]);
 
   const [name, setName] = useState(existing ? categoryName(existing, t) : '');
   const [icon, setIcon] = useState(existing?.icon ?? '🧾');

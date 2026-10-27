@@ -17,7 +17,7 @@ import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
 import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, isDailyReminderScheduled, needsRearm, nextOccurrence, notificationPermissionState, scheduleDailyReminder, scheduleReminderNotification, scheduledReminderIds, type PermissionState } from '@/lib/reminders';
 import { sweepExportCache } from '@/lib/files';
-import { earlierDay, firstDayNeedsReset, licenseFrom, type License } from '@/lib/trial';
+import { earlierDay, firstDayNeedsReset, licenseFrom, type License, trialRestartsForBuild } from '@/lib/trial';
 import { onUnlocked, readStore, recordTrialStart, restore as restoreFromStore } from '@/lib/purchases';
 import { Platform } from 'react-native';
 import { getLocale, resolveLanguage } from '@/i18n';
@@ -121,7 +121,7 @@ interface AppState {
   /** After a purchase: remembers the unlock on this phone. */
   recordUnlock: () => Promise<void>;
   /** Asks the store again, for a new phone or a reinstall. */
-  restoreUnlock: () => Promise<boolean>;
+  restoreUnlock: () => Promise<'restored' | 'none' | 'unavailable'>;
   /** Puts the ending-soon notice away for good. */
   dismissTrialNotice: () => Promise<void>;
   trialNoticeDismissed: boolean;
@@ -139,7 +139,9 @@ async function moveGoal(db: DB, goalId: string, delta: number): Promise<void> {
   const goal = (await repo.allGoals(db)).find((g) => g.id === goalId);
   if (!goal) return;
   const currentAmount = Math.max(0, Math.round((goal.currentAmount + delta) * 100) / 100);
-  await repo.upsertGoal(db, { ...goal, currentAmount, completed: goal.completed || currentAmount >= goal.targetAmount });
+  // Money taken back out (a transfer removed or shrunk) reopens a goal that was done; money put in never undoes a hand-marked done.
+  const completed = delta < 0 ? currentAmount >= goal.targetAmount : goal.completed || currentAmount >= goal.targetAmount;
+  await repo.upsertGoal(db, { ...goal, currentAmount, completed });
 }
 
 /** The day the screens were last worked out for. */
@@ -480,16 +482,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     const rem: Reminder = { ...input, text: redactOrMask(input.text), id: newId(), createdAt: nowIso(), notificationId: null };
     // Saved first: a failure in the notification layer must not lose the reminder (rearmReminders retries later).
     await repo.upsertReminder(db, rem);
+    let scheduled = true;
     try {
       const notificationId = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders, get().settings?.appLockEnabled ? strings.reminderPrivateBody : null);
       if (notificationId) await repo.upsertReminder(db, { ...rem, notificationId });
     } catch {
-      // kept with notificationId null
+      scheduled = false; // kept with notificationId null; rearmReminders tries again
     }
     const state = await notificationPermissionState();
     set({ notifications: state });
     await get().refresh();
-    return state;
+    // Allowed but refused by the phone: the card says it is saved, not set.
+    return state === 'granted' && !scheduled ? 'failed' : state;
   },
 
   removeReminder: async (id) => {
@@ -523,7 +527,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Kept when it is still on the phone's schedule and needs no re-arming; anything else (a new phone,
       // a dated series running out, a repeat whose start date has come) is scheduled again.
       if (!all && rem.notificationId && scheduled.has(rem.notificationId) && !needsRearm(rem)) continue;
-      const id = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders, get().settings?.appLockEnabled ? strings.reminderPrivateBody : null);
+      // One the phone refuses (a trigger it cannot take) is kept and tried again next time; the rest still get armed.
+      let id: string | null;
+      try {
+        id = await scheduleReminderNotification(rem, strings.reminderNotificationTitle, strings.reminderChannelReminders, get().settings?.appLockEnabled ? strings.reminderPrivateBody : null);
+      } catch {
+        continue;
+      }
       if (id !== rem.notificationId) { await repo.upsertReminder(db, { ...rem, notificationId: id }); changed = true; }
     }
     if (changed) await get().refresh();
@@ -674,9 +684,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     const current = get().settings ?? (await repo.getSettings(db));
     const next = { ...current, ...patch };
     await repo.saveSettings(db, next);
+    // A refresh already under way read the old settings: it is discarded so it cannot write them back.
+    refreshRun += 1;
     set({ settings: next });
     // Apple's way of keeping a trial across reinstalls, asked once the welcome pages are done, never over them.
-    if (patch.onboardingDone && !current.onboardingDone) recordTrialStart().catch(() => {});
+    if (patch.onboardingDone && !current.onboardingDone) {
+      await get().refreshLicense().catch(() => {}); // the month starts now
+      recordTrialStart().catch(() => {});
+    }
     // Reminders already on the schedule carry their words, which the lock keeps off the lock screen.
     if (patch.appLockEnabled !== undefined && patch.appLockEnabled !== current.appLockEnabled) get().rearmReminders(true).catch(() => {});
     // The period shape or the overall plan changed: the shown period and its totals follow.
@@ -756,14 +771,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
     const todayStr = today();
-    const [storedFirst, storedLatest, unlockedFlag, noticeSeen, nudgeSeen] = await Promise.all([
+    const [storedFirst0, storedLatest0, unlockedFlag, noticeSeen0, nudgeSeen, storedProfile] = await Promise.all([
       repo.getAppState(db, 'trial.firstSeen'),
       repo.getAppState(db, 'trial.latestSeen'),
       repo.getAppState(db, 'license.unlocked'),
       repo.getAppState(db, 'trial.noticeSeen'),
       repo.getAppState(db, 'backup.nudgeSeen'),
+      repo.getAppState(db, 'trial.profile'),
     ]);
     set({ backupNudgeDismissedOn: nudgeSeen });
+    let storedFirst = storedFirst0;
+    let storedLatest = storedLatest0;
+    let noticeSeen = noticeSeen0;
+    // A beta tester's month restarts once when the store build arrives (same bundle id, same database).
+    const profile = process.env.EXPO_PUBLIC_BUILD_PROFILE ?? null;
+    if (trialRestartsForBuild(storedProfile, profile)) {
+      storedFirst = null; storedLatest = null; noticeSeen = null;
+      await repo.setAppState(db, 'trial.noticeSeen', '');
+    }
+    if (profile && profile !== storedProfile) await repo.setAppState(db, 'trial.profile', profile);
+    // The month starts when the welcome pages are done (the terms are on them): until then nothing is written,
+    // so someone who opened the app once and came back weeks later still gets the whole month.
+    const onboarded = get().settings?.onboardingDone ?? (await repo.getSettings(db)).onboardingDone;
     let firstSeen = storedFirst;
     let unlocked = !!unlockedFlag;
     // A first day in the future means the clock was ahead at the first open: the month restarts from today.
@@ -774,9 +803,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     // The first day is written once; the latest-seen day only ever moves forward.
     if (!firstSeen) {
       firstSeen = todayStr;
-      await repo.setAppState(db, 'trial.firstSeen', firstSeen);
+      if (onboarded) await repo.setAppState(db, 'trial.firstSeen', firstSeen);
     }
-    if (!storedLatest || storedLatest < todayStr) await repo.setAppState(db, 'trial.latestSeen', todayStr);
+    if (onboarded && (!storedLatest || storedLatest < todayStr)) await repo.setAppState(db, 'trial.latestSeen', todayStr);
     const latestSeen = storedLatest && storedLatest > todayStr && !firstDayNeedsReset(storedFirst, todayStr) ? storedLatest : todayStr;
     set({ license: licenseFrom({ firstSeen, latestSeen, unlocked, today: todayStr }), trialNoticeDismissed: !!noticeSeen });
   },
@@ -811,8 +840,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreUnlock: async () => {
     const known = await restoreFromStore().catch(() => null);
-    if (!known) return false;
-    if (known.unlocked) { await get().recordUnlock(); return true; }
+    if (!known) return 'unavailable';
+    if (known.unlocked) { await get().recordUnlock(); return 'restored'; }
     // No unlock, but perhaps an earlier trial start from before a reinstall.
     const db = await getDb();
     const firstSeen = await repo.getAppState(db, 'trial.firstSeen');
@@ -821,7 +850,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await repo.setAppState(db, 'trial.firstSeen', earlier);
       await get().refreshLicense();
     }
-    return false;
+    return 'none';
   },
 
   dismissBackupNudge: async () => {

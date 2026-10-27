@@ -44,6 +44,14 @@ export default function RemindersScreen() {
           </View>
         </Card>
       ) : null}
+      {Platform.OS === 'android' ? (
+        <Card tone="alt" style={{ marginBottom: spacing.md }}>
+          <Text variant="small">{t.remindersAndroidTiming}</Text>
+          <View style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}>
+            <Button small tone="secondary" title={t.batterySettings} onPress={openNotificationSettings} />
+          </View>
+        </Card>
+      ) : null}
       {sorted.length === 0 ? (
         <EmptyState title={t.noReminders} body={t.noRemindersBody} />
       ) : (

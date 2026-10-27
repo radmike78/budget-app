@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import { useLanguageCode, useT } from '@/i18n';
+import { deviceLanguage, useLanguageCode, useT } from '@/i18n';
 import { getPack } from '@/parser/packs';
 import { stopSpeaking } from '@/lib/speak';
 
@@ -42,12 +42,14 @@ export function useVoiceInput(onFinal: (text: string) => void) {
       // iOS answers for the phone's default language, not the app's: the mic stays, and starting reports
       // plainly if this language cannot be heard.
       available = Platform.OS === 'ios' ? true : ExpoSpeechRecognitionModule.isRecognitionAvailable();
-      onDevice = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition();
+      // iOS answers for the phone's own language: with the app in another language the audio may go to Apple's
+      // servers, so "on device" is only said when the two agree. Nothing ever goes to us either way.
+      onDevice = ExpoSpeechRecognitionModule.supportsOnDeviceRecognition() && (Platform.OS !== 'ios' || deviceLanguage() === language);
     } catch {
       available = false;
     }
     setState((s) => ({ ...s, available, onDevice }));
-  }, []);
+  }, [language]);
 
   useSpeechRecognitionEvent('start', () => {
     startingRef.current = false;
@@ -62,6 +64,8 @@ export function useVoiceInput(onFinal: (text: string) => void) {
     setState((s) => ({ ...s, transcript: text }));
     if (event.isFinal && text.trim() && !deliveredRef.current) {
       deliveredRef.current = true;
+      // The bar mirrors the transcript while listening; the final one goes to the card, not back into the bar.
+      setState((s) => ({ ...s, transcript: '' }));
       finalRef.current(text.trim());
     }
   });
@@ -151,6 +155,9 @@ export function useVoiceInput(onFinal: (text: string) => void) {
       onDevice = false;
     }
     fellBackRef.current = false;
+    // Android skips the 'start' event when an error pre-empts it, so the per-attempt flags are reset here, not there.
+    deliveredRef.current = false;
+    lastTranscriptRef.current = '';
     launch(onDevice);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, t]);

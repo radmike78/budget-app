@@ -8,6 +8,7 @@ import { latestOnOrBefore } from '@/lib/recurring';
 import { notify } from '@/lib/dialogs';
 import { daysInMonth, friendlyDate, fromDateString, today } from '@/lib/dates';
 import { newId } from '@/lib/ids';
+import { unlockPrice } from '@/lib/purchases';
 import type { Frequency } from '@/types';
 import { LANGUAGE_OPTIONS, deviceCurrency, deviceLanguage, getLocale, useDateFormat, useLanguageCode, useLocale, useT } from '@/i18n';
 import { DatePicker, Sheet } from '@/components/pickers';
@@ -47,6 +48,8 @@ export default function Onboarding() {
   // A leading minus is not a balance anyone meant to type.
   const readable = (text: string) => !text.trim() || (!text.trim().startsWith('-') && parseMoneyInput(text, locale.format.decimal === ',') != null);
   const { width } = useWindowDimensions();
+  // An iPad window can be resized while a page is open: the pager re-seats on the current page.
+  useEffect(() => { listRef.current?.scrollToIndex({ index: page, animated: false }); }, [width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow the phone's own currency (a UK phone in English is pounds, not dollars), else the language's,
   // until the user picks one explicitly.
@@ -99,6 +102,15 @@ export default function Onboarding() {
   // One tap only: a second tap while saving would set up pay and rent twice.
   const finishing = useRef(false);
   const [finishingNow, setFinishingNow] = useState(false);
+  // The store's price goes into the terms on the first page; with no answer the sentence still names the purchase.
+  const [price, setPrice] = useState<string | null>(null);
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let live = true;
+    unlockPrice().then((p) => { if (live) setPrice(p); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+  const finishTitle = Platform.OS === 'web' ? t.done : t.startFreeMonth;
   const finish = async (voiceWanted: boolean) => {
     if (finishing.current) return;
     finishing.current = true;
@@ -128,7 +140,7 @@ export default function Onboarding() {
         <View style={{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>
           <Text variant="display">{t.onboardHeadline}</Text>
           <Text variant="muted" style={{ marginTop: spacing.xl, fontSize: 17 * typeScale, lineHeight: 24 * typeScale }}>{t.onboardBody}</Text>
-          {Platform.OS !== 'web' ? <Text variant="muted" style={{ marginTop: spacing.md }}>{t.trialTerms}</Text> : null}
+          {Platform.OS !== 'web' ? <Text variant="muted" style={{ marginTop: spacing.md }}>{t.trialTerms(price)}</Text> : null}
           <View style={{ marginTop: spacing.xxl }}><Button title={t.next} onPress={() => go(1)} /></View>
           <View style={{ marginTop: spacing.md, alignItems: 'center' }}><Button tone="ghost" small title={`${t.language}: ${languageName}`} onPress={() => setShowLanguage(true)} /></View>
         </View>
@@ -205,6 +217,7 @@ export default function Onboarding() {
           </Card>
           <View style={{ marginTop: spacing.xxl }}><Button title={t.onboardVoiceYes} onPress={() => { if (settings?.voice === 'plain') updateSettings({ voice: 'friend' }); go(5); }} /></View>
           <View style={{ marginTop: spacing.md }}><Button tone="secondary" title={t.onboardVoiceNo} onPress={() => finish(false)} loading={finishingNow} /></View>
+          {Platform.OS === 'ios' ? <Text variant="small" style={{ marginTop: spacing.md }}>{t.trialSheetNote}</Text> : null}
           <View style={{ marginTop: spacing.md, alignItems: 'flex-start' }}><Button tone="ghost" title={t.back} onPress={() => go(3)} /></View>
         </View>
         </View>
@@ -219,7 +232,7 @@ export default function Onboarding() {
           <VoicePicker compact />
           <Row style={{ marginTop: spacing.xl }}>
             <Button tone="ghost" title={t.back} onPress={() => go(4)} />
-            <Button title={t.done} onPress={() => finish(true)} style={{ flex: 1 }} loading={finishingNow} />
+            <Button title={finishTitle} onPress={() => finish(true)} style={{ flex: 1 }} loading={finishingNow} />
           </Row>
         </View>
         </ScrollView>
@@ -236,7 +249,7 @@ export default function Onboarding() {
         <Text variant="muted" style={{ marginTop: spacing.lg }}>{t.onboardLearn}</Text>
         <Row style={{ marginTop: spacing.xxl }}>
           <Button tone="ghost" title={t.back} onPress={() => go(2)} />
-          <Button title={t.start} onPress={() => (PAGES.includes('voice') ? go(4) : finish(false))} style={{ flex: 1 }} loading={!PAGES.includes('voice') && finishingNow} />
+          <Button title={PAGES.includes('voice') ? t.start : finishTitle} onPress={() => (PAGES.includes('voice') ? go(4) : finish(false))} style={{ flex: 1 }} loading={!PAGES.includes('voice') && finishingNow} />
         </Row>
       </View>
       </View>

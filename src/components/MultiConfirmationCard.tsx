@@ -125,7 +125,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
     setError(null);
     let out = 0;
     let inc = 0;
-    let blocked: 'denied' | 'unsupported' | null = null;
+    let blocked: 'denied' | 'unsupported' | 'failed' | null = null;
     let biggest: { amount: number; type: 'income' | 'expense'; categoryId: string | null; note: string | null; occurredAt: string } | null = null;
     const saveOne = async (d: Draft, amount: number) => {
       if (d.kind === 'reminder') {
@@ -154,7 +154,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
         savedKeys.add(drafts[i].key);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      if (blocked) notify(t.notificationsNeeded, blocked === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
+      if (blocked) notify(t.notificationsNeeded, blocked === 'unsupported' ? t.remindersUnsupported : blocked === 'failed' ? t.reminderNotArmed : t.notificationsNeededBody);
       onDone(t.toastLoggedMany(drafts.length, out > 0 ? money(out, { compact: true }) : null, inc > 0 ? money(inc, { compact: true }) : null), biggest ? await personaLineForTransaction(biggest, t) : null);
     } catch (e) {
       // What was saved stays saved and leaves the list, so trying again cannot log it twice.

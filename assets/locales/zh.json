@@ -1,0 +1,6 @@
+{
+  "NSMicrophoneUsageDescription": "OnlyBudget 在你说出一笔记录（比如\"午饭 12\"）时使用麦克风。手机自带的语音识别把它转成文字；OnlyBudget 从不录音或保存音频。",
+  "NSSpeechRecognitionUsageDescription": "OnlyBudget 用语音识别把你说的话变成一笔记录。不会向我们发送任何内容。",
+  "NSFaceIDUsageDescription": "如果你开启应用锁，OnlyBudget 可以用面容 ID 解锁。",
+  "CFBundleDisplayName": "OnlyBudget"
+}

@@ -100,7 +100,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         } else {
           // Said before the card closes, so the alert is not lost behind a closing sheet.
-          notify(t.notificationsNeeded, state === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
+          notify(t.notificationsNeeded, state === 'unsupported' ? t.remindersUnsupported : state === 'failed' ? t.reminderNotArmed : t.notificationsNeededBody);
           onDone(t.toastReminderSaved);
         }
       } catch (e) {

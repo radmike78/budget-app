@@ -36,6 +36,7 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 - Searchable history, by category, date and type
 - An app lock with Face ID, Touch ID or your passcode
 - Export to CSV, a readable summary, or a full backup. Passphrase-encrypted backups you can keep in your own cloud drive
+- Your data stays on your phone and is never copied anywhere by itself, so make a backup before you change phones; a backup can be added to another phone or replace what is there
 - Light and dark themes
 - Works in English, Spanish, French, Italian, German, Chinese, Japanese and Korean, including the voice entry
 

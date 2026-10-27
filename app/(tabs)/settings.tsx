@@ -16,7 +16,7 @@ import { cancelDailyReminder, scheduleDailyReminder } from '@/lib/reminders';
 import { authenticate, canUseAppLock } from '@/lib/appLock';
 import { triggerOfflineModelDownload } from '@/lib/speech';
 import { LANGUAGE_OPTIONS, useDateFormat, useLanguageCode, useT } from '@/i18n';
-import { clockLabel, friendlyDate, localDay, today, type DateFormat } from '@/lib/dates';
+import { clockLabel, friendlyDate, localDay, longDate, today, type DateFormat } from '@/lib/dates';
 import { confirmDialog, notify } from '@/lib/dialogs';
 import { Sheet } from '@/components/pickers';
 import { Button, Card, ListItem, Row, Screen, SectionTitle, Segmented, Spacer, Text } from '@/components/ui';
@@ -174,7 +174,7 @@ export default function SettingsScreen() {
       {SMART_ASSIST ? <ListItem title={t.smartParse} subtitle={settings.smartParseEnabled ? (hasKey === false ? t.smartNeedsKey : t.smartParseOn) : t.smartParseOff} onPress={() => router.push('/settings/smart')} /> : null}
 
       <SectionTitle>{t.about}</SectionTitle>
-      {Platform.OS !== 'web' && license ? <ListItem title={t.purchaseRow} subtitle={license.state === 'unlocked' ? t.unlockStatusUnlocked : license.state === 'ended' ? t.unlockStatusEnded : t.unlockStatusTrial(license.daysLeft)} onPress={() => router.push('/settings/unlock')} /> : null}
+      {Platform.OS !== 'web' && license ? <ListItem title={t.purchaseRow} subtitle={license.state === 'unlocked' ? t.unlockStatusUnlocked : license.state === 'ended' ? t.unlockStatusEnded : t.unlockStatusTrial(license.daysLeft, longDate(license.endsOn, today(), fmt))} onPress={() => router.push('/settings/unlock')} /> : null}
       <ListItem title={t.help} subtitle={t.helpSub} onPress={() => router.push('/settings/help')} />
       <ListItem title={t.aboutApp} subtitle={t.aboutSub} onPress={() => router.push('/settings/about')} />
 

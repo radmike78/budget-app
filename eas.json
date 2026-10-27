@@ -13,6 +13,9 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUILD_PROFILE": "development"
       }
     },
     "device": {
@@ -21,6 +24,9 @@
       "channel": "development",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUILD_PROFILE": "device"
       }
     },
     "preview": {
@@ -28,6 +34,9 @@
       "channel": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUILD_PROFILE": "preview"
       }
     },
     "production": {
@@ -35,6 +44,9 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_BUILD_PROFILE": "production"
       }
     }
   },

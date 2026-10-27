@@ -17,7 +17,7 @@ import { Button, Text, useIsWide, useTypeScale } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-const START_TIMEOUT_MS = 20_000;
+const START_TIMEOUT_MS = 10_000;
 configureNotificationHandler();
 
 export default function RootLayout() {

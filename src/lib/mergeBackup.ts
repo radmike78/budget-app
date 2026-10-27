@@ -62,12 +62,16 @@ export function mergeBackup(here: MergeSource, incoming: MergeSource): MergePlan
 
   const txIds = new Set(here.transactions.map((t) => t.id));
   const fingerprints = new Set(here.transactions.map((t) => t.fingerprint).filter((f): f is string => !!f));
+  // Each phone logs a repeating rule's instances with its own ids: the same rule on the same day is the same entry.
+  const instances = new Set(here.transactions.filter((t) => t.isRecurringInstance && t.recurringRuleId).map((t) => `${t.recurringRuleId}|${t.occurredAt}`));
   const transactions: Transaction[] = [];
   let skippedTransactions = 0;
   for (const t of incoming.transactions) {
-    if (txIds.has(t.id) || (t.fingerprint && fingerprints.has(t.fingerprint))) { skippedTransactions += 1; continue; }
+    const instanceKey = t.isRecurringInstance && t.recurringRuleId ? `${t.recurringRuleId}|${t.occurredAt}` : null;
+    if (txIds.has(t.id) || (t.fingerprint && fingerprints.has(t.fingerprint)) || (instanceKey && instances.has(instanceKey))) { skippedTransactions += 1; continue; }
     txIds.add(t.id);
     if (t.fingerprint) fingerprints.add(t.fingerprint);
+    if (instanceKey) instances.add(instanceKey);
     transactions.push({
       ...t,
       categoryId: cat(t.categoryId),
