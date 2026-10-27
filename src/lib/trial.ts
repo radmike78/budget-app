@@ -57,6 +57,15 @@ export function licenseFrom({ firstSeen, latestSeen, unlocked, today }: LicenseI
 
 /** The earlier of two first days, so a store-recorded trial start wins over a later local one. */
 /** True when the recorded first day lies after today, so the store should rewrite both days to today. */
+/**
+ * A tester's free month must not carry into the store build: the beta and the store app share a bundle id, so
+ * `app_state` survives the update. The month restarts once, when a build that was not the production profile is
+ * followed by one that is. Profiles come from `EXPO_PUBLIC_BUILD_PROFILE` (eas.json); a bundle with none is left alone.
+ */
+export function trialRestartsForBuild(storedProfile: string | null, currentProfile: string | null): boolean {
+  return currentProfile === 'production' && storedProfile != null && storedProfile !== 'production';
+}
+
 export function firstDayNeedsReset(firstSeen: string | null, today: string): boolean {
   return firstSeen != null && firstSeen > today;
 }

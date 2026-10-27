@@ -800,3 +800,52 @@ const STILL_ENTRIES: Case[] = [
 
 describe('zh: how amounts are said', () => runCases('zh', AMOUNTS, labels));
 describe('zh: still plain entries', () => runCases('zh', STILL_ENTRIES, labels));
+
+/** Misreads a reviewer reproduced: a tip given, "不对等一下", a terse question keeping 还, two bills in one breath, a transfer's note. */
+const REVIEWED_MISREADS: Case[] = [
+  // A tip is money at the table; only "收了" makes it income.
+  ['给了5块小费', { kind: 'transaction', type: 'expense', amount: 5, categoryId: 'dining' }],
+  ['小费20', { kind: 'transaction', type: 'expense', amount: 20, categoryId: 'dining' }],
+  ['收了小费50', { kind: 'transaction', type: 'income', amount: 50 }],
+  ['不对等一下，15', { kind: 'correction', correction: { amount: 15 } }],
+  ['等一下，15', { kind: 'correction', correction: { amount: 15 } }],
+  ['买菜还够吗', { kind: 'question', question: { ask: 'left', target: '买菜', fallbackCategoryId: 'groceries' } }],
+  ['转200到存款账户', { kind: 'transaction', amount: 200, categoryId: 'savings', note: '存款账户' }],
+];
+
+describe('zh: reviewed misreads', () => runCases('zh', REVIEWED_MISREADS, labels));
+
+/** "晚饭40加小费8块" and "电费60水费40" are two entries each, both money out. */
+describe('zh: two entries in one breath', () => {
+  it('晚饭40加小费8块', () => {
+    const r = parseOne('晚饭40加小费8块', 'zh', labels);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ kind: 'transaction', type: 'expense', amount: 40, categoryId: 'dining' });
+    expect(r[1]).toMatchObject({ kind: 'transaction', type: 'expense', amount: 8, categoryId: 'dining' });
+  });
+  it('电费60水费40', () => {
+    const r = parseOne('电费60水费40', 'zh', labels);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ kind: 'transaction', amount: 60, categoryId: 'utilities', note: '电费' });
+    expect(r[1]).toMatchObject({ kind: 'transaction', amount: 40, categoryId: 'utilities', note: '水费' });
+  });
+});
+
+/**
+ * Waiting on the parser core: 回 as a counter only when not followed by 来/去/家, a named month as a question period
+ * (`question.monthNames` is already in the pack), and the pack hook that keeps a bare pay noun after "上次" from making
+ * an entry income ("发工资" is a salary keyword and wins over "超市" by length). Un-skip once the core change is merged.
+ */
+describe('after core merge', () => {
+  const pending: Case[] = [
+    ['8月花了多少', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+    ['上次发工资那天超市40', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'groceries' }],
+  ];
+  runCases('zh', pending, labels);
+  it('去机场打车45回来50', () => {
+    const r = parseOne('去机场打车45回来50', 'zh', labels);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ kind: 'transaction', amount: 45, categoryId: 'transport' });
+    expect(r[1]).toMatchObject({ kind: 'transaction', amount: 50, categoryId: 'transport' });
+  });
+});

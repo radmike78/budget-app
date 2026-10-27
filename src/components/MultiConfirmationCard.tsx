@@ -125,7 +125,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
     setError(null);
     let out = 0;
     let inc = 0;
-    let blocked: 'denied' | 'unsupported' | null = null;
+    let blocked: 'denied' | 'unsupported' | 'failed' | null = null;
     let biggest: { amount: number; type: 'income' | 'expense'; categoryId: string | null; note: string | null; occurredAt: string } | null = null;
     const saveOne = async (d: Draft, amount: number) => {
       if (d.kind === 'reminder') {
@@ -154,7 +154,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
         savedKeys.add(drafts[i].key);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      if (blocked) notify(t.notificationsNeeded, blocked === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
+      if (blocked) notify(t.notificationsNeeded, blocked === 'unsupported' ? t.remindersUnsupported : blocked === 'failed' ? t.reminderNotArmed : t.notificationsNeededBody);
       onDone(t.toastLoggedMany(drafts.length, out > 0 ? money(out, { compact: true }) : null, inc > 0 ? money(inc, { compact: true }) : null), biggest ? await personaLineForTransaction(biggest, t) : null);
     } catch (e) {
       // What was saved stays saved and leaves the list, so trying again cannot log it twice.
@@ -219,7 +219,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
                   <View style={{ marginBottom: spacing.md }}>
                     <Segmented value={d.goalKind} onChange={(v) => update(i, { goalKind: v })} options={[{ value: 'saving', label: t.goalKindSaving }, { value: 'debt', label: t.goalKindDebt }]} />
                   </View>
-                  <Field label={t.goalName} value={d.goalName} onChangeText={(v) => update(i, { goalName: v })} placeholder={t.goalNamePlaceholder} style={{ marginBottom: spacing.sm }} />
+                  <Field label={t.goalName} maxLength={80} value={d.goalName} onChangeText={(v) => update(i, { goalName: v })} placeholder={t.goalNamePlaceholder} style={{ marginBottom: spacing.sm }} />
                   <Text variant="label" style={{ marginBottom: 6 }}>{t.targetDate}</Text>
                   <Row style={{ marginBottom: spacing.sm, flexWrap: 'wrap' }}>
                     <Button tone="secondary" small title={d.targetDate ? longDate(d.targetDate, today(), fmt) : t.noDate} onPress={() => setPickingTargetDate(i)} />
@@ -242,7 +242,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
                   {unsure && d.categoryId === d.originalCategoryId ? (
                     <Text variant="small" style={{ marginBottom: spacing.sm }}>{hintText(HINT.unsureCategory, t)}</Text>
                   ) : null}
-                  <Field label={t.note} value={d.note} onChangeText={(v) => update(i, { note: v })} placeholder={t.optional} style={{ marginBottom: spacing.xs }} />
+                  <Field label={t.note} maxLength={500} value={d.note} onChangeText={(v) => update(i, { note: v })} placeholder={t.optional} style={{ marginBottom: spacing.xs }} />
                 </>
               )}
             </View>

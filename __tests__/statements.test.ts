@@ -134,8 +134,21 @@ describe('money and dates on statements', () => {
   });
   it('reads yen and won amounts, which have no cents', () => {
     expect(findMoney('01/05 ローソン 980円').map((m) => m.value)).toEqual([980]);
+    expect(findMoney('01/05 ローソン 980円 12,345円').map((m) => m.value)).toEqual([980, 12345]);
     expect(findMoney('01/05 스타벅스 ₩4500').map((m) => m.value)).toEqual([4500]);
     expect(findMoney('01/05 STORE 4500').length).toBe(0);
+    expect(findMoney('CHF 4500').map((m) => m.value)).toEqual([4500]);
+  });
+  it('a reference number next to a currency code is not money', () => {
+    expect(findMoney('PAYPAL INST XFER REF 1234567 USD 50.00').map((m) => [m.value, m.decimals])).toEqual([[50, true]]);
+    expect(findMoney('REF 12345678 USD').length).toBe(0);
+    expect(findMoney('VENMO PAYMENT 2,000,123 15.00').map((m) => m.value)).toEqual([2000123, 15]);
+    const p = parse(`Statement Period: 03/01/2026 - 03/31/2026
+Checking account summary
+03/05 PAYPAL INST XFER REF 1234567 USD 50.00
+03/06 VENMO PAYMENT 2,000,123 15.00
+03/07 STORE 2,500 3,100.00`);
+    expect(p.lines.map((l) => [l.amount, l.balance])).toEqual([[50, null], [15, null], [2500, 3100]]);
   });
   it('puts a December line on a January statement into the previous year', () => {
     const period = { start: '2025-12-20', end: '2026-01-19' };
@@ -398,6 +411,83 @@ Balance: $0`));
     expect(cat('SQ *BLUE BOTTLE')).toBe('dining');
     expect(cat('沃尔玛超市')).toBe('groceries');
     expect(cat('PG&E WEB ONLINE PAYMENT')).toBe('utilities');
+  });
+
+  it('skips a pending section on a card statement, which posts on the next one', () => {
+    const p = parse(`CHASE FREEDOM
+Opening/Closing Date 02/15/26 - 03/14/26
+New Balance $500.00
+Minimum Payment Due $40.00
+PURCHASES
+03/01  STARBUCKS                 6.50
+03/02  SHELL                    40.00
+Pending transactions
+03/13  AMAZON                   30.00
+03/14  UBER                     12.00`);
+    expect(p.lines.map((l) => [l.description, l.amount])).toEqual([['Starbucks', 6.5], ['Shell', 40]]);
+    expect(p.warnings).toContain('pendingSkipped');
+    // The posted lines start again at the next heading; a sentence about pending transactions skips nothing.
+    const first = parse(`Current account statement
+Statement Period: 03/01/2026 - 03/31/2026
+Pending
+03/19  AMAZON                   30.00
+Posted transactions
+03/02  TESCO STORES             12.40
+03/03  DIRECT DEBIT BRITISH GAS 60.00
+Pending transactions will appear on your next statement
+03/04  PRET A MANGER             4.50`);
+    expect(first.lines.map((l) => [l.description, l.amount, l.categoryId])).toEqual([['Tesco Stores', 12.4, 'groceries'], ['British Gas', 60, 'utilities'], ['Pret A Manger', 4.5, 'dining']]);
+    for (const heading of ['Transacciones pendientes', 'Opérations en cours', 'Transazioni in sospeso', 'Vorgemerkte Umsätze', '未決済', '미결제', '待处理']) {
+      const t = parse(`Statement Period: 03/01/2026 - 03/31/2026\nChecking account summary\n03/02  STORE  12.40\n${heading}\n03/19  STORE  30.00`);
+      expect(t.lines.map((l) => l.amount)).toEqual([12.4]);
+    }
+  });
+
+  it('fees beat transfers, named merchants beat generic words, and UK statements read as bank statements', () => {
+    expect(guessKind('WIRE TRANSFER FEE', 'out', 'bank')).toMatchObject({ kind: 'fee', categoryId: 'other_expense' });
+    expect(guessKind('ONLINE TRANSFER TO SAVINGS', 'out', 'bank').kind).toBe('transfer');
+    expect(guessKind('CARTE 11/01 SNCF INTERNET PARIS', 'out', 'bank')).toMatchObject({ kind: 'expense', categoryId: 'transport' });
+    expect(guessKind('PAYCHECK', 'in', 'bank')).toMatchObject({ kind: 'income', categoryId: 'salary' });
+    const cat = (s: string) => lookupMerchant(s.toLowerCase())?.categoryId ?? null;
+    expect(cat('DIRECT DEBIT BRITISH GAS')).toBe('utilities');
+    expect(cat('DD OCTOPUS ENERGY')).toBe('utilities');
+    expect(cat('THAMES WATER')).toBe('utilities');
+    expect(cat('AMAZON MARKETPLACE')).toBe('shopping');
+    expect(cat('SQ *CITY WATER DEPT')).toBe('utilities');
+    expect(cat('LIGHTBULB STORE')).toBeNull();
+    expect(detectKind(rowsFromText('Current account statement\nDirect debit BRITISH GAS 60.00\nFaster payment ACME 100.00\nStanding order RENT 900.00'))).toBe('bank');
+    const p = parse(`Current account statement
+Statement Period: 03/01/2026 - 03/31/2026
+03/02  WIRE TRANSFER FEE         25.00
+03/03  DIRECT DEBIT BRITISH GAS  60.00
+03/04  PAYCHECK               1,500.00`);
+    expect(p.lines.map((l) => [l.description, l.direction, l.kind, l.categoryId, l.include])).toEqual([
+      ['Wire Transfer Fee', 'out', 'fee', 'other_expense', true],
+      ['British Gas', 'out', 'expense', 'utilities', true],
+      ['Paycheck', 'in', 'income', 'salary', true],
+    ]);
+  });
+
+  it('keeps reading the shapes that were already right', () => {
+    // A negative running balance, and an overdraft fee that takes it further down.
+    const neg = parse(`Statement Period: 03/01/2026 - 03/31/2026\nChecking account\nBeginning balance -120.00\n03/02 OVERDRAFT FEE 35.00 -155.00\n03/03 PAYROLL ACME 1,000.00 845.00`);
+    expect(neg.lines.map((l) => [l.direction, l.amount, l.balance])).toEqual([['out', 35, -155], ['in', 1000, 845]]);
+    // "Jan 5" with no year lands in the statement's year, across the year end.
+    const noYear = parse(`Statement Period: Dec 20, 2025 - Jan 19, 2026\nChecking account   Deposits and withdrawals\nDec 22   PAYROLL ACME        2,150.00   4,560.55\nJan 5    BLUE BOTTLE            4.50    4,556.05`);
+    expect(noYear.lines.map((l) => [l.date, l.direction, l.amount])).toEqual([['2025-12-22', 'in', 2150], ['2026-01-05', 'out', 4.5]]);
+    // Amount, fee and balance in their own columns.
+    const three = parse(`Statement Period: 03/01/2026 - 03/31/2026\nChecking account summary\nDate    Description              Amount    Fee    Balance\n03/02   ATM WITHDRAWAL           100.00    3.00   900.00\n03/03   PAYROLL ACME           1,000.00    0.00  1,900.00`);
+    expect(three.lines.map((l) => [l.direction, l.amount, l.balance])).toEqual([['out', 100, 900], ['in', 1000, 1900]]);
+    // Soll and Haben columns with thousands dots and spaces.
+    const soll = parse(`Kontoauszug Girokonto\nAbrechnungszeitraum 01.03.2026 bis 31.03.2026\nBuchung  Verwendungszweck  Soll  Haben  Saldo\n02.03.2026  REWE SAGT DANKE  54,30    3.045,70\n03.03.2026  GEHALT MUSTER GMBH    2.500,00  5.545,70\n04.03.2026  MIETE MAERZ  1 200,00    4.345,70`, 'de');
+    expect(soll.lines.map((l) => [l.direction, l.amount, l.balance])).toEqual([['out', 54.3, 3045.7], ['in', 2500, 5545.7], ['out', 1200, 4345.7]]);
+    // Débit and Crédit columns on a French statement.
+    const deb = parse(`Relevé de compte\nCompte courant\nPériode du 01/03/2026 au 31/03/2026\nDate         Libellé                      Débit      Crédit\n02/03/2026   CARTE 01/03 CARREFOUR        45,67\n03/03/2026   VIR SEPA SALAIRE ACME                   2 400,00\n04/03/2026   PRLV SEPA EDF                1 234,56`, 'fr');
+    expect(deb.lines.map((l) => [l.date, l.direction, l.amount, l.categoryId])).toEqual([['2026-03-02', 'out', 45.67, 'groceries'], ['2026-03-03', 'in', 2400, 'salary'], ['2026-03-04', 'out', 1234.56, 'utilities']]);
+    // Three identical fares on one day are three entries with three fingerprints.
+    const dup = parse(`Statement Period: 03/01/2026 - 03/31/2026\nChecking account\nWithdrawals\n03/02 METRO FARE 2.90\n03/02 METRO FARE 2.90\n03/02 METRO FARE 2.90`);
+    expect(dup.lines).toHaveLength(3);
+    expect(new Set(dup.lines.map((l) => l.fingerprint)).size).toBe(3);
   });
 
   it('the web server maps every file type the app serves, including the pdf.js module worker', () => {

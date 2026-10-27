@@ -109,6 +109,8 @@ export interface ParseOptions {
   today: string;
   /** Fingerprints already in the app, to flag duplicates. */
   knownFingerprints?: Set<string>;
+  /** `${date}|${amount with two decimals}|${in|out}` of every entry on the phone: a line typed by hand before the import is not added twice. */
+  knownEntries?: Set<string>;
   /** The span of the lines when the file itself says it (a CSV), instead of reading it off the rows. */
   period?: StatementPeriod | null;
   /** The kind of account when the file itself shows it (a card export with charges positive), else it is read off the rows. */

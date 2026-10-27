@@ -1,0 +1,7 @@
+{
+  "name": "decode-uri-component",
+  "version": "0.2.2-linear",
+  "description": "A linear-time replacement for decode-uri-component, used by query-string inside expo-router: the published 0.2.x decoders take seconds to minutes on a kilobyte of broken percent-escapes, which any app can put in a deep link.",
+  "main": "index.js",
+  "license": "MIT"
+}

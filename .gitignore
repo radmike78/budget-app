@@ -56,3 +56,6 @@ assets/pdf/extractor.html
 
 # UI screenshot and walkthrough output
 out/
+
+# Agent worktrees
+.claude/worktrees/

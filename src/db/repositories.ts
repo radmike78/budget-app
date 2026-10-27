@@ -180,9 +180,9 @@ function filterTransactions(q: TransactionQuery): { where: string; params: (stri
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (q.search && q.search.trim()) {
-    where.push("(LOWER(COALESCE(note, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(raw_input, '')) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\')");
+    where.push("(LOWER(COALESCE(note, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(raw_input, '')) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\' OR printf('%.2f', amount) LIKE ? ESCAPE '\\')");
     const like = `%${escapeLike(q.search.trim().toLowerCase())}%`;
-    params.push(like, like, like);
+    params.push(like, like, like, like);
   }
   if (q.type) { where.push('type = ?'); params.push(q.type); }
   if (q.categoryId) { where.push('category_id = ?'); params.push(q.categoryId); }
@@ -267,7 +267,7 @@ export interface FrequentEntry { note: string | null; categoryId: string | null;
 /** The expenses typed most often in the last while (same words, category and amount, at least twice): one tap logs them again. */
 export async function frequentEntries(db: DB, since: string, limit = 4): Promise<FrequentEntry[]> {
   return db.getAllAsync<FrequentEntry>(
-    "SELECT note, category_id AS categoryId, amount, COUNT(*) AS count FROM transactions WHERE type = 'expense' AND occurred_at >= ? AND is_recurring_instance = 0 AND import_id IS NULL AND goal_id IS NULL GROUP BY lower(coalesce(note, '')), category_id, amount HAVING COUNT(*) >= 2 ORDER BY count DESC, MAX(occurred_at) DESC LIMIT ?",
+    "SELECT t.note, t.category_id AS categoryId, t.amount, COUNT(*) AS count FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE t.type = 'expense' AND t.occurred_at >= ? AND t.is_recurring_instance = 0 AND t.import_id IS NULL AND t.goal_id IS NULL AND (c.archived IS NULL OR c.archived = 0) GROUP BY lower(coalesce(t.note, '')), t.category_id, t.amount HAVING COUNT(*) >= 2 ORDER BY count DESC, MAX(t.occurred_at) DESC LIMIT ?",
     [since, limit],
   );
 }

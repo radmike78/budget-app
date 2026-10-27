@@ -63,6 +63,18 @@ export interface LanguagePack {
    * "got paid" of its own). With anything said after them ("de un cliente") the words decide, as usual.
    */
   bareIncomeIsPay?: RegExp;
+  /**
+   * A time phrase that holds an income word ("last payday", "since payday"): taken out before the type and the
+   * category are read, so "spent 40 on groceries last payday" is spending. Kept in the note. Global.
+   */
+  notIncome?: RegExp;
+  /**
+   * In a sentence with several entries, a later one that says only this ("uber to the airport 45 and back 50":
+   * "back") is the same kind of thing as the one before and takes its category. Anchored; matched against the note.
+   */
+  continuation?: RegExp;
+  /** Words standing for a goal just mentioned ("it", "that one", "the goal"): the newest open goal. Optional. */
+  goalPronoun?: RegExp;
   /** Words stripped from the start of a goal name. */
   articles: RegExp;
   /** Filler stripped from the start / end of a note. */
@@ -96,6 +108,11 @@ export interface CorrectionPack {
   targetLeads?: RegExp[];
   /** A trailing "not 12" / "non 12" (the number being corrected), dropped before anything else is read. */
   notTail?: RegExp;
+  /**
+   * With `notTail` present, a start that makes the utterance a fix only because the old number follows
+   * ("it was 15 not 51": "it was"). Anchored; what follows is the new value. Without the tail, `lead` decides.
+   */
+  tailLead?: RegExp;
   /**
    * The start of an utterance that changes the last entry ("actually it was", "make that", "change it to").
    * Must match at the start. What follows may only be a new amount, category or date, with filler words.

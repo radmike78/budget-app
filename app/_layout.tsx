@@ -17,7 +17,7 @@ import { Button, Text, useIsWide, useTypeScale } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-const START_TIMEOUT_MS = 20_000;
+const START_TIMEOUT_MS = 10_000;
 configureNotificationHandler();
 
 export default function RootLayout() {
@@ -90,7 +90,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={onboardingDone}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: t.appName }} />
           <Stack.Screen name="entry/[id]" options={{ title: t.editEntry, presentation: 'modal', ...modalClose }} />
           <Stack.Screen name="category/[id]" options={{ title: t.category, presentation: 'modal', ...modalClose }} />
           <Stack.Screen name="goal/[id]" options={{ title: t.goalTitle, presentation: 'modal', ...modalClose }} />

@@ -1,0 +1,6 @@
+{
+  "NSMicrophoneUsageDescription": "OnlyBudget は「ランチに1200円」のように話して記録するあいだマイクを使います。端末の音声認識が文字にします。OnlyBudget が音声を録音・保存することはありません。",
+  "NSSpeechRecognitionUsageDescription": "OnlyBudget は話した内容を記録に変えるために音声認識を使います。私たちに送られるものはありません。",
+  "NSFaceIDUsageDescription": "アプリロックをオンにすると、OnlyBudget は Face ID でロック解除できます。",
+  "CFBundleDisplayName": "OnlyBudget"
+}

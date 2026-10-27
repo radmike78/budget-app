@@ -9,8 +9,9 @@ import type { Category } from '@/types';
 /**
  * `budget` is the current budget period: payday to payday in pay mode, else the month.
  * `weekend` is the most recent Saturday and Sunday; `recentDays` is the last `days` days up to today.
+ * `namedMonth` is a calendar month said by name ("in August"), carried as `month`; last year's when it is still to come.
  */
-export type QuestionPeriod = 'today' | 'yesterday' | 'week' | 'lastWeek' | 'month' | 'lastMonth' | 'year' | 'lastYear' | 'all' | 'budget' | 'weekend' | 'recentDays';
+export type QuestionPeriod = 'today' | 'yesterday' | 'week' | 'lastWeek' | 'month' | 'lastMonth' | 'year' | 'lastYear' | 'all' | 'budget' | 'weekend' | 'recentDays' | 'namedMonth';
 
 export interface QuestionPack {
   /** Phrases that make the sentence a question about money out. Removed from the text. */
@@ -21,6 +22,11 @@ export interface QuestionPack {
   recentDays?: RegExp;
   /** Period phrases, tried in order; the first match wins and is removed. */
   periods: { re: RegExp; period: QuestionPeriod }[];
+  /**
+   * A month said by name ("in August"), tried before `periods`: the first group that matched is looked up in
+   * `names` (0 = January). Built with `monthWords`. Packs without it never answer `namedMonth`.
+   */
+  months?: { re: RegExp; names: Record<string, number> };
   /** Leftover words dropped from the start and end of what remains ("on", "at", particles). */
   strip: RegExp[];
   /** Phrases that ask what is left ("what's my remaining budget", "how much do I have left"). Tried before `lead`. */
@@ -44,6 +50,7 @@ export interface QuestionPack {
   askWords?: RegExp;
   /** Everyday words that cover more than one category ("food" is groceries and eating out). The whole target must match. */
   groups: { words: string[]; ids: string[] }[];
+  monthNames?: RegExp[];
 }
 
 export interface ParsedQuestion {
@@ -59,6 +66,8 @@ export interface ParsedQuestion {
   periodDefaulted: boolean;
   /** For `recentDays`: how many days, today included. */
   days?: number;
+  /** For `namedMonth`: the month asked about, 0 = January. */
+  month?: number;
   /** For `afford`: the amount being weighed. */
   price?: number;
   /** What the user asked about, in their own casing ("Starbucks", "dining out"); null for a plain total. */
@@ -88,7 +97,7 @@ const COMPARE_PERIOD: Partial<Record<QuestionPeriod, QuestionPeriod>> = {
   week: 'week', lastWeek: 'week', month: 'month', lastMonth: 'month', year: 'year', lastYear: 'year', budget: 'budget',
 };
 /** Periods that are over, compared whole against the one before them ("last week than the week before"). */
-const WHOLE_PERIODS = new Set<QuestionPeriod>(['lastWeek', 'lastMonth', 'lastYear', 'yesterday', 'weekend', 'recentDays', 'today']);
+const WHOLE_PERIODS = new Set<QuestionPeriod>(['lastWeek', 'lastMonth', 'lastYear', 'yesterday', 'weekend', 'recentDays', 'today', 'namedMonth']);
 
 /** Word boundary that also works for scripts without spaces. */
 const trimPunct = (s: string) => s.replace(/^[\s,.;:!?¿¡'"()]+|[\s,.;:!?¿¡'"()]+$/gu, '').trim();
@@ -158,8 +167,22 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
 
   let period: QuestionPeriod = 'month';
   let periodDefaulted = true;
+  let month: number | null = null;
+  // "in August" names a calendar month; read before the target is cut, so the name never becomes the target.
+  let named = days == null ? pack.months?.re.exec(rest) ?? null : null;
+  let namedIdx = named ? pack.months!.names[(named.slice(1).find((g) => g != null) ?? '').toLowerCase()] : undefined;
+  // A pack may list one regex per month instead ("agosto|ago", "8月"): the earliest match in the sentence wins.
+  if (!named && days == null && pack.monthNames) {
+    for (let i = 0; i < pack.monthNames.length; i += 1) {
+      const m = pack.monthNames[i].exec(rest);
+      if (m && (!named || m.index < named.index)) { named = m; namedIdx = i; }
+    }
+  }
   if (days != null) { period = 'recentDays'; periodDefaulted = false; }
-  else for (const p of pack.periods) {
+  else if (named && namedIdx != null) {
+    period = 'namedMonth'; month = namedIdx; periodDefaulted = false;
+    rest = rest.slice(0, named.index) + ' ' + rest.slice(named.index + named[0].length);
+  } else for (const p of pack.periods) {
     const m = p.re.exec(rest);
     if (m) { period = p.period; periodDefaulted = false; rest = rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length); break; }
   }
@@ -177,7 +200,7 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   }
   if (affordLead || compare || top) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
   rest = stripAll(rest, pack.strip);
-  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && ask === 'spent' ? { days } : null), ...(price != null ? { price } : null) };
+  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && ask === 'spent' ? { days } : null), ...(month != null ? { month } : null), ...(price != null ? { price } : null) };
   if (!rest) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
 
   const key = rest.replace(/\s+/g, ' ').toLowerCase();
@@ -206,6 +229,20 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   }
   const detected = ctx.detect(rest);
   return { ...base, target: ctx.restoreCase(rest), categoryId: null, fallbackCategoryId: detected?.categoryId ?? null };
+}
+
+/**
+ * Helper for packs: months by name for `QuestionPack.months`. A full name counts anywhere ("spending in august",
+ * "august spending"); a short form or an ambiguous one ("may") only after one of `pre` ("in may"). A day number
+ * after the name ("august 3") is a date, not a period, and is left alone.
+ */
+export function monthWords(names: Record<string, number>, pre: string[], withPreOnly: Record<string, number> = {}): { re: RegExp; names: Record<string, number> } {
+  const esc = (list: string[]) => [...list].sort((a, b) => b.length - a.length).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')).join('|');
+  const lead = pre.length ? `(?:(?:${esc(pre)})\\s+)` : '';
+  const tail = '(?![\\p{L}\\p{N}])(?!\\s*\\d)';
+  const full = Object.keys(names).length ? `(?<![\\p{L}\\p{N}])${lead}?(${esc(Object.keys(names))})${tail}` : null;
+  const short = Object.keys(withPreOnly).length && lead ? `(?<![\\p{L}\\p{N}])${lead}(${esc(Object.keys(withPreOnly))})${tail}` : null;
+  return { re: new RegExp([full, short].filter(Boolean).join('|'), 'u'), names: { ...names, ...withPreOnly } };
 }
 
 /** Helper for packs: a period rule from plain phrases (longest first, so "last week" beats "week"). */

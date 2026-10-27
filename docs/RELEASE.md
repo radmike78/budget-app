@@ -80,6 +80,19 @@ The web walkthrough cannot reach any of these.
 - Rotate to landscape, raise the system font size to its largest, turn on
   reduced motion, and run VoiceOver or TalkBack over the Today screen.
 
+## 2b. The store build on real phones
+
+The browser walkthrough and a development client never see the problems that produce launch-week one-star reviews, because those come from the release build: R8 minification stripping a library (notifications vanish silently), production-only TurboModule crashes on the newest iPhones, keyboard and edge-to-edge regressions per Android version, maker-specific speech services. Before submitting, install the exact store artifact (the production AAB through the Play internal track, the App Store IPA through TestFlight) and run this on real phones:
+
+- A Pixel on Android 16, a Samsung, a Xiaomi/HyperOS phone, one phone on Android 13 or 14, an iPhone 16 Pro or 17 Pro on iOS 26.4 or later, and an iPad (`supportsTablet` is on).
+- A reminder set for tomorrow morning fires overnight (Android alarms are inexact without the exact-alarm permission; the app says so under Settings → Reminders).
+- A sandbox purchase, the app killed mid-sheet, reopened, uninstalled, reinstalled, then Restore, on both stores.
+- The mic in the app's language and in another language; on Xiaomi, where the system recognizer is often broken, typing stays available and the error says so.
+- A 20-page bank PDF and a CSV through Import; backup, Erase, restore; the app lock on and off at a cold start, five cold starts each.
+- Type into the entry bar, a confirmation card and a modal with gesture and three-button navigation on Android 14 and 16.
+
+Testers' free month: the beta and the store app share a bundle id and a database, so a tester's month would carry into the store build. `EXPO_PUBLIC_BUILD_PROFILE` in eas.json is written into the bundle, and the month restarts once when a non-production build is followed by the production one (`trialRestartsForBuild`). Google Play requires a new personal developer account to run a closed test with 12 testers for 14 days before production access: start it as soon as the first AAB exists. Upload to the internal track a week early for the pre-launch report and fix what its accessibility tab flags (Play measures 48 dp touch targets; the app's rule is 44 pt). Answer the export-compliance questions the hour a build finishes processing, or it sits in "Missing Compliance".
+
 ## 3. Before you can submit
 
 Fill these in; nothing here can be guessed.
@@ -146,11 +159,16 @@ may show them elsewhere too):
 - Address: the one on the D-U-N-S record; Apple fills it in from there
 
 **Export compliance.** `ITSAppUsesNonExemptEncryption` is `true` because the
-encrypted backup uses XChaCha20-Poly1305. In App Store Connect answer that the
-app uses standard encryption algorithms (not proprietary) and is not for
-government use; that is exempt from US export documentation, but Apple then asks
-whether you will distribute in **France**, which needs its own declaration. Either
-file that declaration or leave France out of the territories.
+encrypted backup uses XChaCha20-Poly1305 and scrypt. In App Store Connect answer
+that the app uses standard encryption algorithms (not proprietary) and is not for
+government use. That is mass-market encryption (no licence, no CCATS), but the
+publisher still owes the US Bureau of Industry and Security an annual
+self-classification report (EAR 740.17(b)), due 1 February each year: put it on
+the company calendar. Apple then asks whether you will distribute in **France**,
+where a passphrase-encrypted backup counts as "secure storage" and needs the
+ANSSI declaration; either file it or leave France out of the territories
+(legal, though odd next to a French localisation). Answer the compliance questions
+the hour a build finishes processing, or it sits in "Missing Compliance".
 
 **A support URL and contact.** Both stores require a support URL and an email.
 The email is support@mradsoftware.com and the publisher is MRAD Software
@@ -262,6 +280,24 @@ means no step waits on one that comes after it.
     `releaseStatus: draft` nothing goes out until you promote it.
 
 ## 6. Apple, in order
+
+Before the first submission, three things App Review rejects most often on a
+first version: both in-app purchases (`full_unlock` and `trial_30`) must be
+created with a display name, a description and a review screenshot, be in
+"Ready to Submit", and be attached to version 1.0 in the version's In-App
+Purchases section; the review notes must give the exact path to the purchase
+screen (Settings → About → Your purchase) and one sentence on what `trial_30`
+is for (the free month, recorded with Apple so a reinstall keeps the same
+dates; it costs nothing and is started by the "Start my free month" button at
+the end of onboarding); and the new age-rating questionnaire must be answered
+fresh for this submission. Testers who ran a preview APK or a TestFlight build
+must export a backup before installing the store build: Play's signing differs
+from the preview APK's, so the store build will not install over it, and the
+free month restarts for them with the store build.
+
+If a later EAS default image changes the Xcode version under you, pin one in
+`eas.json` (`"image"` under the iOS build profile): Apple requires the current
+iOS SDK for uploads.
 
 Apple is the long pole: organization enrollment is reviewed by hand and takes
 anywhere from a few days to several weeks, so start it before anything else on

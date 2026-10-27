@@ -53,6 +53,8 @@ When you tap the microphone, your phone's own speech recognizer turns what you
 say into text. OnlyBudget never records audio, never stores audio, and never
 sends audio anywhere itself.
 
+In the web version it is the browser's own recognizer (in Chrome, Google's), under the same rule: nothing passes through us.
+
 The recognizer is part of your operating system, not part of this app:
 
 - Where the device supports **on-device recognition**, OnlyBudget asks for it,

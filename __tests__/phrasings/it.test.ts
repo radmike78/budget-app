@@ -880,3 +880,33 @@ describe('Italian: a list around "e" still splits', () => {
 // "ho detto 14 non 12". `parseCorrectionText` sees two numbers and gives up (`amt.multiple`); it would need a pack
 // field such as `correction.notTail` (/\s+(?:e )?non [€$]?\d[\d.,]*(?: ?euro)?$/) stripped from `rest` before
 // `extractAmount`, so the second number is the one being replaced and never a second amount.
+
+/** Misreads a reviewer reproduced: "ehm 15", spending on payday, a terse question, the first of the month, the baker. */
+const REVIEWED_MISREADS: Case[] = [
+  ['no aspetta, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['aspetta, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['ehm 15', { kind: 'correction', correction: { amount: 15 } }],
+  // "allo scorso stipendio" says when: the groceries stay spending and the pay noun leaves the note.
+  ['spesa 40 allo scorso stipendio', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'groceries', note: null }],
+  ['stipendio 1800', { kind: 'transaction', type: 'income', amount: 1800, categoryId: 'salary', note: null }],
+  ['sto bene con la spesa?', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['affitto 900 il primo', { kind: 'transaction', amount: 900, categoryId: 'rent', occurredAt: '2026-09-01', note: 'Affitto' }],
+  ['affitto 900 il primo del mese', { kind: 'transaction', amount: 900, categoryId: 'rent', occurredAt: '2026-09-01', note: 'Affitto' }],
+  ['panettiere 4,30', { kind: 'transaction', amount: 4.3, categoryId: 'groceries' }],
+  ['20 dal panettiere', { kind: 'transaction', amount: 20, categoryId: 'groceries' }],
+];
+
+describe('Italian: reviewed misreads', () => runCases('it', REVIEWED_MISREADS, LABELS));
+
+/**
+ * Waiting on the parser core: digit-and-scale runs ("2 mila") and a named month as a question period
+ * (`question.monthNames` is already in the pack). Un-skip once the core change is merged.
+ */
+describe('after core merge', () => {
+  const pending: Case[] = [
+    ['2 mila euro di affitto', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
+    ['2mila di affitto', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
+    ['quanto ho speso ad agosto', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+  ];
+  runCases('it', pending, LABELS);
+});

@@ -100,7 +100,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         } else {
           // Said before the card closes, so the alert is not lost behind a closing sheet.
-          notify(t.notificationsNeeded, state === 'unsupported' ? t.remindersUnsupported : t.notificationsNeededBody);
+          notify(t.notificationsNeeded, state === 'unsupported' ? t.remindersUnsupported : state === 'failed' ? t.reminderNotArmed : t.notificationsNeededBody);
           onDone(t.toastReminderSaved);
         }
       } catch (e) {
@@ -167,7 +167,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
 
       {result.kind === 'reminder' ? (
         <>
-          <Field label={t.reminderWhat} value={reminderText} onChangeText={setReminderText} placeholder={t.reminderExample} autoFocus={!result.reminderText} />
+          <Field label={t.reminderWhat} maxLength={200} value={reminderText} onChangeText={setReminderText} placeholder={t.reminderExample} autoFocus={!result.reminderText} />
           <Text variant="label" style={{ marginBottom: 6 }}>{t.date}</Text>
           <Row style={{ marginBottom: spacing.lg, flexWrap: 'wrap' }}>
             <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />
@@ -185,7 +185,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
           <View style={{ marginBottom: spacing.lg }}>
             <Segmented value={goalKind} onChange={setGoalKind} options={[{ value: 'saving', label: t.goalKindSaving }, { value: 'debt', label: t.goalKindDebt }]} />
           </View>
-          <Field label={t.goalName} value={goalName} onChangeText={setGoalName} placeholder={t.goalNamePlaceholder} />
+          <Field label={t.goalName} maxLength={80} value={goalName} onChangeText={setGoalName} placeholder={t.goalNamePlaceholder} />
           <Text variant="label" style={{ marginBottom: 6 }}>{t.targetDate}</Text>
           <Row style={{ marginBottom: spacing.lg }}>
             <Button tone="secondary" small title={targetDate ? longDate(targetDate, today(), fmt) : t.noDate} onPress={() => setShowTargetDate(true)} />
@@ -220,7 +220,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
             <Button tone="secondary" small title={catLabel} onPress={() => setShowCat(true)} />
             <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />
           </Row>
-          <Field label={t.note} value={note} onChangeText={setNote} placeholder={t.optional} />
+          <Field label={t.note} maxLength={500} value={note} onChangeText={setNote} placeholder={t.optional} />
           <CategoryPicker visible={showCat} onClose={() => setShowCat(false)} onPick={(c) => setCategoryId(c.id)} kind={type} selectedId={categoryId} categories={categories} />
           <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={date} onPick={setDate} />
         </>

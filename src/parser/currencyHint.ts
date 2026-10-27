@@ -7,7 +7,8 @@ const CODES: [RegExp, string][] = [
   [/€|\beuros?\b|\beuri\b|\beur\b|ユーロ|欧元|유로/iu, 'EUR'],
   [/£|\bpounds?\b|\bquid\b|\bgbp\b|英镑|ポンド|파운드/iu, 'GBP'],
   [/\byen\b|\bjpy\b|円|日元|엔/iu, 'JPY'],
-  [/₩|\bwon\b|\bkrw\b|원|韓元|ウォン/iu, 'KRW'],
+  // ("won 100 on a scratch card" is the English verb, not the currency: a number or "on" after it says so.)
+  [/₩|\bwon\b(?!\s*(?:[$€£¥]?\d|on\b|at\b|a\b|an\b|the\b|some\b|my\b|big\b|in\b|from\b|money\b))|\bkrw\b|원|韓元|ウォン/iu, 'KRW'],
   [/₹|\brupees?\b|\binr\b/iu, 'INR'],
   [/\bchf\b|\bfranken\b|\bfrancs?\b|\bfranchi\b/iu, 'CHF'],
   [/\bcad\b/iu, 'CAD'],

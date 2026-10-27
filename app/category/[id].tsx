@@ -29,6 +29,10 @@ export default function CategoryEditor() {
   const payMode = useAppStore((s) => s.settings?.budgetPeriod === 'pay');
   const isNew = id === 'new';
   const existing = categories.find((c) => c.id === id);
+  // Opened from a stale link (a category removed meanwhile): nothing to edit here.
+  useEffect(() => {
+    if (!isNew && !existing) { if (router.canGoBack()) router.back(); else router.replace('/'); }
+  }, [isNew, existing, router]);
 
   const [name, setName] = useState(existing ? categoryName(existing, t) : '');
   const [icon, setIcon] = useState(existing?.icon ?? '🧾');
@@ -53,6 +57,9 @@ export default function CategoryEditor() {
 
   const onSave = async () => {
     if (!name.trim()) { setError(t.giveName); return; }
+    // Two categories with one name would be told apart by nothing on any screen.
+    const wanted = name.trim().toLowerCase();
+    if (categories.some((c) => !c.archived && c.id !== existing?.id && c.kind === kind && (c.name.trim().toLowerCase() === wanted || categoryName(c, t).trim().toLowerCase() === wanted))) { setError(t.categoryExists); return; }
     const limitValue = limit.trim() ? parseMoneyInput(limit, locale.format.decimal === ',') : null;
     if (limit.trim() && limitValue == null) { setError(t.amountUnreadable); return; }
     if (saving) return;
@@ -95,7 +102,7 @@ export default function CategoryEditor() {
     <Screen keyboard>
       <Row style={{ marginTop: spacing.sm, marginBottom: spacing.lg }} align="flex-end">
         <Button tone="secondary" title={icon || '🧾'} onPress={() => setShowEmoji(true)} accessibilityLabel={t.pickIcon} />
-        <Field label={t.nameLabel} value={name} onChangeText={setName} placeholder={t.categoryNamePlaceholder} style={{ flex: 1, marginBottom: 0 }} autoFocus={isNew} />
+        <Field label={t.nameLabel} value={name} onChangeText={setName} maxLength={60} placeholder={t.categoryNamePlaceholder} style={{ flex: 1, marginBottom: 0 }} autoFocus={isNew} />
       </Row>
       {!existing ? (
         <View style={{ marginBottom: spacing.lg }}>

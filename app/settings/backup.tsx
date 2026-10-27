@@ -51,7 +51,8 @@ export default function Backup() {
       const text = await fn();
       setStatus(text ? { text, error: false } : null); // '' is a share sheet dismissed: nothing to report
     } catch (e) {
-      const msg = (e as Error).message === 'SHARING_UNAVAILABLE' ? t.sharingUnavailable : t.didntWork((e as Error).message);
+      const code = (e as Error).message;
+      const msg = code === 'SHARING_UNAVAILABLE' ? t.sharingUnavailable : code === 'MERGE_TOO_MANY' ? t.mergeTooMany : t.didntWork(code);
       setStatus({ text: msg, error: true });
     } finally {
       setBusy(null);

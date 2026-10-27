@@ -211,7 +211,7 @@ async function seedDefaultCategories(db: DB): Promise<void> {
 export async function resetDatabase(db: DB): Promise<void> {
   await db.withTransactionAsync(async () => {
     // The trial dates and the unlock are not the person's data: erasing must not restart the free month.
-    await db.execAsync("DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers; DELETE FROM app_state WHERE key NOT IN ('trial.firstSeen', 'trial.latestSeen', 'license.unlocked', 'trial.noticeSeen', 'backup.nudgeSeen');");
+    await db.execAsync("DELETE FROM transactions; DELETE FROM recurring_rules; DELETE FROM goals; DELETE FROM keyword_mappings; DELETE FROM categories; DELETE FROM reminders; DELETE FROM imports; DELETE FROM debts; DELETE FROM carryovers; DELETE FROM app_state WHERE key NOT IN ('trial.firstSeen', 'trial.latestSeen', 'license.unlocked', 'trial.noticeSeen', 'backup.nudgeSeen', 'trial.profile');");
     await db.execAsync("UPDATE settings SET currency='USD', theme='system', last_backup_at=NULL, starting_balance=NULL, reminder_enabled=0, reminder_hour=20, smart_parse_enabled=0, language='system', app_lock=0, answer_mode='auto', budget_period='month', overall_limit=NULL, voice='plain', attitude='playful', voice_gender='female', accent='sage', onboarding_done=0 WHERE id=1");
   });
   // Nothing erased may linger in the write-ahead log or in pages the file still holds.

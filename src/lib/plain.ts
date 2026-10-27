@@ -123,7 +123,8 @@ export function goalPlanSentence(targetAmount: number, currentAmount: number, ta
   const S = locale.sentences;
   const remaining = Math.max(0, targetAmount - currentAmount);
   const debt = kind === 'debt';
-  if (!targetDate || remaining === 0) return S.goalPlanNoDate(money(remaining), debt);
+  if (remaining === 0) return locale.s.goalPlanReached(debt);
+  if (!targetDate) return S.goalPlanNoDate(money(remaining), debt);
   const daysLeft = Math.max(1, daysBetween(todayStr, targetDate));
   const months = Math.max(1, Math.round(daysLeft / 30.44));
   const weeks = Math.max(1, Math.round(daysLeft / 7));

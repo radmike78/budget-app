@@ -1,0 +1,6 @@
+{
+  "NSMicrophoneUsageDescription": "OnlyBudget usa el micrófono mientras dices un movimiento como \"gasté 12 en el almuerzo\". El reconocedor de voz de tu teléfono lo convierte en texto; OnlyBudget nunca graba ni guarda audio.",
+  "NSSpeechRecognitionUsageDescription": "OnlyBudget usa el reconocimiento de voz para convertir lo que dices en un movimiento. No se nos envía nada.",
+  "NSFaceIDUsageDescription": "OnlyBudget puede usar Face ID para desbloquear la app si activas el bloqueo.",
+  "CFBundleDisplayName": "OnlyBudget"
+}

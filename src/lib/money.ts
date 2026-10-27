@@ -103,9 +103,14 @@ export const MAX_AMOUNT = 1_000_000_000_000;
  */
 export function parseMoneyInput(text: string, decimalComma = false): number | null {
   const negative = /^\s*-/.test(text);
+  // A letter in an amount ("1e9", "4O") is a slip, never a number to keep part of.
+  if (/\p{L}/u.test(text)) return null;
   // A separator with nothing after it ("12.50.") is a slip of the finger, not a decimal mark.
   const cleaned = text.replace(/[^0-9.,]/g, '').replace(/[.,]+$/, '');
   if (!/\d/.test(cleaned)) return null;
+  // "1.2.3": groups between separators are thousands (three digits) or lakhs (two); anything else is not a number.
+  const groups = cleaned.split(/[.,]/);
+  if (groups.length > 2 && groups.slice(1, -1).some((g) => g.length !== 3 && g.length !== 2)) return null;
   const last = Math.max(cleaned.lastIndexOf('.'), cleaned.lastIndexOf(','));
   let intPart = cleaned;
   let frac = '';

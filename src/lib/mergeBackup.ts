@@ -45,6 +45,7 @@ export function mergeBackup(here: MergeSource, incoming: MergeSource): MergePlan
     sortOrder += 1;
     categories.push({ ...c, sortOrder });
     hereIds.add(c.id);
+    hereByName.set(nameKey(c), c);
   }
   const cat = (id: string | null): string | null => (id == null ? null : hereIds.has(categoryMap[id] ?? id) ? (categoryMap[id] ?? id) : null);
 
@@ -54,7 +55,13 @@ export function mergeBackup(here: MergeSource, incoming: MergeSource): MergePlan
 
   const goalIds = new Set(here.goals.map((g) => g.id));
   const goals = incoming.goals.filter((g) => !goalIds.has(g.id));
+  const addedGoals = new Set(goals.map((g) => g.id));
   for (const g of goals) goalIds.add(g.id);
+  // A transfer keeps its goal only when that goal came in with it, or the goal here is plainly the same one
+  // (same id, name and kind); a file must never move a goal of this phone that happens to share an id.
+  const hereGoal = new Map(here.goals.map((g) => [g.id, g]));
+  const fileGoal = new Map(incoming.goals.map((g) => [g.id, g]));
+  const goalLinkOk = (id: string) => addedGoals.has(id) || (hereGoal.has(id) && fileGoal.has(id) && hereGoal.get(id)!.kind === fileGoal.get(id)!.kind && hereGoal.get(id)!.name.trim().toLowerCase() === fileGoal.get(id)!.name.trim().toLowerCase());
 
   const importIds = new Set(here.imports.map((i) => i.id));
   const imports = incoming.imports.filter((i) => !importIds.has(i.id));
@@ -62,19 +69,23 @@ export function mergeBackup(here: MergeSource, incoming: MergeSource): MergePlan
 
   const txIds = new Set(here.transactions.map((t) => t.id));
   const fingerprints = new Set(here.transactions.map((t) => t.fingerprint).filter((f): f is string => !!f));
+  // Each phone logs a repeating rule's instances with its own ids: the same rule on the same day is the same entry.
+  const instances = new Set(here.transactions.filter((t) => t.isRecurringInstance && t.recurringRuleId).map((t) => `${t.recurringRuleId}|${t.occurredAt}`));
   const transactions: Transaction[] = [];
   let skippedTransactions = 0;
   for (const t of incoming.transactions) {
-    if (txIds.has(t.id) || (t.fingerprint && fingerprints.has(t.fingerprint))) { skippedTransactions += 1; continue; }
+    const instanceKey = t.isRecurringInstance && t.recurringRuleId ? `${t.recurringRuleId}|${t.occurredAt}` : null;
+    if (txIds.has(t.id) || (t.fingerprint && fingerprints.has(t.fingerprint)) || (instanceKey && instances.has(instanceKey))) { skippedTransactions += 1; continue; }
     txIds.add(t.id);
     if (t.fingerprint) fingerprints.add(t.fingerprint);
+    if (instanceKey) instances.add(instanceKey);
     transactions.push({
       ...t,
       categoryId: cat(t.categoryId),
       recurringRuleId: t.recurringRuleId && ruleIds.has(t.recurringRuleId) ? t.recurringRuleId : null,
       isRecurringInstance: !!(t.recurringRuleId && ruleIds.has(t.recurringRuleId)) && t.isRecurringInstance,
       importId: t.importId && importIds.has(t.importId) ? t.importId : null,
-      goalId: t.goalId && goalIds.has(t.goalId) ? t.goalId : null,
+      goalId: t.goalId && goalLinkOk(t.goalId) ? t.goalId : null,
     });
   }
 

@@ -19,7 +19,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
   // Navigation requests: network first, fall back to the cached shell.
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then((res) => { caches.open(CACHE).then((c) => c.put('/', res.clone())); return res; }).catch(() => caches.match('/')));
+    // Only a good page becomes the offline shell: a 502 from the ingress must not be served for ever after.
+    event.respondWith(fetch(request).then((res) => { if (res.ok) caches.open(CACHE).then((c) => c.put('/', res.clone())); return res; }).catch(() => caches.match('/')));
     return;
   }
   // Hashed bundles (a new build gives them new names): cache first.

@@ -68,7 +68,8 @@ export function configureNotificationHandler(): void {
 
 import type { Reminder } from '@/types';
 
-export type PermissionState = 'granted' | 'denied' | 'unsupported';
+/** `failed`: notifications are allowed but the phone refused to schedule this one; it is saved and re-armed later. */
+export type PermissionState = 'granted' | 'denied' | 'unsupported' | 'failed';
 
 /** Asks once if needed. Web has no scheduled local notifications, so it reports unsupported. */
 export async function ensureNotificationPermission(): Promise<PermissionState> {

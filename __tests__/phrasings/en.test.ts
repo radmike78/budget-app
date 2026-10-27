@@ -2,7 +2,7 @@
  * Many everyday ways of saying the same thing in English, and what each must
  * become. A failure names the phrasing and shows what the parser made of it.
  */
-import { runCases, type Case } from './harness';
+import { parseOne, runCases, type Case } from './harness';
 
 const CASES: Case[] = [
   // expenses
@@ -632,3 +632,117 @@ const STILL_ENTRIES: Case[] = [
   ['put 200 away for a rainy day', { kind: 'transaction', amount: 200, categoryId: 'savings' }],
 ];
 describe('English: still entries', () => runCases('en', STILL_ENTRIES));
+
+/** Misreads a reviewer found, each reproduced before the fix. */
+const REVIEW_CORRECTIONS: Case[] = [
+  // the number being corrected is never the amount, and the old number at the end marks the fix on its own
+  ['it was 15 not 51', { kind: 'correction', correction: { remove: false, amount: 15, target: null } }],
+  ['that was 12 not 21', { kind: 'correction', correction: { amount: 12, target: null } }],
+  ['lunch was 15 not 50', { kind: 'correction', correction: { amount: 15, target: 'lunch' } }],
+  ['the groceries were 45 not 54', { kind: 'correction', correction: { amount: 45, target: 'groceries' } }],
+  ['drinks were 30 not 40', { kind: 'correction', correction: { amount: 30, target: 'drinks' } }],
+  ['groceries were 45 not 54', { kind: 'correction', correction: { amount: 45, target: 'groceries' } }],
+  // an opener and a bare new amount
+  ['no wait 15', { kind: 'correction', correction: { amount: 15, target: null } }],
+  ['no wait, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['nah 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['nah, 15 bucks', { kind: 'correction', correction: { amount: 15 } }],
+  ['wait, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['ok 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['uh 15', { kind: 'correction', correction: { amount: 15 } }],
+];
+describe('English: fixes the reviewer found misread', () => runCases('en', REVIEW_CORRECTIONS));
+
+const REVIEW_ENTRIES: Case[] = [
+  // digits glued to letters are part of a name
+  ['gs25 snack 3', { kind: 'transaction', amount: 3, categoryId: 'dining' }],
+  ['7-eleven 5', { kind: 'transaction', amount: 5, note: '7-eleven' }],
+  ['spent 15 at 7-eleven', { kind: 'transaction', amount: 15, note: '7-eleven' }],
+  // a digit before a scale word
+  ['2 grand on the car', { kind: 'transaction', amount: 2000, categoryId: 'transport' }],
+  ['2 thousand on the car', { kind: 'transaction', amount: 2000, categoryId: 'transport' }],
+  ['12 hundred rent', { kind: 'transaction', amount: 1200, categoryId: 'rent' }],
+  // "1.200" typed the way a field reads it; "4.50" is still four fifty
+  ['1.200 rent', { kind: 'transaction', amount: 1200, categoryId: 'rent' }],
+  ['4.50 coffee', { kind: 'transaction', amount: 4.5, categoryId: 'dining' }],
+  // the pay word says when, not that money came in
+  ['spent 40 on groceries last payday', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'groceries' }],
+  ['spent 300 since payday', { kind: 'transaction', type: 'expense', amount: 300 }],
+  // a return is money back
+  ['returned the shoes, got 60 back', { kind: 'transaction', type: 'income', amount: 60, note: 'Shoes' }],
+  ['got 60 back for the shoes', { kind: 'transaction', type: 'income', amount: 60, note: 'Shoes' }],
+  ['return 60 at zara', { kind: 'transaction', type: 'income', amount: 60, note: 'Zara' }],
+  // paying someone back is money out; money through an app is money in
+  ['paid back sam 40', { kind: 'transaction', type: 'expense', amount: 40, note: 'Sam' }],
+  ['paid sam back 40', { kind: 'transaction', type: 'expense', amount: 40 }],
+  ['got 40 on venmo from sam', { kind: 'transaction', type: 'income', amount: 40, note: 'Sam' }],
+  ['won 100 on a scratch card', { kind: 'transaction', type: 'income', amount: 100 }],
+  // dates said loosely
+  ['the other day I spent 30 on books', { kind: 'transaction', amount: 30, categoryId: 'entertainment', note: 'Books', occurredAt: '2026-09-14' }],
+  ['two weeks ago tuesday I paid 80 for the vet', { kind: 'transaction', amount: 80, categoryId: 'health', note: 'Vet', occurredAt: '2026-09-01' }],
+  ['a week ago friday 20 on parking', { kind: 'transaction', amount: 20, categoryId: 'transport', occurredAt: '2026-09-04' }],
+  // who the money went to, and the bill a supplier's name stands for
+  ['gave the kids 20', { kind: 'transaction', amount: 20, categoryId: 'other_expense', note: 'Kids' }],
+  ['british gas 130', { kind: 'transaction', amount: 130, categoryId: 'utilities' }],
+];
+describe('English: entries the reviewer found misread', () => runCases('en', REVIEW_ENTRIES));
+
+const REVIEW_QUESTIONS: Case[] = [
+  // a month by name is a period, never the thing asked about
+  ['how much did I spend in august', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7, target: null } }],
+  ['what did I spend on coffee in august', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7, target: 'Coffee' } }],
+  ['how much did I spend in may', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 4, target: null } }],
+  ['how much did I make last march', { kind: 'question', question: { type: 'income', period: 'namedMonth', month: 2, target: null } }],
+  // the counting word after the thing is not part of the thing
+  ["what's my coffee total this week", { kind: 'question', question: { ask: 'spent', target: 'Coffee', period: 'week' } }],
+  // terse ways of asking
+  ['am I okay on groceries', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['am i doing ok on groceries', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['coffee spend?', { kind: 'question', question: { ask: 'spent', target: 'Coffee' } }],
+  ['groceries left?', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ['coffee this week?', { kind: 'question', question: { ask: 'spent', target: 'Coffee', period: 'week' } }],
+];
+describe('English: questions the reviewer found misread', () => runCases('en', REVIEW_QUESTIONS));
+
+const REVIEW_STAY_ENTRIES: Case[] = [
+  ['payday 2400', { kind: 'transaction', type: 'income', amount: 2400, categoryId: 'salary' }],
+  ['got paid today', { kind: 'transaction', type: 'income' }],
+  ['groceries 85 this week', { kind: 'transaction', amount: 85 }],
+  ['return flight 300', { kind: 'transaction', type: 'expense', amount: 300, categoryId: 'transport' }],
+  ['lunch 12 total', { kind: 'transaction', amount: 12 }],
+  ['it was 12 for lunch', { kind: 'transaction', amount: 12, categoryId: 'dining' }],
+  ['the dentist was 150', { kind: 'transaction', amount: 150, categoryId: 'health' }],
+  ['bought 2 tickets 30', { kind: 'transaction', amount: 30, categoryId: 'entertainment' }],
+  ['august 3 lunch 12', { kind: 'transaction', amount: 12, occurredAt: '2026-08-03' }],
+];
+describe('English: entries near those fixes stay entries', () => runCases('en', REVIEW_STAY_ENTRIES));
+
+describe('English: two rides in one sentence, and the won that is a verb', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { parseEntries } = require('@/parser') as typeof import('@/parser');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { spokenCurrency } = require('@/parser/currencyHint') as typeof import('@/parser/currencyHint');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DEFAULT_CATEGORIES } = require('@/lib/defaultCategories') as typeof import('@/lib/defaultCategories');
+  const ctx = { categories: DEFAULT_CATEGORIES, goals: [], keywordMap: {}, today: '2026-09-16', nowTime: '12:00', language: 'en' };
+  it('"and back 50" is the same kind of thing as the ride before it', () => {
+    expect(parseEntries('uber to the airport 45 and back 50', ctx)).toMatchObject([
+      { amount: 45, categoryId: 'transport' },
+      { amount: 50, categoryId: 'transport', note: 'Back' },
+    ]);
+  });
+  it('"won 100" is winning, "5000 won" is money', () => {
+    expect(spokenCurrency('won 100 on a scratch card')).toBeNull();
+    expect(spokenCurrency('won on the lottery 100')).toBeNull();
+    expect(spokenCurrency('5000 won for lunch')).toBe('KRW');
+    expect(spokenCurrency('lunch 5000 won')).toBe('KRW');
+  });
+});
+
+describe('a goal named by a pronoun', () => {
+  it('"add 50 to it" goes to the goal made last', () => {
+    const r = parseOne('add 50 to it', 'en');
+    expect(r[0]).toMatchObject({ kind: 'contribution', amount: 50, goalId: 'g1' });
+    expect(parseOne('put 20 in that one', 'en')[0]).toMatchObject({ kind: 'contribution', amount: 20, goalId: 'g1' });
+  });
+});
