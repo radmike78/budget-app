@@ -119,6 +119,8 @@ function altRegex(list: string[], boundaries: boolean): RegExp {
 interface Compiled {
   pack: LanguagePack;
   incomeRe: RegExp;
+  /** The income phrasings of more than one word ("got back", "came in"), for tidying a note; null when there are none. */
+  incomePhraseRe: RegExp | null;
   expenseRe: RegExp;
   keywordIndex: Map<string, { categoryId: string; kind: TxType }>;
   keywordPhrases: string[]; // sorted longest first (for cjk)
@@ -149,9 +151,11 @@ function compile(pack: LanguagePack): Compiled {
       }
     }
   }
+  const phrases = pack.incomeVerbs.filter((v) => v.includes(' '));
   const c: Compiled = {
     pack,
     incomeRe: altRegex(pack.incomeVerbs, boundaries),
+    incomePhraseRe: phrases.length ? altRegex(phrases, boundaries) : null,
     expenseRe: altRegex(pack.expenseVerbs, boundaries),
     keywordIndex,
     keywordPhrases: [...keywordIndex.keys()].sort((a, b) => b.length - a.length),
@@ -249,12 +253,18 @@ export function findAmounts(text: string, pack: LanguagePack): AmountCandidate[]
     const before = text.slice(Math.max(0, start - 3), start);
     const marked = Boolean(lead || trail);
     if (!marked) {
-      if (/^(st|nd|rd|th|º|ª|°|\.|%|\s?%|\s?(am|pm)\b|:\d|\s?o'clock|\s?x\b|\s?uhr\b|\s?h\b|時|点|시|月|日|월|일|年|년)/iu.test(after) && !/^\.(?:\s|$)/.test(after)) continue;
+      if (/^(st|nd|rd|th|º|ª|°|\.|%|\s?%|:\d|\s?o'clock|\s?x\b|\s?uhr\b|\s?h\b|時|点|시|月|日|월|일|年|년)/iu.test(after) && !/^\.(?:\s|$)/.test(after)) continue;
+      // "at 9 am" is a time in English; in German "30 am Kiosk" is thirty at the kiosk.
+      if (pack.code === 'en' && /^\s?(?:am|pm)\b/i.test(after)) continue;
       // "12:30" is a time: neither half is money.
       if (/\d[.\-/:]$/.test(before)) continue;
       if (/^[.\-/]\d/.test(after)) continue;
+      // "gs25", "7-eleven", "a4": digits glued to letters are part of a name, not money ("15-ish" keeps its 15).
+      if (LATIN.test(text[start - 1] ?? '')) continue;
+      if (/^-(?!ish\b)\p{L}/u.test(after)) continue;
       if (/^\s?(people|persons|items?|tickets?|days?|weeks?|months?|years?|hours?|minutes?|miles?|km|kg|lbs?|oz|packs?|personas|personnes|persone|personen|个人|名|人|명)\b/iu.test(after)) continue;
-      if (/^\s?(?:份|杯|个|個|顿|頓|件|张|張|瓶|册|冊|つ|本|枚|台|回|次|箱|袋|盒|公斤|斤|双|雙|条|條|罐|碗|串|개|잔|번|병|명|그릇|장|권|켤레|벌|대|마리|송이|박)/u.test(after)) continue;
+      // ("回" is a counter, "回来" / "回去" / "回家" is coming back: "打车45回来" is a 45 fare.)
+      if (/^\s?(?:份|杯|个|個|顿|頓|件|张|張|瓶|册|冊|つ|本|枚|台|回(?![来去家])|次|箱|袋|盒|公斤|斤|双|雙|条|條|罐|碗|串|개|잔|번|병|명|그릇|장|권|켤레|벌|대|마리|송이|박)/u.test(after)) continue;
       // "2 of them" is a count; "5000 of debt" is money.
       if (/^\s?of\b/iu.test(after) && Number(m[2]) < 100) continue;
     }
@@ -706,8 +716,10 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
   r.amount = amt.amount;
   text = amt.text;
 
-  const typeGuess = detectType(text, c);
-  const cat = detectCategory(text, ctx, pack);
+  // "spent 40 on groceries last payday": the pay word is a time, so the type and the category are read without it.
+  const typeText = pack.notIncome ? text.replace(pack.notIncome, ' ').replace(/\s+/g, ' ').trim() : text;
+  const typeGuess = detectType(typeText, c);
+  const cat = detectCategory(typeText, ctx, pack);
 
   let type: TxType;
   let typeConfidence: number;
@@ -743,6 +755,9 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
 
   let leftover = text;
   if (typeGuess.verb) leftover = leftover.replace(new RegExp(`${WB_START}${escapeRegex(typeGuess.verb)}${WB_END}`, 'iu'), ' ');
+  // "returned the shoes, got 60 back" says money in twice; a second phrasing of it does not belong in the note
+  // (a single word is kept: "me cayó la nómina" names the pay).
+  if (type === 'income' && typeGuess.verb && c.incomePhraseRe) for (let pass = 0; pass < 2; pass += 1) leftover = leftover.replace(c.incomePhraseRe, ' ');
   r.note = restoreCase(deriveNote(leftover, pack), raw);
   // "me pagaron 2400" with nothing else said: the verb alone means a paycheck.
   if (type === 'income' && !cat && !r.note && typeGuess.verb && pack.bareIncomeIsPay?.test(typeGuess.verb.trim()) && has('salary')) {
@@ -916,8 +931,12 @@ function parseCorrectionText(raw: string, ctx: ParseContext, pack: LanguagePack)
   let target: string | null = null;
   let rest: string;
   const lead = rules.lead.exec(noTail);
+  // "it was 15 not 51": with the old number named at the end, "it was" alone marks a fix.
+  const tailLead = noTail !== text && rules.tailLead ? rules.tailLead.exec(noTail) : null;
   if (lead && lead.index === 0) {
     rest = noTail.slice(lead[0].length).trim();
+  } else if (tailLead && tailLead.index === 0) {
+    rest = noTail.slice(tailLead[0].length).trim();
   } else {
     // "that uber was 32 not 23", "change the uber to 32": a named entry and its new value.
     let named: RegExpExecArray | null = null;
@@ -1007,8 +1026,15 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
     const lead = group[0];
     if (lead.typeConfidence >= 0.8) sharedType = { type: lead.type, confidence: lead.typeConfidence };
 
-    for (const r of group) {
+    for (const [i, r] of group.entries()) {
       if (sharedDate && !r.dateExplicit) { r.occurredAt = sharedDate; r.dateExplicit = true; }
+      // "uber to the airport 45 and back 50": "back" is the same kind of thing as the entry before it.
+      const prev = group[i - 1];
+      if (prev && pack.continuation && r.categoryConfidence < 0.5 && r.note && pack.continuation.test(r.note) && prev.categoryId && prev.type === r.type) {
+        r.categoryId = prev.categoryId;
+        r.categoryConfidence = Math.min(prev.categoryConfidence, 0.8);
+        r.hints = r.hints.filter((h) => h !== HINT.unsureCategory);
+      }
       if (sharedType && r.typeConfidence <= 0.6) {
         if (r.type !== sharedType.type) {
           r.type = sharedType.type;

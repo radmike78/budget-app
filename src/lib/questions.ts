@@ -15,14 +15,22 @@ export interface DateRange { from: string; to: string }
 /**
  * Calendar range for a period. Weeks start on the locale's first day (`firstDay`, Sunday by default) and run to today.
  * `budget` is the current budget period (`current`, from periodContaining) up to today;
- * without one it is the month.
+ * without one it is the month. `namedMonth` is the calendar month `month` (0 = January): this year's up to today,
+ * or last year's when it has not come yet.
  */
-export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7, firstDay = 0): DateRange {
+export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7, firstDay = 0, month?: number): DateRange {
   const d = fromDateString(todayStr);
   const dow = (d.getDay() - firstDay + 7) % 7; // 0 on the first day of the week
   const sun = d.getDay(); // Sunday = 0, for the weekend
   switch (period) {
     case 'today': return { from: todayStr, to: todayStr };
+    case 'namedMonth': {
+      const m = month != null && month >= 0 && month <= 11 ? Math.floor(month) : d.getMonth();
+      let key = `${d.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
+      if (monthRange(key).start > todayStr) key = `${d.getFullYear() - 1}-${String(m + 1).padStart(2, '0')}`;
+      const r = monthRange(key);
+      return { from: r.start, to: r.end < todayStr ? r.end : todayStr };
+    }
     case 'yesterday': { const y = addDays(todayStr, -1); return { from: y, to: y }; }
     case 'week': return { from: addDays(todayStr, -dow), to: todayStr };
     case 'lastWeek': { const first = addDays(todayStr, -dow - 7); return { from: first, to: addDays(first, 6) }; }
@@ -172,12 +180,18 @@ export interface CompareRanges {
  * the same day, the week so far against last week to the same weekday, the pay period so far against the same
  * number of days into the one before (`previous`, from shiftPeriod).
  */
-export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0, days = 7): CompareRanges {
+export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0, days = 7, month?: number): CompareRanges {
   const d = fromDateString(todayStr);
   const clamp = (from: string, to: string, end: string): DateRange => ({ from, to: to > end ? end : to });
   // A period that is over is compared whole with the one before it: last week with the week before, yesterday with
   // the day before, the last 30 days with the 30 before them; today, with all of yesterday.
   if (period === 'lastMonth') return { now: periodRange('lastMonth', todayStr), before: monthRangeOf(shiftMonthKey(monthKey(todayStr), -2)) };
+  // A month said by name against the month before it; the current month, so far, against the same point.
+  if (period === 'namedMonth') {
+    const now = periodRange('namedMonth', todayStr, current, days, firstDay, month);
+    if (now.from === monthRange(monthKey(todayStr)).start) return compareRanges('month', todayStr);
+    return { now, before: monthRangeOf(shiftMonthKey(now.from.slice(0, 7), -1)) };
+  }
   if (period === 'lastYear') { const y = d.getFullYear() - 1; return { now: { from: `${y}-01-01`, to: `${y}-12-31` }, before: { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` } }; }
   if (period === 'lastWeek' || period === 'yesterday' || period === 'weekend' || period === 'recentDays' || period === 'today') {
     const now = periodRange(period, todayStr, current, days, firstDay);
@@ -199,10 +213,10 @@ export function compareRanges(period: QuestionPeriod, todayStr: string, current?
     const elapsed = Math.round((fromDateString(todayStr).getTime() - fromDateString(current.start).getTime()) / 86400000);
     return { now: { from: current.start, to: todayStr }, before: clamp(previous.start, addDays(previous.start, elapsed), previous.end) };
   }
-  const month = monthRange(monthKey(todayStr));
+  const thisMonth = monthRange(monthKey(todayStr));
   const last = monthRange(shiftMonthKey(monthKey(todayStr), -1));
   const elapsed = d.getDate() - 1;
-  return { now: { from: month.start, to: todayStr }, before: clamp(last.start, addDays(last.start, elapsed), last.end) };
+  return { now: { from: thisMonth.start, to: todayStr }, before: clamp(last.start, addDays(last.start, elapsed), last.end) };
 }
 
 function monthRangeOf(key: string): DateRange {
