@@ -5,7 +5,7 @@
  * goal is "Trip to Japan" (g1). Category names are the German ones the app shows.
  */
 import { de } from '@/i18n/locales/de';
-import { runCases, type Case } from './harness';
+import { parseOne, runCases, type Case } from './harness';
 
 const labels = de.s.categoryNames as Record<string, string>;
 const ex = (amount: number, categoryId?: string, more: Record<string, unknown> = {}) => ({ kind: 'transaction', type: 'expense', amount, ...(categoryId ? { categoryId } : {}), ...more });
@@ -120,7 +120,8 @@ const incomes: Case[] = [
   ['Tom hat mir 40 zurückgezahlt', inc(40)],
   ['Tom hat mir 40 überwiesen', inc(40)],
   ['85 Trinkgeld bekommen', inc(85)],
-  ['Trinkgeld 85 heute', inc(85)],
+  // A bare "Trinkgeld" is one given, at the table; "bekommen" makes it income.
+  ['Trinkgeld 85 heute', ex(85, 'dining')],
   ['Bonus 500', inc(500)],
   ['Steuererstattung 900', inc(900)],
   ['900 vom Finanzamt zurückbekommen', inc(900)],
@@ -634,7 +635,7 @@ const moreIncome: Case[] = [
   ['Hab 2400 Netto bekommen', inc(2400, 'salary')],
   ['Kunde hat 500 gezahlt', inc(500, 'freelance')],
   ['Kundin hat 300 überwiesen', inc(300, 'freelance')],
-  ['Trinkgeld 85', inc(85)],
+  ['Trinkgeld 85', ex(85, 'dining')],
   ['Fahrrad verkauft 120', inc(120)],
   ['32 zurückbekommen', inc(32)],
   ['Oma hat 50 geschenkt', inc(50, 'gift_income')],
@@ -778,3 +779,48 @@ describe('German phrasings: corrections by name and more', () => runCases('de', 
 describe('German phrasings: more reminders', () => runCases('de', moreReminders, labels));
 describe('German phrasings: dictation and slang amounts', () => runCases('de', dictated, labels));
 describe('German phrasings: still entries', () => runCases('de', stillEntries, labels));
+
+/** Misreads a reviewer reproduced: a tip given, "nein warte", a terse question, the verb left in a salary note. */
+const reviewedMisreads: Case[] = [
+  ['Trinkgeld 10', ex(10, 'dining')],
+  ['Trinkgeld 5 gegeben', ex(5, 'dining')],
+  ['85 Trinkgeld bekommen', inc(85)],
+  ['nein warte, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['ähm 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['warte, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['passt das noch mit den Lebensmitteln', left({ fallbackCategoryId: 'groceries' })],
+  ['auswärts gegessen 25', ex(25, 'dining')],
+  ['1500 Gehalt bekommen', inc(1500, 'salary')],
+];
+
+describe('German phrasings: reviewed misreads', () => runCases('de', reviewedMisreads, labels));
+
+/** "Abendessen 40 plus 8 Trinkgeld": the tip is the second entry, and it is spending too. */
+describe('German phrasings: a tip after the meal', () => {
+  it('splits into two dining entries', () => {
+    const r = parseOne('Abendessen 40 plus 8 Trinkgeld', 'de', labels);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject(ex(40, 'dining'));
+    expect(r[1]).toMatchObject(ex(8, 'dining'));
+  });
+});
+
+/**
+ * Waiting on the parser core: "am" read as a.m. after a number, digit-and-scale runs ("2 tausend"), a named month as
+ * a question period (`question.monthNames` is already in the pack) and a bare "es waren 15 nicht 54" read as a fix
+ * through `notTail`. Un-skip once the core change is merged.
+ */
+describe.skip('after core merge', () => {
+  const pending: Case[] = [
+    ['50 am Zahltag', ex(50)],
+    ['30 am Kiosk', ex(30)],
+    ['15 am Automaten', ex(15)],
+    ['20 am Bahnhof ausgegeben', ex(20)],
+    ['100 am Automaten abgehoben', ex(100)],
+    ['12 am Imbiss', ex(12, 'dining')],
+    ['2 tausend Miete', ex(2000, 'rent')],
+    ['wie viel habe ich im August ausgegeben', spent({ period: 'namedMonth', month: 7 })],
+    ['es waren 15 nicht 54', { kind: 'correction', correction: { amount: 15 } }],
+  ];
+  runCases('de', pending, labels);
+});

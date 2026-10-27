@@ -50,6 +50,7 @@ export interface QuestionPack {
   askWords?: RegExp;
   /** Everyday words that cover more than one category ("food" is groceries and eating out). The whole target must match. */
   groups: { words: string[]; ids: string[] }[];
+  monthNames?: RegExp[];
 }
 
 export interface ParsedQuestion {

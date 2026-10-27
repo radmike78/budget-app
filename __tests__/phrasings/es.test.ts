@@ -764,3 +764,38 @@ describe('es: paying into a goal, as it is said', () => {
     expect(r[0]).toMatchObject(expected);
   });
 });
+
+/** Misreads a reviewer reproduced: "no wait", a refund from work, a terse question, a pace word left in the note. */
+const reviewedMisreads: Case[] = [
+  // "no espera, 15": a stumble before the new number is a fix, not an entry called "No espera".
+  ['no espera, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['espera, 15', { kind: 'correction', correction: { amount: 15 } }],
+  // The company paid the money back: income, even though the meal is a dining word.
+  ['la empresa me reembolsó 45 de la comida', { kind: 'transaction', type: 'income', amount: 45, categoryId: 'other_income' }],
+  ['me reembolsó la empresa 45', { kind: 'transaction', type: 'income', amount: 45, categoryId: 'other_income' }],
+  // Where the money goes, with no "más": the biggest category.
+  ['en qué se me va el dinero', { kind: 'question', question: { ask: 'top' } }],
+  ['veinticinco dólares en target', { kind: 'transaction', amount: 25, categoryId: 'shopping', note: 'Target' }],
+  ['gimnasio 35 al mes', { kind: 'transaction', amount: 35, categoryId: 'health', note: 'Gimnasio' }],
+];
+
+describe('es: reviewed misreads', () => runCases('es', reviewedMisreads, labels));
+
+/**
+ * Waiting on the parser core: digit-and-scale runs ("2 mil"), a named month as a question period
+ * (`question.monthNames` is already in the pack), and a bare "fueron 45 no 54" read as a fix through `notTail`.
+ * Un-skip once the core change is merged.
+ */
+describe.skip('after core merge', () => {
+  const pending: Case[] = [
+    ['2 mil de alquiler', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
+    ['2 mil pesos de renta', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
+    ['20 mil de luz', { kind: 'transaction', amount: 20000, categoryId: 'utilities' }],
+    ['2 mil 500', { kind: 'transaction', amount: 2500 }],
+    ['cuánto gasté en agosto', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+    ['¿cuánto he gastado en agosto?', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+    ['fueron 45 no 54', { kind: 'correction', correction: { amount: 45 } }],
+    ['eran 15 no 51', { kind: 'correction', correction: { amount: 15 } }],
+  ];
+  runCases('es', pending, labels);
+});

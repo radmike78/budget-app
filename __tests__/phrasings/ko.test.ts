@@ -687,3 +687,54 @@ describe('Korean phrasings: more contributions to a goal named in Korean', () =>
     expect({ kind: r[0].kind, goalId: r[0].goalId, amount: r[0].amount }).toEqual({ kind: 'contribution', goalId, amount });
   });
 });
+
+/** Misreads a reviewer reproduced: a tip given, "아니 잠깐", terse questions, a reminder losing its first syllable, lone particles in notes. */
+const reviewedMisreads: Case[] = [
+  // A tip is money at the table; only "받았어" makes it income.
+  ['팁 만원', { kind: 'transaction', type: 'expense', amount: 10000, categoryId: 'dining' }],
+  ['팁 5천원 줬어', { kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'dining' }],
+  ['팁으로 5천원 받았어', { kind: 'transaction', type: 'income', amount: 5000 }],
+  ['아니 잠깐, 15000', { kind: 'correction', correction: { amount: 15000 } }],
+  ['잠깐, 15000', { kind: 'correction', correction: { amount: 15000 } }],
+  // "not 45000 but 54000", with nothing named: the number after 아니고 is the new one.
+  ['45000이 아니고 54000', { kind: 'correction', correction: { amount: 54000 } }],
+  ['커피값은?', { kind: 'question', question: { ask: 'spent', fallbackCategoryId: 'dining' } }],
+  ['식비 괜찮아?', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries', 'dining'] } }],
+  // The particle strip never takes the 은 of 은행 or the 이 of 이마트.
+  ['내일 7시 반에 은행에 전화하라고 알려줘', { kind: 'reminder', occurredAt: '2026-09-17', reminderTime: '07:30', reminderText: '은행에 전화' }],
+  ['내일 은행 가라고 알려줘', { kind: 'reminder', occurredAt: '2026-09-17', reminderText: '은행 가' }],
+  ['내일 이마트 가라고 알려줘', { kind: 'reminder', occurredAt: '2026-09-17', reminderText: '이마트 가' }],
+  // Two weeks back and a weekday: one entry on that week's Tuesday, the count never an amount.
+  ['2주 전 화요일에 동물병원 8만원', { kind: 'transaction', amount: 80000, categoryId: 'health', occurredAt: '2026-09-01', note: '동물병원' }],
+  ['월요일에 주차 12000원', { kind: 'transaction', amount: 12000, categoryId: 'transport', occurredAt: '2026-09-14', note: '주차' }],
+  ['오천원짜리 커피', { kind: 'transaction', amount: 5000, categoryId: 'dining', note: '커피' }],
+];
+
+describe('Korean phrasings: reviewed misreads', () => runCases('ko', reviewedMisreads, labels));
+
+/** "저녁 4만원에 팁 5천원": the tip is the second entry, and it is spending too. */
+describe('Korean phrasings: a tip after the meal', () => {
+  it('splits into two dining entries', () => {
+    const r = parseOne('저녁 4만원에 팁 5천원', 'ko', labels);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ kind: 'transaction', type: 'expense', amount: 40000, categoryId: 'dining' });
+    expect(r[1]).toMatchObject({ kind: 'transaction', type: 'expense', amount: 5000, categoryId: 'dining' });
+  });
+});
+
+/**
+ * Waiting on the parser core: trailing digits before a counter ("GS25 3500", "90만 1일"), "3.5천" as a digit-and-scale run,
+ * a named month as a question period (`question.monthNames` is already in the pack), and the pack hook that keeps a bare
+ * pay noun after "지난" from making an entry income ("월급날" is a salary keyword and wins over "마트" by length).
+ * Un-skip once the core change is merged.
+ */
+describe.skip('after core merge', () => {
+  const pending: Case[] = [
+    ['GS25 3500', { kind: 'transaction', amount: 3500, categoryId: 'groceries' }],
+    ['월세 90만 1일', { kind: 'transaction', amount: 900000, categoryId: 'rent', occurredAt: '2026-09-01' }],
+    ['3.5천원', { kind: 'transaction', amount: 3500 }],
+    ['8월에 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+    ['지난 월급날에 마트 4만원', { kind: 'transaction', type: 'expense', amount: 40000, categoryId: 'groceries' }],
+  ];
+  runCases('ko', pending, labels);
+});

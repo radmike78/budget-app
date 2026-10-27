@@ -592,7 +592,6 @@ const MORE_INCOME: Case[] = [
   ['給料日25万', { kind: 'transaction', type: 'income', amount: 250000, categoryId: 'salary' }],
   ['バイト代3万', { kind: 'transaction', type: 'income', amount: 30000, categoryId: 'salary' }],
   ['副業で5万', { kind: 'transaction', type: 'income', amount: 50000, categoryId: 'freelance' }],
-  ['チップ', { kind: 'transaction', type: 'income', amount: null, categoryId: 'freelance' }],
   ['メルカリで売れた3千円', { kind: 'transaction', type: 'income', amount: 3000, categoryId: 'freelance' }],
   ['フリマで売れた2千円', { kind: 'transaction', type: 'income', amount: 2000, categoryId: 'freelance' }],
   ['返金2千円', { kind: 'transaction', type: 'income', amount: 2000, categoryId: 'other_income' }],
@@ -739,4 +738,37 @@ describe('ja: paying into a goal, round two', () => {
     const r = parseOne('Trip to Japanに2千円足した', 'ja', labels);
     expect(r[0]).toMatchObject({ kind: 'contribution', amount: 2000, goalId: 'g1' });
   });
+});
+
+/** Misreads a reviewer reproduced: a tip given, "いや待って", spending on payday, terse questions, the phone bill, a weekday two weeks back. */
+const REVIEWED_MISREADS: Case[] = [
+  // A tip is money at the table; only a verb of receiving ("もらった") makes it income.
+  ['チップ1000円', { kind: 'transaction', type: 'expense', amount: 1000, categoryId: 'dining' }],
+  ['チップ', { kind: 'transaction', type: 'expense', amount: null, categoryId: 'dining' }],
+  ['チップで3000円もらった', { kind: 'transaction', type: 'income', amount: 3000 }],
+  ['いや待って、1500', { kind: 'correction', correction: { amount: 1500 } }],
+  ['待って、1500', { kind: 'correction', correction: { amount: 1500 } }],
+  ['えっと1500', { kind: 'correction', correction: { amount: 1500 } }],
+  // Payday says when: the supermarket stays spending and the note keeps only the place.
+  ['先月の給料日にスーパーで4000円', { kind: 'transaction', type: 'expense', amount: 4000, categoryId: 'groceries', note: 'スーパー' }],
+  ['給料日にスーパーで4000円', { kind: 'transaction', type: 'expense', amount: 4000, categoryId: 'groceries', note: 'スーパー' }],
+  ['コーヒー代は？', { kind: 'question', question: { ask: 'spent', fallbackCategoryId: 'dining' } }],
+  ['食費大丈夫かな', { kind: 'question', question: { ask: 'left', categoryIds: ['groceries', 'dining'] } }],
+  ['スマホの料金2000円', { kind: 'transaction', amount: 2000, categoryId: 'utilities' }],
+  // Two weeks back and a weekday: one entry on that week's Tuesday, the count never an amount.
+  ['2週間前の火曜日に動物病院で8000円', { kind: 'transaction', amount: 8000, categoryId: 'health', occurredAt: '2026-09-01', note: '動物病院' }],
+];
+
+describe('Japanese: reviewed misreads', () => runCases('ja', REVIEWED_MISREADS, labels));
+
+/**
+ * Waiting on the parser core: "3.5千" as a digit-and-scale run and a named month as a question period
+ * (`question.monthNames` is already in the pack). Un-skip once the core change is merged.
+ */
+describe.skip('after core merge', () => {
+  const pending: Case[] = [
+    ['3.5千円', { kind: 'transaction', amount: 3500 }],
+    ['8月いくら使った', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+  ];
+  runCases('ja', pending, labels);
 });

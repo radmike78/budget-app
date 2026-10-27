@@ -788,3 +788,46 @@ const moreStayEntries: Case[] = [
   ['mets 50 de côté', { kind: 'transaction', amount: 50, categoryId: 'savings' }],
 ];
 describe('French: more entries that stay entries', () => runCases('fr', moreStayEntries, LABELS));
+
+/** Misreads a reviewer reproduced: a tip given, spending on payday, "no wait", a terse question, a kitty with no goal. */
+const reviewedMisreads: Case[] = [
+  // A tip given is money out, at the table; only a verb of receiving ("j'ai reçu") or the plural "pourboires" makes it income.
+  ["j'ai donné 5 de pourboire au livreur", { kind: 'transaction', type: 'expense', amount: 5, categoryId: 'dining' }],
+  ['pourboire 10', { kind: 'transaction', type: 'expense', amount: 10, categoryId: 'dining' }],
+  ["j'ai reçu 50 de pourboires", { kind: 'transaction', type: 'income', amount: 50 }],
+  // "à la dernière paie" says when, so the groceries stay spending and the note keeps only what was bought.
+  ['courses 40 à la dernière paie', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'groceries', note: 'Courses' }],
+  ['non attends, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['attends, 15', { kind: 'correction', correction: { amount: 15 } }],
+  ['euh 15', { kind: 'correction', correction: { amount: 15 } }],
+  // "en fait 15 pas 51": the number being corrected is dropped first, the new one is what is left.
+  ['en fait 15 pas 51', { kind: 'correction', correction: { amount: 15 } }],
+  ['ça va pour les courses ?', { kind: 'question', question: { ask: 'left', categoryId: 'groceries' } }],
+  ["j'ai mis 50 dans la cagnotte japon", { kind: 'transaction', amount: 50, categoryId: 'savings' }],
+];
+
+describe('French: reviewed misreads', () => runCases('fr', reviewedMisreads, LABELS));
+
+/** "dîner 40 plus 8 de pourboire": the tip is the second entry, and it is spending too. */
+describe('French: a tip after the meal', () => {
+  it('splits into two dining entries', () => {
+    const r = parseOne('dîner 40 plus 8 de pourboire', 'fr', LABELS);
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ kind: 'transaction', type: 'expense', amount: 40, categoryId: 'dining' });
+    expect(r[1]).toMatchObject({ kind: 'transaction', type: 'expense', amount: 8, categoryId: 'dining' });
+  });
+});
+
+/**
+ * Waiting on the parser core: digit-and-scale runs ("2 mille"), a named month as a question period
+ * (`question.monthNames` is already in the pack) and a bare "c'était 15 pas 51" read as a fix through `notTail`.
+ * Un-skip once the core change is merged.
+ */
+describe.skip('after core merge', () => {
+  const pending: Case[] = [
+    ['2 mille de loyer', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
+    ["combien j'ai dépensé en août", { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
+    ["c'était 15 pas 51", { kind: 'correction', correction: { amount: 15 } }],
+  ];
+  runCases('fr', pending, LABELS);
+});
