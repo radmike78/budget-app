@@ -9,7 +9,7 @@ import { SMART_ASSIST } from '@/lib/features';
 import { llmParse } from '@/parser/llmFallback';
 import { categoryName, resolveLanguage, useDateFormat, useMoney, useT } from '@/i18n';
 import { HINT } from '@/parser';
-import { cleanEntry } from '@/lib/validate';
+import { cleanEntry, stripCardNumbers } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { getTransaction, latestSavedTransaction, queryTransactions, recentlySavedTransactions } from '@/db/repositories';
@@ -257,7 +257,7 @@ export function useEntryFlow() {
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const language = resolveLanguage(settings?.language);
     const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames, currency: settings?.currency };
-    const entries = parseEntries(text, ctx);
+    const entries = parseEntries(stripCardNumbers(text), ctx);
     setBlocked(false);
     if (entries.length === 1 && entries[0].kind === 'correction' && entries[0].correction) {
       await applyCorrection(entries[0], source, language);
@@ -304,6 +304,20 @@ export function useEntryFlow() {
       return;
     }
     let result = entries[0];
+    // Money for a goal that is already done: said, never saved as spending.
+    if (result.kind === 'contribution' && result.goalId) {
+      const target = goals.find((g) => g.id === result.goalId);
+      if (target?.completed) {
+        setPending(null);
+        setPendingMany(null);
+        const mode = settings?.answerMode ?? 'auto';
+        const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
+        const text = t.goalAlreadyDone(target.name);
+        setAnswer({ text, spoken });
+        if (spoken) await speak(text, language, settings?.voiceGender);
+        return;
+      }
+    }
 
     if (SMART_ASSIST && result.needsReview && settings?.smartParseEnabled) {
       setBusy(true);

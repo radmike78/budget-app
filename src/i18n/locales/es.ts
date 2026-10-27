@@ -610,6 +610,8 @@ export const es: LocaleDef = {
     mergedNothing: 'No hay nada nuevo en ese archivo: todo lo que contiene ya está aquí.',
     mergeTooMany: 'Al añadir este archivo habría más movimientos recurrentes o recordatorios de los que la app puede guardar. Reemplázalo todo, o quita algunos antes.',
     categoryExists: 'Ya hay una categoría con ese nombre.',
+    goalExists: 'Ya hay una meta con ese nombre.',
+    goalAlreadyDone: (name: string) => `${name} ya está conseguida. Crea una meta nueva para seguir.`,
     goalPlanReached: (debt: boolean) => (debt ? 'Pagado.' : 'Conseguido. No hace falta apartar más.'),
     noFileChosen: 'No se eligió ningún archivo.',
     enterPassphraseToContinue: 'Introduce la frase para continuar.',

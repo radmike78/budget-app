@@ -97,3 +97,16 @@ describe('an amount typed with a slip', () => {
     expect(parseMoneyInput('$12')).toBe(12);
   });
 });
+
+describe('currency units', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { formatMoney, toCurrencyUnits } = require('@/lib/money') as typeof import('@/lib/money');
+  it('rounds to what the currency has, and groups rupees in lakhs', () => {
+    expect(toCurrencyUnits(1200.5, 'JPY')).toBe(1201);
+    expect(toCurrencyUnits(1200.5, 'KRW')).toBe(1201);
+    expect(toCurrencyUnits(12.345, 'USD')).toBe(12.35);
+    expect(formatMoney(1234567.89, 'INR')).toBe('₹12,34,567.89');
+    expect(formatMoney(123456, 'INR', { compact: true })).toBe('₹1,23,456');
+    expect(formatMoney(999, 'INR', { compact: true })).toBe('₹999');
+  });
+});

@@ -49,6 +49,7 @@ export default function GoalEditor() {
     const targetValue = parseMoneyInput(target, decimalComma);
     const currentValue = parseMoneyInput(current, decimalComma) ?? 0;
     if (!name.trim()) { setError(t.giveGoalName); return; }
+    if (goals.some((g) => !g.completed && g.id !== existing?.id && g.name.trim().toLowerCase() === name.trim().toLowerCase())) { setError(t.goalExists); return; }
     if (targetValue == null || targetValue <= 0) { setError(target.trim() && targetValue == null ? t.amountUnreadable : t.enterTarget); return; }
     if (current.trim() && parseMoneyInput(current, decimalComma) == null) { setError(t.amountUnreadable); return; }
     if (saving) return;

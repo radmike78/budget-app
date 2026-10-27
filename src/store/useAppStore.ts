@@ -9,6 +9,7 @@ import { bucketByPeriod, carryInto, type CarryState } from '@/lib/rollover';
 import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
 import { isReviewTime, periodReview, type PeriodReview } from '@/lib/review';
 import { newId } from '@/lib/ids';
+import { toCurrencyUnits } from '@/lib/money';
 import { dueOccurrences, resumeFrom } from '@/lib/recurring';
 import { mergeBackup, type MergeSource } from '@/lib/mergeBackup';
 import { learnableWords } from '@/parser';
@@ -347,7 +348,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addTransaction: async (input) => {
     const db = await getDb();
-    const t: Transaction = { ...input, note: input.note ? redactSensitive(input.note) || null : null, rawInput: input.rawInput ? redactSensitive(input.rawInput) || null : null, id: newId(), createdAt: nowIso(), isRecurringInstance: false, recurringRuleId: null };
+    const t: Transaction = { ...input, amount: toCurrencyUnits(input.amount, get().settings?.currency ?? 'USD'), note: input.note ? redactSensitive(input.note) || null : null, rawInput: input.rawInput ? redactSensitive(input.rawInput) || null : null, id: newId(), createdAt: nowIso(), isRecurringInstance: false, recurringRuleId: null };
     await repo.insertTransaction(db, t);
     set({ lastSavedId: t.id });
     await get().refresh();
@@ -357,7 +358,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateTransaction: async (t) => {
     const db = await getDb();
     const before = await repo.getTransaction(db, t.id);
-    await repo.updateTransaction(db, { ...t, note: t.note ? redactSensitive(t.note) || null : null });
+    await repo.updateTransaction(db, { ...t, amount: toCurrencyUnits(t.amount, get().settings?.currency ?? 'USD'), note: t.note ? redactSensitive(t.note) || null : null });
     // "Actually it was 50" on a transfer to a goal changes what the goal holds by the same amount.
     if (before?.goalId) await moveGoal(db, before.goalId, t.amount - before.amount);
     await get().refresh();
@@ -436,7 +437,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Money on a goal is never negative. A typed "-50" would otherwise be stored, and the
     // backup validator (rightly) refuses negative amounts, so every later restore would fail.
     const nonNegative = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
-    await repo.upsertGoal(db, { ...g, name: redactOrMask(g.name), targetAmount: nonNegative(g.targetAmount), currentAmount: nonNegative(g.currentAmount) });
+    const units = (v: number) => toCurrencyUnits(nonNegative(v), get().settings?.currency ?? 'USD');
+    await repo.upsertGoal(db, { ...g, name: redactOrMask(g.name), targetAmount: units(g.targetAmount), currentAmount: units(g.currentAmount) });
     await get().refresh();
   },
 
@@ -450,7 +452,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     const goal = get().goals.find((g) => g.id === goalId);
     if (!goal) return;
-    const current = Math.max(0, Math.round((goal.currentAmount + amount) * 100) / 100);
+    const current = Math.max(0, toCurrencyUnits(goal.currentAmount + amount, get().settings?.currency ?? 'USD'));
     await repo.upsertGoal(db, { ...goal, currentAmount: current, completed: goal.completed || current >= goal.targetAmount });
     // "delete that" right after means the transfer just logged, or (with none logged) nothing to change by voice.
     let transferId = '';
@@ -643,7 +645,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : dateChanged || existing?.anchorDay == null ? Number(r.nextOccurrence.slice(8, 10)) || null
       : existing.anchorDay;
     // The note is copied into every entry the rule logs, so it is redacted like any other note.
-    await repo.upsertRule(db, { ...r, note: r.note ? redactSensitive(r.note) || null : null, anchorDay });
+    await repo.upsertRule(db, { ...r, amount: toCurrencyUnits(r.amount, get().settings?.currency ?? 'USD'), note: r.note ? redactSensitive(r.note) || null : null, anchorDay });
     await get().runRecurringCatchUp();
     await get().refresh();
   },

@@ -610,6 +610,8 @@ export const de: LocaleDef = {
     mergedNothing: 'Nichts Neues in dieser Datei: alles darin ist schon hier.',
     mergeTooMany: 'Mit dieser Datei gäbe es mehr wiederkehrende Einträge oder Erinnerungen, als die App halten kann. Ersetze stattdessen alles, oder entferne vorher welche.',
     categoryExists: 'Eine Kategorie mit diesem Namen gibt es schon.',
+    goalExists: 'Ein Ziel mit diesem Namen gibt es schon.',
+    goalAlreadyDone: (name: string) => `${name} ist schon erreicht. Leg ein neues Ziel an, um weiterzumachen.`,
     goalPlanReached: (debt: boolean) => (debt ? 'Abbezahlt.' : 'Erreicht. Nichts mehr zurückzulegen.'),
     noFileChosen: 'Keine Datei gewählt.',
     enterPassphraseToContinue: 'Gib die Passphrase ein, um fortzufahren.',

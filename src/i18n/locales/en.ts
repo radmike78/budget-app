@@ -636,6 +636,8 @@ export const en = {
     mergedNothing: 'Nothing new in that file: everything in it is already here.',
     mergeTooMany: 'Adding this file would leave more repeating entries or reminders than the app can keep. Replace everything instead, or remove some first.',
     categoryExists: 'There is already a category with that name.',
+    goalExists: 'There is already a goal with that name.',
+    goalAlreadyDone: (name: string) => `${name} is already done. Make a new goal to keep going.`,
     goalPlanReached: (debt: boolean): string => (debt ? 'Paid off.' : 'Reached. Nothing more to put aside.'),
     noFileChosen: 'No file chosen.',
     enterPassphraseToContinue: 'Enter the passphrase to continue.',

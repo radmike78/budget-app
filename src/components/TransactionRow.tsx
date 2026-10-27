@@ -26,8 +26,10 @@ export function TransactionRow({ tx, onPress, showDate = true }: { tx: Transacti
     remove(tx.id).catch((e: Error) => notify(t.didntWork(e.message)));
   };
 
+  // Hidden from screen readers: they get Edit and Delete from the row's own actions menu instead, so the tab
+  // order never reaches an invisible button before the row it belongs to.
   const renderRight = () => (
-    <View style={styles.actions}>
+    <View style={styles.actions} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       {onPress ? (
         <Pressable accessibilityRole="button" accessibilityLabel={t.edit} onPress={() => { ref.current?.close(); onPress(); }} style={[styles.action, { backgroundColor: colors.accentSoft }]}>
           <Ionicons name="pencil" size={20} color={colors.accent} />

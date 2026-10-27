@@ -115,6 +115,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
     try {
       if (result.kind === 'goal') {
         if (!goalName.trim()) { setError(t.giveGoalName); return; }
+        if (goals.some((g) => !g.completed && g.name.trim().toLowerCase() === goalName.trim().toLowerCase())) { setError(t.goalExists); return; }
         await saveGoal({ id: newId(), name: goalName.trim(), kind: goalKind, targetAmount: amount, currentAmount: 0, targetDate, createdAt: nowIso(), completed: false });
         onDone(t.toastGoalSet(money(amount, { compact: true }), goalName.trim(), targetDate ? longDate(targetDate, today(), fmt) : null));
       } else if (result.kind === 'contribution' && goal) {
