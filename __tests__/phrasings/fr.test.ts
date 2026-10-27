@@ -823,7 +823,7 @@ describe('French: a tip after the meal', () => {
  * (`question.monthNames` is already in the pack) and a bare "c'était 15 pas 51" read as a fix through `notTail`.
  * Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['2 mille de loyer', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
     ["combien j'ai dépensé en août", { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],

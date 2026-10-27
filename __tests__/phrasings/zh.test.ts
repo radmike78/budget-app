@@ -836,7 +836,7 @@ describe('zh: two entries in one breath', () => {
  * (`question.monthNames` is already in the pack), and the pack hook that keeps a bare pay noun after "上次" from making
  * an entry income ("发工资" is a salary keyword and wins over "超市" by length). Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['8月花了多少', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
     ['上次发工资那天超市40', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'groceries' }],

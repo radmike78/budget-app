@@ -765,7 +765,7 @@ describe('Japanese: reviewed misreads', () => runCases('ja', REVIEWED_MISREADS, 
  * Waiting on the parser core: "3.5千" as a digit-and-scale run and a named month as a question period
  * (`question.monthNames` is already in the pack). Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['3.5千円', { kind: 'transaction', amount: 3500 }],
     ['8月いくら使った', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],

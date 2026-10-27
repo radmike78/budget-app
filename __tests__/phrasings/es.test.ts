@@ -786,7 +786,7 @@ describe('es: reviewed misreads', () => runCases('es', reviewedMisreads, labels)
  * (`question.monthNames` is already in the pack), and a bare "fueron 45 no 54" read as a fix through `notTail`.
  * Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['2 mil de alquiler', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
     ['2 mil pesos de renta', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],

@@ -728,7 +728,7 @@ describe('Korean phrasings: a tip after the meal', () => {
  * pay noun after "지난" from making an entry income ("월급날" is a salary keyword and wins over "마트" by length).
  * Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['GS25 3500', { kind: 'transaction', amount: 3500, categoryId: 'groceries' }],
     ['월세 90만 1일', { kind: 'transaction', amount: 900000, categoryId: 'rent', occurredAt: '2026-09-01' }],

@@ -169,8 +169,15 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   let periodDefaulted = true;
   let month: number | null = null;
   // "in August" names a calendar month; read before the target is cut, so the name never becomes the target.
-  const named = days == null ? pack.months?.re.exec(rest) : null;
-  const namedIdx = named ? pack.months!.names[(named.slice(1).find((g) => g != null) ?? '').toLowerCase()] : undefined;
+  let named = days == null ? pack.months?.re.exec(rest) ?? null : null;
+  let namedIdx = named ? pack.months!.names[(named.slice(1).find((g) => g != null) ?? '').toLowerCase()] : undefined;
+  // A pack may list one regex per month instead ("agosto|ago", "8月"): the earliest match in the sentence wins.
+  if (!named && days == null && pack.monthNames) {
+    for (let i = 0; i < pack.monthNames.length; i += 1) {
+      const m = pack.monthNames[i].exec(rest);
+      if (m && (!named || m.index < named.index)) { named = m; namedIdx = i; }
+    }
+  }
   if (days != null) { period = 'recentDays'; periodDefaulted = false; }
   else if (named && namedIdx != null) {
     period = 'namedMonth'; month = namedIdx; periodDefaulted = false;

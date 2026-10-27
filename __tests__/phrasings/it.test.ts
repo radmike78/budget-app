@@ -902,7 +902,7 @@ describe('Italian: reviewed misreads', () => runCases('it', REVIEWED_MISREADS, L
  * Waiting on the parser core: digit-and-scale runs ("2 mila") and a named month as a question period
  * (`question.monthNames` is already in the pack). Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['2 mila euro di affitto', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],
     ['2mila di affitto', { kind: 'transaction', amount: 2000, categoryId: 'rent' }],

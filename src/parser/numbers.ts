@@ -108,7 +108,10 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
 
   return (input: string) => {
     const text = expandK(table.pre ? table.pre(input) : input);
-    const words = text.split(/\s+/).filter(Boolean);
+    // "2mila", "2mille", "2mil": digits glued to a thousands word are two tokens.
+    const bigWords = [...table.thousand, ...(table.million ?? [])].filter((w) => /^\p{L}+$/u.test(w));
+    const unglued = bigWords.length ? text.replace(new RegExp(`\\b(\\d{1,3})(${bigWords.join('|')})\\b`, 'giu'), '$1 $2') : text;
+    const words = unglued.split(/\s+/).filter(Boolean);
     const out: string[] = [];
     let i = 0;
     // "2 mil", "2 mila", "2 mille": a plain number starts a run when a scale word follows; "mil 500" continues one

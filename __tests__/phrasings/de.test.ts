@@ -810,7 +810,7 @@ describe('German phrasings: a tip after the meal', () => {
  * a question period (`question.monthNames` is already in the pack) and a bare "es waren 15 nicht 54" read as a fix
  * through `notTail`. Un-skip once the core change is merged.
  */
-describe.skip('after core merge', () => {
+describe('after core merge', () => {
   const pending: Case[] = [
     ['50 am Zahltag', ex(50)],
     ['30 am Kiosk', ex(30)],
