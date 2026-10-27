@@ -51,8 +51,16 @@ export interface MoneyFormat {
 
 export const DEFAULT_MONEY_FORMAT: MoneyFormat = { decimal: '.', group: ',', symbolAfter: false };
 
-function groupThousands(intPart: string, sep: string): string {
+function groupThousands(intPart: string, sep: string, lakhs = false): string {
+  // Indian rupees group the thousands and then every two digits: 12,34,567.
+  if (lakhs && intPart.length > 3) return intPart.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, sep) + sep + intPart.slice(-3);
   return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+}
+
+/** Rounds to the units the currency has: cents for most, whole yen and won. Every store writer uses it. */
+export function toCurrencyUnits(amount: number, code: string): number {
+  const f = 10 ** currencyInfo(code).decimals;
+  return Math.round(amount * f) / f;
 }
 
 /**
@@ -68,11 +76,11 @@ export function formatMoney(amount: number, code: string, opts: { compact?: bool
   const negative = amount < 0 && rounded > 0;
   let numberText: string;
   if (opts.compact && Number.isInteger(rounded)) {
-    numberText = groupThousands(String(rounded), fmt.group);
+    numberText = groupThousands(String(rounded), fmt.group, info.code === 'INR');
   } else {
     const fixed = rounded.toFixed(info.decimals);
     const [intPart, frac] = fixed.split('.');
-    numberText = frac ? `${groupThousands(intPart, fmt.group)}${fmt.decimal}${frac}` : groupThousands(intPart, fmt.group);
+    numberText = frac ? `${groupThousands(intPart, fmt.group, info.code === 'INR')}${fmt.decimal}${frac}` : groupThousands(intPart, fmt.group, info.code === 'INR');
   }
   const sign = negative ? '-' : '';
   // A no-break space: "12,50 €" is one word on a narrow label.

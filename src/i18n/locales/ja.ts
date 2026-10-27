@@ -606,6 +606,8 @@ export const ja: LocaleDef = {
     mergedNothing: 'そのファイルに新しいものはありません。中身はすべてここにあります。',
     mergeTooMany: 'このファイルを追加すると、定期の記録やリマインダーがアプリで保持できる数を超えます。すべて置き換えるか、先にいくつか削除してください。',
     categoryExists: '同じ名前のカテゴリがすでにあります。',
+    goalExists: '同じ名前の目標がすでにあります。',
+    goalAlreadyDone: (name: string) => `${name}はもう達成しています。続けるには新しい目標を作ってください。`,
     goalPlanReached: (debt: boolean) => (debt ? '完済です。' : '達成です。これ以上貯める必要はありません。'),
     noFileChosen: 'ファイルが選ばれていません。',
     enterPassphraseToContinue: '続けるにはパスフレーズを入力してください。',

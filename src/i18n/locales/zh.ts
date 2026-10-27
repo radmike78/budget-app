@@ -606,6 +606,8 @@ export const zh: LocaleDef = {
     mergedNothing: '这个文件里没有新内容：里面的东西这里都已经有了。',
     mergeTooMany: '添加这个文件后，定期记录或提醒会超过应用能保存的数量。请改为全部替换，或先删掉一些。',
     categoryExists: '已经有同名的分类了。',
+    goalExists: '已经有同名的目标了。',
+    goalAlreadyDone: (name: string) => `${name}已经达成了。想继续的话，新建一个目标吧。`,
     goalPlanReached: (debt: boolean) => (debt ? '已还清。' : '已达成，不用再存了。'),
     noFileChosen: '没有选择文件。',
     enterPassphraseToContinue: '输入口令以继续。',

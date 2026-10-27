@@ -97,3 +97,16 @@ describe('the free month and the purchase', () => {
     expect(read('docs/PRIVACY.md')).toMatch(/### 2\. The purchase, through your store/);
   });
 });
+
+describe('help topics on the web build', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const LOCALES = Object.fromEntries(['en', 'es', 'fr', 'de', 'it', 'ja', 'ko', 'zh'].map((l) => [l, require(`@/i18n/locales/${l}`)[l]])) as Record<string, { s: { helpTopics: [string, string][] } }>;
+  it('hide the same three phone-only topics in every language', () => {
+    const en = LOCALES.en.s.helpTopics;
+    expect(en[16][0]).toBe('Daily reminder');
+    expect(en[17][0]).toBe('Locking the app');
+    expect(en[19][0]).toBe('The free month and the purchase');
+    for (const l of Object.values(LOCALES)) expect(l.s.helpTopics).toHaveLength(en.length);
+    expect(read('app/settings/help.tsx')).toMatch(/WEB_HIDDEN_TOPICS = new Set\(\[16, 17, 19\]\)/);
+  });
+});

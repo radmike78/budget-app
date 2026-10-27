@@ -472,6 +472,9 @@ function findGoal(name: string, goals: Goal[], c: Compiled): Goal | null {
   if (exact) return exact;
   const contains = open.find((g) => needle.includes(norm(g.name)) || norm(g.name).includes(needle));
   if (contains) return contains;
+  // A goal that is done can still be named ("add 20 to the trip"): the flow then says it is done rather than logging spending.
+  const done = goals.find((g) => g.completed && (norm(g.name) === needle || needle.includes(norm(g.name)) || norm(g.name).includes(needle)));
+  if (done) return done;
   if (cjk) return null;
   // "the Japan fund" or "my Japan savings": once the generic words are gone, what is left must name the goal.
   const nouns = c.pack.goalNouns;
@@ -677,7 +680,7 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
   if (isDebtGoal(text, pack, ctx.today)) return parseGoal(text, raw, ctx, pack);
 
   // ---- Contribution to an existing goal ----
-  if (ctx.goals.some((g) => !g.completed) && pack.contributionVerbs.test(text)) {
+  if (ctx.goals.length > 0 && pack.contributionVerbs.test(text)) {
     const m = pack.tokenizer === 'cjk'
       ? text.match(new RegExp(`(.+?)(?:${pack.contributionPreps})`, 'u'))
       : text.match(new RegExp(`${WB_START}(?:${pack.contributionPreps})\\s+(?:${pack.articles.source.replace(/^\^|\+$/g, '')})?(.+?)(?:\\s+(?:${pack.goalWords}))?$`, 'iu'));
@@ -1014,7 +1017,7 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
     if (isGoal) { results.push(parseInput(sentence, ctx)); continue; }
     // "paid", "put" or "saved" may be a goal contribution; only when it really resolves to one does
     // the sentence stay whole, otherwise "gas 40 and got paid 500" still splits into two entries.
-    if (ctx.goals.some((g) => !g.completed) && pack.contributionVerbs.test(text)) {
+    if (ctx.goals.length > 0 && pack.contributionVerbs.test(text)) {
       const whole = parseInput(sentence, ctx);
       if (whole.kind === 'contribution') { results.push(whole); continue; }
     }

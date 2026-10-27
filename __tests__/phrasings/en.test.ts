@@ -746,3 +746,11 @@ describe('a goal named by a pronoun', () => {
     expect(parseOne('put 20 in that one', 'en')[0]).toMatchObject({ kind: 'contribution', amount: 20, goalId: 'g1' });
   });
 });
+
+describe('money for a goal that is done', () => {
+  it('still names the goal, so the app can say it is done', () => {
+    const done = [{ ...GOALS_FOR_DONE[0], completed: true }];
+    expect(parseOne('add 20 to the trip', 'en', undefined, done)[0]).toMatchObject({ kind: 'contribution', amount: 20, goalId: 'g1' });
+  });
+});
+const GOALS_FOR_DONE = [{ id: 'g1', name: 'Trip to Japan', kind: 'saving', targetAmount: 3000, currentAmount: 3000, targetDate: null, completed: true, createdAt: '2026-01-01' }] as unknown as import('@/types').Goal[];

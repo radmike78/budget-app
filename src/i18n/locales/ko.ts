@@ -606,6 +606,8 @@ export const ko: LocaleDef = {
     mergedNothing: '그 파일에 새로운 건 없어요. 들어 있는 내용이 모두 이미 여기 있어요.',
     mergeTooMany: '이 파일을 추가하면 반복 내역이나 알림이 앱이 보관할 수 있는 수를 넘어요. 대신 모두 바꾸거나, 먼저 몇 개를 지워 주세요.',
     categoryExists: '같은 이름의 카테고리가 이미 있어요.',
+    goalExists: '같은 이름의 목표가 이미 있어요.',
+    goalAlreadyDone: (name: string) => `${name}은(는) 이미 달성했어요. 계속하려면 새 목표를 만들어 주세요.`,
     goalPlanReached: (debt: boolean) => (debt ? '다 갚았어요.' : '달성했어요. 더 모을 필요가 없어요.'),
     noFileChosen: '선택한 파일이 없어요.',
     enterPassphraseToContinue: '계속하려면 암호 문구를 입력하세요.',

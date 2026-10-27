@@ -74,6 +74,25 @@ const IBAN_RE = /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}(?:[ -]?[A-Z0-9]{1,4})?
 // Every gap is bounded: unbounded `\s*` runs backtracked for seconds on a long run of spaces.
 const MASKED_RE = /(?:[xX*•·#]{2,}\s?[-]?\s?\d{2,6}\b)|(?:\b(?:ending(?: in)?|last four|acct|account|card|a\/c|iban|routing|no\.?)\s{0,3}(?:number|#|no\.?)?\s{0,3}:?\s{0,3}[xX*•·]*\d{4,}\b)/gi;
 
+/** 13 to 19 digits, spaced or dashed in groups, passing Luhn: a payment card number. */
+const CARD_LIKE_RE = /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g;
+const luhn = (digits: string): boolean => {
+  let sum = 0;
+  let alt = false;
+  for (let i = digits.length - 1; i >= 0; i -= 1) {
+    let d = digits.charCodeAt(i) - 48;
+    if (alt) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+};
+
+/** Drops payment card numbers from text before it is parsed, so "4111 1111 1111 1111 paid 20" is 20, not 4111. */
+export function stripCardNumbers(text: string): string {
+  return text.replace(CARD_LIKE_RE, (m) => (luhn(m.replace(/[ -]/g, '')) ? ' ' : m)).replace(/\s{2,}/g, ' ').trim();
+}
+
 /**
  * Removes bank account, card, routing and IBAN numbers from free text so they
  * are never stored. Amounts, dates and short numbers ("Phillips 66", "2 coffees") stay.
