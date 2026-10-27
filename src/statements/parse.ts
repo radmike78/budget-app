@@ -12,7 +12,7 @@ import { cleanDescription, guessKind, looksLikeCardCredit, lookupMerchant } from
 import type { MonthSummary, ParseOptions, ParsedStatement, Row, StatementKind, StatementLine, StatementPeriod, Tradeline } from './types';
 
 const CARD_WORDS = /\b(minimum payment due|minimum payment|payment due date|credit limit|available credit|new balance|previous balance|purchases|cash advances|apr|annual percentage rate|interest charged|cardmember|card member|rewards|statement balance|total credit line|credit line)\b/i;
-const BANK_WORDS = /\b(checking|savings|deposits|withdrawals|debits|credits|beginning balance|ending balance|opening balance|closing balance|account summary|daily balance|checks paid|overdraft|routing|direct deposit|cuenta corriente|compte courant|conto corrente|girokonto|kontoauszug|relevé de compte|estado de cuenta|estratto conto)\b/i;
+const BANK_WORDS = /\b(checking|savings|deposits|withdrawals|debits|credits|beginning balance|ending balance|opening balance|closing balance|account summary|daily balance|checks paid|overdraft|routing|direct deposit|current account|direct debit|faster payment|standing order|sort code|bacs|chaps|bank giro credit|cuenta corriente|compte courant|conto corrente|girokonto|kontoauszug|relevé de compte|estado de cuenta|estratto conto)\b/i;
 const REPORT_WORDS = /\b(credit report|credit file|tradeline|account type|report date|creditor|monthly payment|account history|payment history|date opened|high credit|credit score|fico|vantagescore|experian|equifax|transunion|inquiries|public records|collections|revolving accounts|installment accounts|schufa|informe de crédito)\b/i;
 
 /** Column headings and what they mean. Position on the header row tells us which amount is which. */
@@ -29,6 +29,13 @@ const COLUMN_WORDS: { re: RegExp; role: 'in' | 'out' | 'amount' | 'balance' | 'd
 const SECTION_IN = /^(deposits?( and (other )?(credits|additions))?|credits|additions|other credits|payments and other credits|electronic deposits|interest paid|money in|abonos|ingresos|crédits|entrate|accrediti|gutschriften)\b/i;
 const SECTION_OUT = /^(withdrawals?( and (other )?(debits|subtractions))?|debits|other debits|checks( paid)?|electronic withdrawals|card purchases|purchases( and adjustments)?|fees( charged)?|interest charged|money out|cargos|retiros|débits|uscite|addebiti|lastschriften|abbuchungen|umsätze)\b/i;
 const SUMMARY_ROW = /\b(total|subtotal|beginning balance|ending balance|opening balance|closing balance|previous balance|new balance|balance forward|statement balance|minimum payment|payment due|credit limit|available credit|totale|saldo (anterior|final)|solde|ancien solde|nouveau solde|anfangssaldo|endsaldo|summe)\b/i;
+/**
+ * Headings of a section whose lines have not posted yet. A pending charge appears again, dated differently, on
+ * the next statement, so importing it here would count it twice. The lines are skipped until the next heading.
+ */
+const SECTION_SKIP = /^(?:pending(?: transactions| charges| purchases| authorizations| activity| items)?|authorizations|authorized transactions|transacciones pendientes|operaciones pendientes|movimientos pendientes|cargos pendientes|op[ée]rations en cours|op[ée]rations en attente|transazioni in sospeso|movimenti in sospeso|operazioni in sospeso|vorgemerkte ums[äa]tze|vorgemerkte buchungen|vorgemerkt)(?!\p{L})|^(?:未決済|未処理|未確定|미결제|승인 ?대기|待处理|未入账|未出账|待入账)/iu;
+/** Headings that start the posted lines again after a pending section. */
+const SECTION_POSTED = /^(?:posted(?: transactions| activity)?|transactions|transaction details?|account activity|activity|detalle de movimientos|movimientos|operaciones|d[ée]tail des op[ée]rations|op[ée]rations|movimenti|operazioni|buchungen|gebuchte ums[äa]tze|取引明細|거래내역|交易明细)(?!\p{L})/iu;
 
 /** The same summary words, directly after a leading date ("01/31 Ending balance 1,200.00"). */
 const SUMMARY_ROW_AFTER_DATE = new RegExp(`^\\s*(?:${SUMMARY_ROW.source.slice(3, -3)})\\b(?:\\s+(?:deposits?|withdrawals?|credits?|debits?|fees?|charges?|payments?|purchases?|activity|for the period))?\\s*:?\\s*[-(]?[$€£]?\\d`, 'i');
@@ -127,7 +134,7 @@ function lineCandidates(rows: Row[], cols: Column[] | null, language: string): {
     while (!money.length && joined < MAX_CONTINUATION_ROWS && i + joined + 1 < rows.length) {
       const next = rows[i + joined + 1];
       const head = next.text.trim();
-      if (next.page !== row.page || !head || startsWithDate(head, language) || SUMMARY_ROW.test(head) || SECTION_IN.test(head) || SECTION_OUT.test(head)) break;
+      if (next.page !== row.page || !head || startsWithDate(head, language) || SUMMARY_ROW.test(head) || SECTION_IN.test(head) || SECTION_OUT.test(head) || SECTION_SKIP.test(head)) break;
       joined += 1;
       text = `${text}  ${head}`;
       cells = cells.concat(next.cells);
@@ -166,6 +173,22 @@ function lineCandidates(rows: Row[], cols: Column[] | null, language: string): {
 
 const INCOME_HINT = new Set(['salary', 'freelance', 'other_income']);
 
+/**
+ * "Pending transactions", "Pending (3)", "Pending as of 03/14": a heading, not a sentence about pending
+ * transactions ("Pending transactions will appear on your next statement" is a note, and skips nothing).
+ */
+function isPendingHeading(head: string): boolean {
+  const m = SECTION_SKIP.exec(head);
+  if (!m) return false;
+  const rest = head.slice(m[0].length).trim();
+  return rest === '' || /^[:(\-–—]/.test(rest) || /^\d/.test(rest) || /^(?:as of|at|au|al|zum|am|stand)\b/i.test(rest);
+}
+
+/** A whole number of seven or more digits followed by an amount with cents a hundred times smaller is an id, not money. */
+function isReferenceNumber(first: MoneyToken, last: MoneyToken): boolean {
+  return !first.decimals && last.decimals && first.value >= 1_000_000 && first.value > last.value * 100;
+}
+
 function decideAmount(c: Candidate, kind: StatementKind, section: 'in' | 'out' | null, prevBalance: number | null): { amount: number; direction: 'in' | 'out'; balance: number | null; sure: boolean } | null {
   const { amounts, amountCols } = c;
   let balance: number | null = null;
@@ -187,6 +210,10 @@ function decideAmount(c: Candidate, kind: StatementKind, section: 'in' | 'out' |
   if (!amountTok) {
     if (kind === 'card') {
       amountTok = amounts[amounts.length - 1];
+    } else if (amounts.length === 2 && isReferenceNumber(amounts[0], amounts[1])) {
+      // "VENMO PAYMENT 2,000,123 15.00": a whole number of seven or more digits before a tiny amount with cents
+      // is a reference, and the line has no balance.
+      amountTok = amounts[1];
     } else if (amounts.length >= 2) {
       balance = amounts[amounts.length - 1].value * (amounts[amounts.length - 1].negative ? -1 : 1);
       amountTok = amounts[amounts.length - 2];
@@ -314,6 +341,8 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
 
   const lines: StatementLine[] = [];
   let section: 'in' | 'out' | null = null;
+  let pending = false;
+  let pendingLines = 0;
   let prevBalance: number | null = null;
   let unsure = 0;
   const seen = new Map<string, number>();
@@ -324,8 +353,10 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
     if (!candidateRows.has(row)) {
       const head = row.text.trim();
       if (head.length <= 60) {
-        if (SECTION_IN.test(head)) section = 'in';
-        else if (SECTION_OUT.test(head)) section = 'out';
+        if (SECTION_IN.test(head)) { section = 'in'; pending = false; }
+        else if (SECTION_OUT.test(head)) { section = 'out'; pending = false; }
+        else if (isPendingHeading(head)) pending = true;
+        else if (SECTION_POSTED.test(head)) pending = false;
       }
       const bal = /\b(beginning|opening|previous|starting) balance\b/i.test(head) ? findMoney(head) : [];
       if (bal.length) prevBalance = bal[bal.length - 1].value * (bal[bal.length - 1].negative ? -1 : 1);
@@ -333,6 +364,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
     }
     const c = candidates[ci];
     ci += 1;
+    if (pending) { pendingLines += 1; continue; }
     const decided = decideAmount(c, kind, section, prevBalance);
     if (!decided) continue;
     if (decided.balance != null) prevBalance = decided.balance;
@@ -355,6 +387,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
     });
   }
   if (!lines.length) warnings.push('noLines');
+  if (pendingLines) warnings.push('pendingSkipped');
   if (lines.length && unsure / lines.length > 0.5) warnings.push('directionGuessed');
   if (lines.some((l) => l.duplicate)) warnings.push('hasDuplicates');
   if (period && lines.some((l) => l.date < addDays(period.start, -10) || l.date > addDays(period.end, 10))) warnings.push('datesOutsidePeriod');

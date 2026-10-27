@@ -9,14 +9,14 @@ import type { LineKind, StatementKind } from './types';
 
 /** Merchant and bank vocabulary as it appears on statements, mapped to default category ids. */
 export const STATEMENT_MERCHANTS: Record<string, string[]> = {
-  salary: ['payroll', 'direct dep', 'direct deposit', 'dir dep', 'salary', 'wages', 'adp', 'paychex', 'gusto', 'intuit payroll', 'employer', 'des:payroll', 'ppd', 'pay period', 'net pay', 'ssa treas', 'social security', 'pension', 'gehalt', 'lohn', 'nómina', 'nomina', 'salaire', 'stipendio', '给与', '給与', '급여', '월급'],
+  salary: ['payroll', 'direct dep', 'direct deposit', 'dir dep', 'salary', 'wages', 'paycheck', 'pay cheque', 'paycheque', 'payslip', 'pay slip', 'adp', 'paychex', 'gusto', 'intuit payroll', 'employer', 'des:payroll', 'ppd', 'pay period', 'net pay', 'ssa treas', 'social security', 'pension', 'gehalt', 'lohn', 'nómina', 'nomina', 'salaire', 'stipendio', '给与', '給与', '급여', '월급'],
   freelance: ['stripe transfer', 'stripe payout', 'paypal transfer', 'upwork', 'fiverr', 'etsy deposit', 'shopify payout', 'square inc', 'doordash dasher', 'uber driver', 'instacart shopper', 'invoice', 'freelance', 'consulting'],
   other_income: ['interest paid', 'interest earned', 'interest credit', 'dividend', 'tax refund', 'irs treas', 'refund', 'cashback', 'cash back', 'reward', 'rebate', 'reimbursement', 'zelle from', 'venmo from', 'cash app from', 'deposit'],
   groceries: ['grocery', 'supermarket', 'market', 'walmart', 'wm supercenter', 'wal-mart', 'target', 'costco', 'costco whse', 'kroger', 'safeway', 'albertsons', 'trader joe', 'whole foods', 'wholefds', 'aldi', 'publix', 'h-e-b', 'heb ', 'wegmans', 'sprouts', 'food lion', 'giant', 'stop & shop', 'stop and shop', 'shoprite', 'meijer', 'winco', 'fred meyer', 'ralphs', 'vons', 'harris teeter', 'piggly', 'lidl', 'sams club', "sam's club", 'bj\'s', 'instacart', 'mercadona', 'carrefour', 'lidl', 'aldi', 'edeka', 'rewe', 'tesco', 'sainsbury', 'coop', 'conad', 'esselunga', 'monoprix', 'leclerc', 'intermarche', '超市', 'スーパー', '마트'],
   dining: ['restaurant', 'cafe', 'coffee', 'starbucks', 'sbux', 'dunkin', 'mcdonald', 'mcd ', 'chick-fil-a', 'chipotle', 'panera', 'taco bell', 'wendy', 'burger king', 'subway', 'domino', 'pizza hut', 'papa john', 'sonic drive', 'dutch bros', 'peet', 'five guys', 'shake shack', 'in-n-out', 'jack in the box', 'popeyes', 'kfc', 'arby', 'chili\'s', 'applebee', 'olive garden', 'outback', 'ihop', 'denny', 'waffle house', 'doordash', 'grubhub', 'uber eats', 'ubereats', 'postmates', 'seamless', 'deliveroo', 'just eat', 'toast', 'tst*', 'sq *', 'bar ', 'grill', 'bistro', 'diner', 'pizza', 'sushi', 'taqueria', 'bakery', 'brewing', 'brewery', 'steakhouse', 'kitchen', 'eatery', 'pizzeria', 'grille', 'espresso', 'peets', 'arbys', 'wendys', 'dennys', 'ristorante', 'trattoria', 'brasserie', 'boulangerie', 'gastst', 'imbiss', '餐厅', '饭店', 'レストラン', '식당'],
   rent: ['rent', 'mortgage', 'mtg', 'property mgmt', 'property management', 'apartments', 'apts', 'realty', 'hoa', 'landlord', 'lease', 'quicken loans', 'rocket mortgage', 'wells fargo home', 'mr cooper', 'alquiler', 'loyer', 'affitto', 'miete', '房租', '家賃', '월세'],
-  utilities: ['electric', 'energy', 'power', 'gas co', 'gas company', 'water', 'sewer', 'utility', 'utilities', 'pg&e', 'pge', 'con ed', 'coned', 'duke energy', 'dominion', 'xcel', 'sce ', 'socal gas', 'socalgas', 'national grid', 'comcast', 'xfinity', 'spectrum', 'cox comm', 'verizon', 'at&t', 'att*', 'att ', 't-mobile', 'tmobile', 'sprint', 'cricket', 'mint mobile', 'google fi', 'internet', 'wireless', 'telecom', 'edf', 'engie', 'enel', 'iberdrola', 'endesa', 'vodafone', 'orange', 'telefonica', 'movistar', 'stadtwerke', 'vattenfall', '电费', '水费', '電気', '가스'],
-  transport: ['shell', 'chevron', 'exxon', 'exxonmobil', 'mobil', 'bp ', 'arco', 'texaco', 'sunoco', 'marathon', 'speedway', 'circle k', 'wawa', '7-eleven', '7 eleven', 'quiktrip', 'qt ', 'racetrac', 'sheetz', 'valero', 'phillips 66', 'conoco', 'citgo', 'gas station', 'fuel', 'petrol', 'uber', 'lyft', 'taxi', 'cab', 'transit', 'metro', 'mta', 'bart', 'amtrak', 'greyhound', 'parking', 'parkmobile', 'toll', 'tolls', 'ez pass', 'ezpass', 'fastrak', 'dmv', 'jiffy lube', 'autozone', 'o\'reilly', 'pep boys', 'car wash', 'repsol', 'cepsa', 'total energies', 'totalenergies', 'aral', 'esso', 'sncf', 'ratp', 'renfe', 'trenitalia', 'deutsche bahn', 'db bahn', 'bvg', '加油', '地铁', 'ガソリン', '주유', '지하철'],
+  utilities: ['electric', 'energy', 'power', 'gas co', 'gas company', 'water', 'sewer', 'utility', 'utilities', 'pg&e', 'pge', 'con ed', 'coned', 'duke energy', 'dominion', 'xcel', 'sce ', 'socal gas', 'socalgas', 'national grid', 'comcast', 'xfinity', 'spectrum', 'cox comm', 'verizon', 'at&t', 'att*', 'att ', 't-mobile', 'tmobile', 'sprint', 'cricket', 'mint mobile', 'google fi', 'internet', 'wireless', 'telecom', 'british gas', 'edf', 'eon', 'e.on', 'octopus energy', 'thames water', 'scottish power', 'ovo energy', 'bulb energy', 'bulb', 'sse ', 'npower', 'severn trent', 'anglian water', 'united utilities', 'yorkshire water', 'southern water', 'welsh water', 'virgin media', 'talktalk', 'plusnet', 'giffgaff', 'bt group', 'bt plc', 'sky uk', 'engie', 'enel', 'iberdrola', 'endesa', 'vodafone', 'orange', 'telefonica', 'movistar', 'stadtwerke', 'vattenfall', '电费', '水费', '電気', '가스'],
+  transport: ['shell', 'chevron', 'exxon', 'exxonmobil', 'mobil', 'bp ', 'arco', 'texaco', 'sunoco', 'marathon', 'speedway', 'circle k', 'wawa', '7-eleven', '7 eleven', 'quiktrip', 'qt ', 'racetrac', 'sheetz', 'valero', 'phillips 66', 'conoco', 'citgo', 'gas station', 'fuel', 'petrol', 'uber', 'lyft', 'taxi', 'cab', 'transit', 'metro', 'mta', 'bart', 'amtrak', 'greyhound', 'parking', 'parkmobile', 'toll', 'tolls', 'ez pass', 'ezpass', 'fastrak', 'dmv', 'jiffy lube', 'autozone', 'o\'reilly', 'pep boys', 'car wash', 'repsol', 'cepsa', 'total energies', 'totalenergies', 'aral', 'esso', 'sncf', 'sncf connect', 'sncf voyageurs', 'ouigo', 'tgv', 'ratp', 'renfe', 'trenitalia', 'deutsche bahn', 'db bahn', 'bvg', '加油', '地铁', 'ガソリン', '주유', '지하철'],
   health: ['pharmacy', 'cvs', 'walgreens', 'rite aid', 'clinic', 'medical', 'hospital', 'dental', 'dentist', 'doctor', 'md ', 'health', 'kaiser', 'labcorp', 'quest diag', 'optum', 'urgent care', 'physician', 'vision', 'optical', 'lenscrafters', 'gym', 'fitness', 'planet fitness', 'la fitness', '24 hour fitness', 'equinox', 'crunch', 'peloton', 'therapy', 'chiropr', 'vet ', 'veterinary', 'farmacia', 'pharmacie', 'apotheke', '药店', '薬局', '약국', '병원'],
   entertainment: ['cinema', 'theater', 'theatre', 'amc ', 'regal', 'cinemark', 'ticketmaster', 'stubhub', 'eventbrite', 'steam games', 'steampowered', 'playstation', 'xbox', 'nintendo', 'blizzard', 'epic games', 'bowling', 'golf', 'museum', 'zoo', 'concert', 'fandango', 'topgolf', 'dave & buster', 'kindle', 'audible', 'books', 'barnes', 'bookstore', 'fnac', '电影', '映画', '영화'],
   shopping: ['amazon', 'amzn', 'amz*', 'ebay', 'etsy', 'best buy', 'bestbuy', 'apple store', 'apple.com', 'home depot', 'lowes', "lowe's", 'ikea', 'wayfair', 'macy', 'macys', 'nordstrom', 'kohl', 'kohls', 'tj maxx', 'tjmaxx', 'marshalls', 'ross ', 'old navy', 'gap ', 'h&m', 'zara', 'uniqlo', 'nike', 'adidas', 'foot locker', 'dick\'s', 'rei ', 'ulta', 'sephora', 'bath & body', 'michaels', 'hobby lobby', 'dollar tree', 'dollar general', 'five below', 'staples', 'office depot', 'petco', 'petsmart', 'chewy', 'shein', 'temu', 'aliexpress', 'wish.com', 'walmart.com', 'target.com', 'el corte ingles', 'decathlon', 'mediamarkt', 'saturn', 'otto', 'zalando', '淘宝', '京东', '拼多多', 'ユニクロ', '楽天', '쿠팡'],
@@ -31,11 +31,11 @@ const TRANSFER_RE = /\b(transfer|xfer|tfr|zelle to|venmo payment|venmo to|cash a
 const REFUND_RE = /\b(refund|return|reversal|credit adj|adjustment|chargeback|dispute credit|credit voucher|rembours|reembolso|rimborso|erstattung|gutschrift)\b/i;
 const INTEREST_RE = /\b(interest charge|interest charged|finance charge|purchase interest|cash advance interest|intereses|intérêts|interessi|zinsen)\b/i;
 const FEE_RE = /\b(fee|fees|service charge|overdraft|nsf|late charge|penalty|annual membership|maintenance charge|comisión|comision|frais|commissione|gebühr|gebuehr)\b/i;
-const INCOME_RE = /\b(payroll|direct dep|dir dep|salary|wages|deposit|interest paid|interest earned|dividend|refund|cashback|reward|pension|ssa treas|irs treas|gehalt|lohn|nómina|nomina|salaire|stipendio|virement reçu|ingreso|abono)\b/i;
+const INCOME_RE = /\b(payroll|direct dep|dir dep|salary|wages|paycheck|pay cheque|paycheque|payslip|deposit|interest paid|interest earned|dividend|refund|cashback|reward|pension|ssa treas|irs treas|gehalt|lohn|nómina|nomina|salaire|stipendio|virement reçu|ingreso|abono)\b/i;
 const ATM_RE = /\b(atm|cash withdrawal|withdrawal|retiro|retrait|prelievo|abhebung|bargeld)\b/i;
 
 const NOISE = [
-  /\b(pos|purchase|debit card purchase|debit purchase|checkcard|check card|visa purchase|mastercard purchase|card purchase|pos purchase|pos debit|dbt purchase|purchase authorized on|recurring payment authorized on|authorized on|electronic withdrawal|electronic deposit|ach debit|ach credit|ach|web|ppd|ccd|tel|des:|id:|indn:|co id:|type:|trace#|conf#|ref#|ref no|sec:)\b/gi,
+  /\b(pos|purchase|debit card purchase|debit purchase|checkcard|check card|visa purchase|mastercard purchase|card purchase|pos purchase|pos debit|dbt purchase|purchase authorized on|recurring payment authorized on|authorized on|electronic withdrawal|electronic deposit|ach debit|ach credit|ach|web|ppd|ccd|tel|des:|id:|indn:|co id:|type:|trace#|conf#|ref#|ref no|sec:|direct debit|faster payment|standing order|bank giro credit)\b/gi,
   /\b(?:x{2,}|\*{2,})\d{2,6}\b/gi,
   /\bcard\s*(?:ending|ending in|#)?\s*\d{4}\b/gi,
   /#\s?\d{2,}/g,
@@ -95,12 +95,19 @@ function containsPhrase(rawLower: string, phrase: string): boolean {
   return false;
 }
 
-/** The dictionary lookup on the raw (lowercased) description; longest phrase wins. */
+/**
+ * Words that describe a service rather than name a merchant, and turn up inside other merchants' lines
+ * ("SNCF INTERNET", "AMAZON MARKETPLACE", "SQ *CITY WATER"). A named merchant wins over them whatever its length.
+ */
+const GENERIC_PHRASES = new Set(['internet', 'wireless', 'telecom', 'energy', 'power', 'water', 'electric', 'market', 'sq *', 'tst*']);
+
+/** The dictionary lookup on the raw (lowercased) description; a named merchant first, then the longest phrase. */
 export function lookupMerchant(rawLower: string): { categoryId: string; phrase: string } | null {
   let best: { categoryId: string; phrase: string } | null = null;
+  const rank = (phrase: string) => (GENERIC_PHRASES.has(phrase) ? 0 : 1000) + phrase.length;
   for (const [categoryId, phrases] of Object.entries(STATEMENT_MERCHANTS)) {
     for (const phrase of phrases) {
-      if ((!best || phrase.length > best.phrase.length) && containsPhrase(rawLower, phrase)) best = { categoryId, phrase };
+      if ((!best || rank(phrase) > rank(best.phrase)) && containsPhrase(rawLower, phrase)) best = { categoryId, phrase };
     }
   }
   return best;
@@ -130,8 +137,8 @@ export function guessKind(rawDescription: string, direction: 'in' | 'out', state
     if (FEE_RE.test(text)) return { kind: 'fee', categoryId: 'debt', confidence: 0.85 };
     return { kind: 'expense', categoryId: merchant?.categoryId ?? null, confidence: merchant ? 0.8 : 0.3 };
   }
-  // Bank account.
-  if (TRANSFER_RE.test(text) && !PAYMENT_RE.test(text) && !INCOME_RE.test(text)) return { kind: 'transfer', categoryId: 'savings', confidence: 0.8 };
+  // Bank account. "WIRE TRANSFER FEE" is a fee the bank took, not money moved between accounts.
+  if (TRANSFER_RE.test(text) && !PAYMENT_RE.test(text) && !INCOME_RE.test(text) && !FEE_RE.test(text)) return { kind: 'transfer', categoryId: 'savings', confidence: 0.8 };
   if (direction === 'in') {
     if (INTEREST_RE.test(text) || FEE_RE.test(text)) return { kind: 'income', categoryId: 'other_income', confidence: 0.6 };
     const incomeCategory = merchant && (merchant.categoryId === 'salary' || merchant.categoryId === 'freelance' || merchant.categoryId === 'gift_income' || merchant.categoryId === 'other_income');
