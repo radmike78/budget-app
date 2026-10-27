@@ -101,6 +101,17 @@ describe('periodRange', () => {
     expect(periodRange('lastYear', TODAY)).toEqual({ from: '2025-01-01', to: '2025-12-31' });
     expect(periodRange('yesterday', TODAY)).toEqual({ from: '2026-09-15', to: '2026-09-15' });
   });
+  it('a month by name: this year up to today, or last year when it has not come yet', () => {
+    expect(periodRange('namedMonth', TODAY, undefined, 7, 0, 7)).toEqual({ from: '2026-08-01', to: '2026-08-31' });
+    expect(periodRange('namedMonth', TODAY, undefined, 7, 0, 8)).toEqual({ from: '2026-09-01', to: '2026-09-16' });
+    expect(periodRange('namedMonth', TODAY, undefined, 7, 0, 11)).toEqual({ from: '2025-12-01', to: '2025-12-31' });
+    expect(compareRanges('namedMonth', TODAY, undefined, undefined, 0, 7, 7)).toEqual({ now: { from: '2026-08-01', to: '2026-08-31' }, before: { from: '2026-07-01', to: '2026-07-31' } });
+  });
+  it('"in august" is parsed as that month, and the name never becomes the target', () => {
+    const q = ask('how much did I spend on coffee in August?').question!;
+    expect(q).toMatchObject({ period: 'namedMonth', month: 7, target: 'Coffee' });
+    expect(periodRange(q.period, TODAY, undefined, q.days, 0, q.month)).toEqual({ from: '2026-08-01', to: '2026-08-31' });
+  });
 });
 
 describe('answerQuestion', () => {

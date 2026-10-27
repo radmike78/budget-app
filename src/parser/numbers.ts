@@ -21,6 +21,9 @@ export function normalizeDecimalPoint(text: string): string {
     .replace(/(\d{1,3}(?:\.\d{3})+),(\d{1,2})(?!\d)/g, (_m, int: string, dec: string) => `${int.replace(/\./g, '')}.${dec}`)
     // "3,000,000": every separator goes, not only the first.
     .replace(/(?<![\d,])\d{1,3}(?:,\d{3})+(?![\d,])/g, (m) => m.replace(/,/g, ''))
+    // "1.200" with exactly three digits after the one dot and nothing else is a thousands group (as a typed field
+    // reads it); "4.50" and "1.2345" stay decimals.
+    .replace(/(?<![\d.,])([1-9]\d{0,2})\.(\d{3})(?![\d.,])/g, '$1$2')
     // "12,50" with no space after the comma is a decimal comma (people in comma countries use the English app
     // too); "12, 50" stays two numbers, and three digits after it ("2,400") were grouping, handled above.
     .replace(/(?<![\d.,])(\d+),(\d{1,2})(?![\d,])/g, '$1.$2');
@@ -74,6 +77,8 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
     for (let idx = 0; idx < run.length; idx += 1) {
       const w = run[idx];
       if (table.connectors.includes(w)) { afterConnector = true; continue; }
+      // "2 mil" and "mil 500": digits stand for the value said so far, or the hundreds after a scale word.
+      if (/^\d+$/.test(w)) { current += Number(w); saw = true; lastSmall = false; afterConnector = false; continue; }
       // "un million" starts a number; after one has started, "vingt et un", "cent un", "treinta y un" add one like any unit.
       if (table.one.includes(w)) {
         if (!saw) { current = 1; continue; }
@@ -106,20 +111,33 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
     const words = text.split(/\s+/).filter(Boolean);
     const out: string[] = [];
     let i = 0;
+    // "2 mil", "2 mila", "2 mille": a plain number starts a run when a scale word follows; "mil 500" continues one
+    // with up to three digits after a thousands or millions word (a count after a number, "mil 2 cafés", does not).
+    const digitsOf = (token: string): string | null => token.match(/^(\d{1,3})[^\p{L}\p{N}]*$/u)?.[1] ?? null;
+    const isBig = (w: string) => table.thousand.includes(w) || (table.million?.includes(w) ?? false);
     while (i < words.length) {
       const w = strip(words[i]);
       const nextW = i + 1 < words.length ? strip(words[i + 1]) : '';
-      const starts = isNum(w) || (table.one.includes(w) && isScale(nextW));
+      const leadDigits = digitsOf(words[i]);
+      const starts = isNum(w) || (table.one.includes(w) && isScale(nextW)) || (leadDigits != null && isBig(nextW));
       if (!starts) { out.push(words[i]); i += 1; continue; }
       let j = i;
       const run: string[] = [];
       while (j < words.length) {
         const cw = strip(words[j]);
+        const digits = digitsOf(words[j]);
         const isConn = table.connectors.includes(cw);
         const prev = run[run.length - 1] ?? '';
         // "un million" starts a run; "treinta y un", "ciento un", "cent un" continue one after a connector or a scale word.
         const isOne = table.one.includes(cw) && (run.length === 0 || table.connectors.includes(prev) || isScale(prev));
-        if (isNum(cw) || isConn || isOne) {
+        // After "mil" only a hundreds group ("mil 500") belongs to the number; a lone digit is a count ("mil 2 cafés").
+        const isDigits = digits != null && (run.length === 0 || (isBig(prev) && digits.length >= 2));
+        if (isDigits) {
+          const after = j + 1 < words.length ? strip(words[j + 1]) : '';
+          if (run.length > 0 && (isNum(after) || table.one.includes(after))) break;
+          run.push(digits!);
+          j += 1;
+        } else if (isNum(cw) || isConn || isOne) {
           if (isConn) {
             const after = j + 1 < words.length ? strip(words[j + 1]) : '';
             if (!isNum(after) && !table.one.includes(after)) break;
@@ -130,7 +148,7 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
       }
       const value = evaluate(run);
       if (value === null) { out.push(words[i]); i += 1; continue; }
-      const trailing = words[j - 1].match(/[^\p{L}]+$/u)?.[0] ?? '';
+      const trailing = words[j - 1].match(/[^\p{L}\p{N}]+$/u)?.[0] ?? '';
       out.push((Number.isInteger(value) ? String(value) : value.toFixed(2)) + trailing);
       i = j;
     }
@@ -179,8 +197,8 @@ const CJK_PROTECTED = /(?:星期[一二三四五六日天]|周[一二三四五�
 export function cjkNumeralsToDigits(text: string): string {
   const saved: string[] = [];
   const protectedText = text
-    // "1.5万" -> 15000 before the run matcher, which does not read decimals.
-    .replace(/(\d+\.\d+)([万萬亿億])/g, (_m, n: string, big: string) => String(Math.round(parseFloat(n) * CJK_BIG[big])))
+    // "1.5万" -> 15000 and "3.5千" -> 3500 before the run matcher, which does not read decimals.
+    .replace(/(\d+\.\d+)([万萬亿億千])/g, (_m, n: string, big: string) => String(Math.round(parseFloat(n) * (CJK_BIG[big] ?? CJK_SMALL[big]))))
     .replace(CJK_PROTECTED, (m) => { saved.push(m); return `\u0000${saved.length - 1}\u0000`; });
   const converted = protectedText.replace(/[\d零〇一二两兩三四五六七八九十百千万萬亿億]+/g, (run) => {
     if (/^\d+$/.test(run)) return run;
@@ -215,9 +233,12 @@ function koToNumber(s: string): number | null {
   return saw ? total + section + current : null;
 }
 
-/** "2만5천" -> "25000", "만원" -> "10000원", "3천" -> "3000". Pure-digit runs are left alone. */
+/** A number after a scale character that is a day, month, hour or count ("90만 1일"): not part of the amount. */
+const KO_COUNTER_AFTER = '(?!\\s?(?:일|월|시|명|개|번|분|주|년|살|시간|달|개월|잔|병|장|권|대|마리|그릇))';
+
+/** "2만5천" -> "25000", "만원" -> "10000원", "3천" -> "3000", "3.5천" -> "3500". Pure-digit runs are left alone. */
 export function koreanNumeralsToDigits(text: string): string {
-  return text.replace(/(\d+\.\d+)([만억])/g, (_m, n: string, big: string) => String(Math.round(parseFloat(n) * KO_BIG[big]))).replace(/\d+(?:\s?[십백천만억]\s?\d*)+|(?<![\p{L}])[일이삼사오육칠팔구십백천만억]{1,12}(?=원|\s|$|[^\p{L}])/gu, (run) => {
+  return text.replace(/(\d+\.\d+)([만억천])/g, (_m, n: string, big: string) => String(Math.round(parseFloat(n) * (KO_BIG[big] ?? KO_SMALL[big])))).replace(new RegExp(`\\d+(?:\\s?[십백천만억](?:\\s?\\d+${KO_COUNTER_AFTER})?)+|(?<![\\p{L}])[일이삼사오육칠팔구십백천만억]{1,12}(?=원|\\s|$|[^\\p{L}])`, 'gu'), (run) => {
     const compact = run.replace(/\s+/g, '');
     if (/^\d+$/.test(compact)) return run;
     // Avoid eating ordinary words that happen to start with 일/이/사 etc: require a scale character.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { longDate, monthKey, monthRange, today } from '@/lib/dates';
+import { longDate, monthKey, monthName, monthRange, today } from '@/lib/dates';
 import { periodContaining, shiftPeriod } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
 import { parseEntries, type Correction, type ParseResult } from '@/parser';
@@ -60,14 +60,21 @@ export function useEntryFlow() {
     const month = monthRange(monthKey(todayStr));
     const isPayPeriod = current.start !== month.start || current.end !== month.end;
     const nameOf = (id: string) => { const c = categories.find((x) => x.id === id); return c ? categoryName(c, t) : id; };
+    // How the period is said back: "this week", "the last 7 days", or the month's own name for "in August".
+    const periodLabel = (period: string, range: { from: string }): string => {
+      if (period === 'recentDays') return t.periodLastDays(q.days ?? 7);
+      if (period === 'namedMonth') return monthName(range.from.slice(0, 7), fmt);
+      if (period === 'budget' && !isPayPeriod) return t.periodNames.month;
+      return t.periodNames[period] ?? period;
+    };
     let text: string;
 
     if (q.ask === 'compare') {
       // The period so far against the same point in the one before, so half a month never meets a whole one.
       const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
       const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);
-      const whole = kind === 'lastWeek' || kind === 'lastMonth' || kind === 'lastYear' || kind === 'yesterday' || kind === 'weekend' || kind === 'recentDays' || kind === 'today';
-      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0, q.days);
+      const whole = kind === 'lastWeek' || kind === 'lastMonth' || kind === 'lastYear' || kind === 'yesterday' || kind === 'weekend' || kind === 'recentDays' || kind === 'today' || kind === 'namedMonth';
+      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0, q.days, q.month);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: r.before.from, to: r.now.to, limit: 100000 });
       const spentQ = { ...q, ask: 'spent' as const };
@@ -75,15 +82,15 @@ export function useEntryFlow() {
       const before = answerQuestion(spentQ, rows, r.before, categories);
       const cat = now.categoryId ? categories.find((c) => c.id === now.categoryId) : null;
       const what = now.categoryIds ? now.target : cat && !now.usedFallback ? categoryName(cat, t) : now.target;
-      const periodName = kind === 'recentDays' ? t.periodLastDays(q.days ?? 7) : t.periodNames[kind] ?? kind;
-      const prev = kind === 'recentDays' ? t.comparePrevDays(q.days ?? 7) : t.comparePrev[kind] ?? kind;
+      const periodName = periodLabel(kind, r.now);
+      const prev = kind === 'recentDays' ? t.comparePrevDays(q.days ?? 7) : kind === 'namedMonth' ? t.comparePrev.lastMonth : t.comparePrev[kind] ?? kind;
       text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev, whole);
     } else if (q.ask === 'top') {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
-      const periodName = period === 'recentDays' ? t.periodLastDays(q.days ?? 7) : period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
+      const periodName = periodLabel(period, range);
       const top = answerTop(rows, range);
       text = top ? t.answerTop(periodName, top.categoryId ? nameOf(top.categoryId) : t.otherSpending, money(top.amount), money(top.total)) : t.answerNone(periodName, null, false);
     } else if (q.ask === 'afford') {
@@ -121,11 +128,11 @@ export function useEntryFlow() {
       }
     } else {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
       const a = answerQuestion(q, rows, range, categories);
-      const periodName = period === 'recentDays' ? t.periodLastDays(q.days ?? 7) : period === 'budget' && !isPayPeriod ? t.periodNames.month : (t.periodNames[period] ?? period);
+      const periodName = periodLabel(period, range);
       const cat = a.categoryId ? categories.find((c) => c.id === a.categoryId) : null;
       const what = a.categoryIds ? a.target : cat && !a.usedFallback ? categoryName(cat, t) : a.target;
       text = a.count > 0 ? t.answerTotal(periodName, money(a.total), what, a.count, q.type === 'income') : t.answerNone(periodName, what, q.type === 'income');
