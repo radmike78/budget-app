@@ -337,8 +337,17 @@ await step('backup export and restore', async () => {
   log.push(`backup has ${json.transactions?.length ?? '?'} transactions, ${json.categories?.length ?? '?'} categories, keys: ${Object.keys(json).join(',')}`);
   if (JSON.stringify(json).includes('apiKey') || JSON.stringify(json).includes('sk-ant')) throw new Error('backup contains a secret');
   if (!json.reminders || !json.debts) log.push('NOTE backup has no reminders/debts arrays');
+  // The phone has entries, so the file can be added to them or replace them. First: add, which brings in nothing new.
   const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), button(/Restore from a backup file/).click()]);
   await chooser.setFiles(file);
+  await button(/Add what is new/).click();
+  await page.waitForTimeout(2500);
+  await expectText('Nothing new in that file');
+  await shot('after-merge');
+  // Then: replace everything, which asks once more and keeps the same entries.
+  const [chooser2] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), button(/Restore from a backup file/).click()]);
+  await chooser2.setFiles(file);
+  await button(/Replace everything/).click();
   await page.waitForTimeout(2500);
   await shot('after-restore');
   await goto('/history');
