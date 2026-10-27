@@ -146,6 +146,45 @@ TOPUP,Current,2026-03-07 08:00:00,2026-03-07 08:00:00,Payment from Jane Doe,100.
     expect(Object.values(l).find((x) => x.direction === 'in')).toMatchObject({ amount: 2400, categoryId: 'salary' });
     expect(JSON.stringify(p)).not.toMatch(/DE89|0532013000/);
   });
+  it('reads a Swiss PostFinance export: Belastung and Gutschrift, with every salary and refund kept', () => {
+    const csv = `Datum;Beschreibung;Belastung;Gutschrift;Saldo
+01.03.2026;MIGROS ZUERICH;45.60;;1234.40
+02.03.2026;COOP PRONTO;12.30;;1222.10
+03.03.2026;SBB CFF FFS;8.80;;1213.30
+04.03.2026;DENNER;23.10;;1190.20
+05.03.2026;SWISSCOM;60.00;;1130.20
+06.03.2026;APOTHEKE;15.50;;1114.70
+07.03.2026;GUTSCHRIFT RUECKERSTATTUNG;;30.00;1144.70
+08.03.2026;MANOR;80.00;;1064.70
+09.03.2026;STARBUCKS;6.50;;1058.20
+25.03.2026;GEHALT ACME AG;;5200.00;6258.20`;
+    const p = read(csv, 'de');
+    expect(p.lines).toHaveLength(10);
+    expect(p.csvWarnings).toEqual([]);
+    expect(p.warnings).not.toContain('directionGuessed');
+    expect(p.lines.filter((x) => x.direction === 'in').map((x) => [x.date, x.amount, x.categoryId])).toEqual([['2026-03-07', 30, 'other_income'], ['2026-03-25', 5200, 'salary']]);
+    expect(by(p)['Migros Zuerich']).toMatchObject({ direction: 'out', amount: 45.6, balance: 1234.4 });
+    // Four lines or fewer: the balance column is still the balance, never the amount.
+    const short = read(csv.split('\n').slice(0, 4).join('\n'), 'de');
+    expect(short.lines.map((x) => [x.direction, x.amount])).toEqual([['out', 45.6], ['out', 12.3], ['out', 8.8]]);
+  });
+  it('reads a UBS export: three Beschreibung columns, Abschlussdatum, and the amounts in francs', () => {
+    const csv = `Abschlussdatum;Buchungsdatum;Valutadatum;Währung;Belastung;Gutschrift;Saldo;Beschreibung1;Beschreibung2;Beschreibung3
+2026-03-02;2026-03-02;2026-03-02;CHF;45.60;;1234.40;Kartenzahlung;MIGROS ZUERICH;Zuerich
+2026-03-25;2026-03-25;2026-03-25;CHF;;5200.00;6434.40;Gutschrift;ACME AG LOHN;`;
+    const p = read(csv, 'de');
+    expect(p.csvWarnings).toEqual([]);
+    expect(p.lines.map((x) => [x.date, x.direction, x.amount, x.categoryId])).toEqual([['2026-03-02', 'out', 45.6, 'groceries'], ['2026-03-25', 'in', 5200, 'salary']]);
+  });
+  it('an English header in words it does not know is dropped before the shape is read, and is not a skipped line', () => {
+    const csv = `Txn Day,Narration,Paid,Received,Bal
+2026-03-01,COFFEE SHOP,4.50,,100.00
+2026-03-02,ACME PAYROLL,,1500.00,1600.00
+2026-03-03,SHELL,40.00,,1560.00`;
+    const p = read(csv);
+    expect(p.csvWarnings).toEqual([]);
+    expect(p.lines.map((x) => [x.direction, x.amount, x.balance])).toEqual([['out', 4.5, 100], ['in', 1500, 1600], ['out', 40, 1560]]);
+  });
   it('reads a French export with separate Débit and Crédit columns in euros', () => {
     const csv = `Date;Libellé;Débit euros;Crédit euros;
 05/03/2026;CARTE 04/03 CARREFOUR MARKET;45,67;;

@@ -8,12 +8,18 @@ export interface MoneyToken {
   negative: boolean;
   /** A CR marker (credit) was present. */
   credit: boolean;
+  /** The number was written with cents ("50.00", "12,50"); a whole number may be a reference rather than money. */
+  decimals: boolean;
   start: number;
   end: number;
   raw: string;
 }
 
 const CURRENCY = '(?:[$€£¥₹₩]|円|원|元|USD|EUR|GBP|CAD|AUD|CHF|MXN|BRL|JPY|CNY|KRW|R\\$|C\\$|A\\$)?';
+/** A currency sign or code inside a matched token. */
+const CURRENCY_MARK = /[$€£¥₹₩円원元]|USD|EUR|GBP|CAD|AUD|CHF|MXN|BRL|JPY|CNY|KRW/;
+/** A three-letter code ("USD"), as opposed to a sign: a code between two numbers belongs to the one after it. */
+const CURRENCY_CODE = /[A-Z]{3}/;
 // Number with optional thousands separators and an optional 2-digit decimal part.
 // A space (or NBSP) only groups thousands when the number ends in a decimal comma ("1 234,56"); "CHECK 123 450.00" is two numbers.
 const NUMBER = '(?:\\d{1,3}(?:[\\s ]\\d{3})+(?=,\\d{2})|\\d{1,3}(?:[,.]\\d{3})+|\\d+)(?:[.,]\\d{2})?';
@@ -53,14 +59,23 @@ export function findMoney(input: string): MoneyToken[] {
     // "2026", account numbers and check numbers would all look like amounts.
     const hasSeparators = /[,.\s ]/.test(numeric);
     // Yen and won have no cents, so "980円" or "₩4500" is money on its own.
-    const hasCurrency = /[$€£¥₹₩円원元]|USD|EUR|GBP|JPY|KRW|CNY/.test(raw);
-    if (!hasDecimals && !hasSeparators && !hasCurrency) continue;
+    const numericAt = raw.indexOf(numeric);
+    const currencyBefore = CURRENCY_MARK.test(raw.slice(0, numericAt));
+    const currencyAfter = CURRENCY_MARK.test(raw.slice(numericAt + numeric.length));
+    if (!hasDecimals && !hasSeparators) {
+      if (!currencyBefore && !currencyAfter) continue;
+      // "REF 1234567 USD 50.00": the code belongs to the amount after it, not to the reference number before it.
+      // The scan resumes at the code, so "USD 50.00" is read with its currency.
+      if (!currencyBefore && CURRENCY_CODE.test(raw.slice(numericAt + numeric.length)) && /^\s?[-−–(]?\s?\d/.test(text.slice(m.index + raw.length))) { MONEY_RE.lastIndex = m.index + numericAt + numeric.length; continue; }
+      // A whole number of more than seven digits is an id, even with a currency code next to it.
+      if (digitsOnly.length > 7) continue;
+    }
     if (digitsOnly.length > 13) continue;
     const value = toNumber(numeric);
     if (value == null) continue;
     const suffixNorm = (suffix ?? '').toUpperCase();
     const negative = Boolean(minusBefore || minusMid || (open === '(' && close === ')') || suffixNorm === '-' || suffixNorm === '−' || suffixNorm === '–' || suffixNorm === 'DR');
-    out.push({ value, negative, credit: suffixNorm === 'CR', start: m.index, end: m.index + raw.length, raw });
+    out.push({ value, negative, credit: suffixNorm === 'CR', decimals: hasDecimals, start: m.index, end: m.index + raw.length, raw });
   }
   return out;
 }

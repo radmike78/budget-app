@@ -22,12 +22,13 @@ type Role = 'date' | 'desc' | 'amount' | 'in' | 'out' | 'balance' | 'sign' | 'ca
 
 /** Header words, in the eight app languages plus what common exports use. Longer, more specific words first. */
 const HEADER_ROLES: { re: RegExp; role: Role }[] = [
-  { re: /^(?:money in|paid in|deposits?|credits?|credit amount|inflow|amount credited|cash in|haben|eingang|gutschrift|abonos?|ingresos?|cr[ée]dits?|entrate|accrediti|avere|入金|入金額|예금|입금|입금액|收入|存入|贷方)$/i, role: 'in' },
-  { re: /^(?:money out|paid out|withdrawals?|debits?|debit amount|outflow|amount debited|cash out|charges?|soll|ausgang|lastschrift|cargos?|retiros?|d[ée]bits?|uscite|addebiti|dare|出金|出金額|인출|출금|출금액|支出|取出|借方)$/i, role: 'out' },
-  { re: /^(?:amount|transaction amount|amt|value|sum|importe|monto|cantidad|montant|betrag|umsatz|importo|金額|금액|거래금액|金额|交易金额)$/i, role: 'amount' },
+  // German and Swiss exports (PostFinance, UBS, Raiffeisen, Sparkasse) say Gutschrift/Belastung or Haben/Soll.
+  { re: /^(?:money in|paid in|deposits?|credits?|credit amount|inflow|amount credited|cash in|haben|eingang|eing[äa]nge|gutschrift(?:en)?|einnahmen|zugang|abonos?|ingresos?|cr[ée]dits?|entrate|accrediti|avere|入金|入金額|예금|입금|입금액|收入|存入|贷方)$/i, role: 'in' },
+  { re: /^(?:money out|paid out|withdrawals?|debits?|debit amount|outflow|amount debited|cash out|charges?|soll|ausgang|ausg[äa]nge|lastschrift(?:en)?|belastung(?:en)?|abbuchung(?:en)?|ausgaben|abgang|cargos?|retiros?|d[ée]bits?|uscite|addebiti|dare|出金|出金額|인출|출금|출금액|支出|取出|借方)$/i, role: 'out' },
+  { re: /^(?:amount|transaction amount|credit\/debit amount|debit\/credit amount|amt|value|sum|importe|monto|cantidad|montant|betrag|umsatz|importo|金額|금액|거래금액|金额|交易金额)$/i, role: 'amount' },
   { re: /^(?:balance|running balance|closing balance|available balance|balance after transaction|saldo|solde|kontostand|残高|잔액|余额|馀额)$/i, role: 'balance' },
-  { re: /^(?:date|transaction date|trans date|posting date|post date|posted date|booking date|value date|date posted|started date|completed date|fecha|fecha operaci[oó]n|fecha valor|date d'op[ée]ration|date de valeur|datum|buchungstag|buchungsdatum|wertstellung|valuta|data|data operazione|data valuta|日付|取引日|利用日|거래일|거래일자|日期|交易日期|记账日期)$/i, role: 'date' },
-  { re: /^(?:description|details|transaction details|transaction description|narrative|memo|payee|merchant|name|counterparty|beneficiary|reference|particulars|descripci[oó]n|concepto|libell[ée]|intitul[ée]|verwendungszweck|buchungstext|auftraggeber ?\/? ?empf[äa]nger|beg[üu]nstigter|descrizione|dettagli|operazione|causale|摘要|内容|利用店名|적요|내용|거래내용|交易摘要|交易说明|商户)$/i, role: 'desc' },
+  { re: /^(?:date|transaction date|trans date|posting date|post date|posted date|booking date|booked at|value date|date posted|started date|completed date|fecha|fecha operaci[oó]n|fecha valor|date d'op[ée]ration|date de valeur|datum|buchungstag|buchungsdatum|abschlussdatum|valutadatum|wertstellung|valuta|data|data operazione|data valuta|日付|取引日|利用日|거래일|거래일자|日期|交易日期|记账日期)$/i, role: 'date' },
+  { re: /^(?:description|details|transaction details|transaction description|narrative|memo|payee|merchant|name|counterparty|beneficiary|reference|particulars|text|descripci[oó]n|concepto|libell[ée]|intitul[ée]|verwendungszweck|buchungstext|avisierungstext|beschreibung ?\d?|empf[äa]nger|zahlungsempf[äa]nger|auftraggeber ?\/? ?empf[äa]nger|beg[üu]nstigter|descrizione|dettagli|operazione|causale|摘要|内容|利用店名|적요|내용|거래내용|交易摘要|交易说明|商户)$/i, role: 'desc' },
   // Another app's export (YNAB, Mint, Monarch, Goodbudget, EveryDollar): its category lands in this app's category.
   { re: /^(?:category|categories|category group\/category|category group|subcategory|envelope|budget category|budget|categor[ií]a|cat[ée]gorie|kategorie|カテゴリ|カテゴリー|分類|분류|카테고리|分类|类别)$/i, role: 'category' },
   { re: /^(?:type|transaction type|cr\/dr|dr\/cr|d\/c|c\/d|debit\/credit|credit\/debit|direction|flow|indicator|tipo|type d'op[ée]ration|soll\/haben|art|区分|입출금구분|借贷)$/i, role: 'sign' },
@@ -170,8 +171,18 @@ function refineByContent(plan: Plan, data: string[][]): Plan {
   return { ...plan, desc, sign: plan.sign ?? (flagCol != null && plan.inCol == null ? flagCol : null) };
 }
 
-/** No usable header: dates are where most cells are dates, amounts where most are numbers, words are the description. */
+/** A row with no date and no number in it: a title, a note or a header the role list does not know. */
+function hasNoData(row: string[], language: string): boolean {
+  return !row.some((c) => c && (csvAmount(c) != null || looksLikeDate(c, language)));
+}
+
+/**
+ * No usable header: dates are where most cells are dates, amounts where most are numbers, words are the description.
+ * Each column is scored over its filled cells only, so a sparse money-in column (two salaries and a refund among
+ * forty blank cells) is numeric all the same. The caller drops title and header rows first, so they never dilute it.
+ */
 function planFromShape(rows: string[][], language: string): Plan | null {
+  if (!rows.length) return null;
   const width = Math.max(...rows.map((r) => r.length));
   const sample = rows.slice(0, 60);
   const score = (fn: (c: string) => boolean) => Array.from({ length: width }, (_v, col) => {
@@ -224,8 +235,16 @@ export function csvToRows(text: string, language: string, today: string): CsvRow
     const p = planFromHeader(r);
     if (p) { plan = { ...p, headerRow: i }; }
   }
-  const data = plan ? grid.slice(plan.headerRow + 1) : grid;
-  if (!plan) plan = planFromShape(data.filter((r) => r.length >= 2), language);
+  let data = plan ? grid.slice(plan.headerRow + 1) : grid;
+  if (!plan) {
+    // A header in words the role list does not know, or a title above the data: rows with no date and no number
+    // are not lines, and left in they would dilute the shape scores (a sparse credit column with "Gutschrift" on
+    // top reads as mostly text) and be reported as skipped lines.
+    let lead = 0;
+    while (lead < Math.min(data.length, 10) && hasNoData(data[lead], language)) lead += 1;
+    data = data.slice(lead);
+    plan = planFromShape(data.filter((r) => r.length >= 2), language);
+  }
   if (!plan) return { rows: [], period: null, warnings: ['csvNoColumns'] };
   plan = refineByContent(plan, data);
 
