@@ -10,6 +10,7 @@ import { isRecapDay, weekRange, weekRecap, type WeekRecap } from '@/lib/recap';
 import { isReviewTime, periodReview, type PeriodReview } from '@/lib/review';
 import { newId } from '@/lib/ids';
 import { dueOccurrences, resumeFrom } from '@/lib/recurring';
+import { mergeBackup, type MergeSource } from '@/lib/mergeBackup';
 import { learnableWords } from '@/parser';
 import { redactOrMask, redactSensitive } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
@@ -110,6 +111,8 @@ interface AppState {
   learnCategory: (rawInput: string, categoryId: string) => Promise<void>;
   forgetKeyword: (word: string) => Promise<void>;
   restoreAll: (data: Parameters<typeof repo.replaceAllData>[1]) => Promise<void>;
+  /** Adds what a backup has that this phone does not; returns how many entries came in. */
+  mergeRestore: (data: MergeSource) => Promise<{ added: number; skipped: number }>;
   resetAll: () => Promise<void>;
   /** Reads the trial dates and what the store knows, and moves the latest-seen day forward. */
   refreshLicense: () => Promise<void>;
@@ -694,6 +697,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     const db = await getDb();
     await repo.deleteKeyword(db, word);
     await get().refresh();
+  },
+
+  mergeRestore: async (data) => {
+    const db = await getDb();
+    const { categories, rules, goals, keywords, reminders, debts, imports, carryovers } = get();
+    const here: MergeSource = { categories, transactions: await repo.allTransactions(db), recurringRules: rules, goals, keywords, reminders, debts, imports, carryovers };
+    const plan = mergeBackup(here, data);
+    await repo.addData(db, plan);
+    await get().runRecurringCatchUp();
+    await get().refresh();
+    // Reminders that came in carry no notification id; this schedules them on this phone.
+    await get().rearmReminders().catch(() => {});
+    return { added: plan.transactions.length, skipped: plan.skippedTransactions };
   },
 
   restoreAll: async (data) => {

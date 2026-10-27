@@ -411,6 +411,44 @@ export async function setAppState(db: DB, key: string, value: string): Promise<v
 
 // ---------- backup / restore ----------
 
+/** Adds the rows a merge picked (`mergeBackup`), leaving everything already here untouched. */
+export async function addData(
+  db: DB,
+  data: { categories: Category[]; transactions: Transaction[]; recurringRules: RecurringRule[]; goals: Goal[]; keywords: KeywordMapping[]; reminders: Reminder[]; debts: Debt[]; imports: ImportRecord[]; carryovers: CarryDecision[] },
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (const c of data.categories) {
+      await db.runAsync('INSERT OR IGNORE INTO categories (id, name, icon, kind, monthly_limit, is_default, archived, sort_order, rollover, rollover_since, tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [c.id, c.name, c.icon, c.kind, c.monthlyLimit, c.isDefault ? 1 : 0, c.archived ? 1 : 0, c.sortOrder, c.rollover ?? 'reset', c.rolloverSince ?? null, c.tier ?? null]);
+    }
+    for (const d of data.carryovers) await db.runAsync('INSERT OR IGNORE INTO carryovers (category_id, period, amount) VALUES (?, ?, ?)', [d.categoryId, d.period, d.amount]);
+    for (const r of data.recurringRules) {
+      await db.runAsync('INSERT OR IGNORE INTO recurring_rules (id, amount, type, category_id, frequency, next_occurrence, note, active, anchor_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [r.id, r.amount, r.type, r.categoryId, r.frequency, r.nextOccurrence, r.note, r.active ? 1 : 0, r.anchorDay ?? null]);
+    }
+    for (const r of data.imports) {
+      await db.runAsync('INSERT OR IGNORE INTO imports (id, kind, file_name, period_start, period_end, count, imported_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [r.id, r.kind, r.fileName, r.periodStart, r.periodEnd, r.count, r.importedAt]);
+    }
+    for (const t of data.transactions) {
+      await db.runAsync('INSERT OR IGNORE INTO transactions (id, amount, type, category_id, note, raw_input, occurred_at, created_at, is_recurring_instance, recurring_rule_id, fingerprint, import_id, goal_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [t.id, t.amount, t.type, t.categoryId, t.note, t.rawInput, t.occurredAt, t.createdAt, t.isRecurringInstance ? 1 : 0, t.recurringRuleId, t.fingerprint ?? null, t.importId ?? null, t.goalId ?? null]);
+    }
+    for (const g of data.goals) {
+      await db.runAsync('INSERT OR IGNORE INTO goals (id, name, kind, target_amount, current_amount, target_date, created_at, completed, starting_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [g.id, g.name, g.kind === 'debt' ? 'debt' : 'saving', g.targetAmount, g.currentAmount, g.targetDate, g.createdAt, g.completed ? 1 : 0, g.startingAmount ?? null]);
+    }
+    for (const k of data.keywords) await db.runAsync('INSERT OR IGNORE INTO keyword_mappings (word, category_id) VALUES (?, ?)', [k.word, k.categoryId]);
+    for (const r of data.reminders) {
+      await db.runAsync('INSERT OR IGNORE INTO reminders (id, text, due_at, repeat, notification_id, created_at) VALUES (?, ?, ?, ?, NULL, ?)', [r.id, r.text, `${r.date}T${r.time}`, r.repeat, r.createdAt]);
+    }
+    for (const d of data.debts) {
+      await db.runAsync('INSERT OR IGNORE INTO debts (id, creditor, type, balance, monthly_payment, credit_limit, apr, source, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [d.id, d.creditor, d.type, d.balance, d.monthlyPayment, d.creditLimit, d.apr, d.source, d.updatedAt]);
+    }
+  });
+}
+
 export async function replaceAllData(
   db: DB,
   data: { settings: Settings; categories: Category[]; transactions: Transaction[]; recurringRules: RecurringRule[]; goals: Goal[]; keywords: KeywordMapping[]; reminders?: Reminder[]; debts?: Debt[]; imports?: ImportRecord[]; carryovers?: CarryDecision[] },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '@/db/database';
@@ -31,6 +31,10 @@ export default function Backup() {
   const imports = useAppStore((s) => s.imports);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const restoreAll = useAppStore((s) => s.restoreAll);
+  const mergeRestore = useAppStore((s) => s.mergeRestore);
+  const lifetime = useAppStore((s) => s.lifetime);
+  const [askRestore, setAskRestore] = useState<{ tx: number; goals: number } | null>(null);
+  const chooseRestore = useRef<((choice: 'add' | 'replace' | null) => void) | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
   const [askPass, setAskPass] = useState<null | { mode: 'encrypt' } | { mode: 'decrypt'; file: unknown }>(null);
@@ -103,8 +107,27 @@ export default function Backup() {
       if (e instanceof BackupValidationError) throw new Error(t.notBackupFile);
       throw e;
     }
-    const ok = await confirmDialog(t.replaceEverythingQ, t.replaceEverythingBody(data.transactions.length, data.goals.length), { confirmText: t.restore, cancelText: t.cancel, destructive: true });
-    if (!ok) return t.cancelled;
+    // With nothing here yet there is nothing to keep; otherwise the person picks between adding and replacing.
+    const empty = lifetime.income === 0 && lifetime.expenses === 0 && goals.length === 0;
+    let choice: 'add' | 'replace' | null = 'replace';
+    if (empty) {
+      const ok = await confirmDialog(t.replaceEverythingQ, t.replaceEverythingBody(data.transactions.length, data.goals.length), { confirmText: t.restore, cancelText: t.cancel, destructive: true });
+      if (!ok) return t.cancelled;
+    } else {
+      choice = await new Promise<'add' | 'replace' | null>((resolve) => { chooseRestore.current = resolve; setAskRestore({ tx: data.transactions.length, goals: data.goals.length }); });
+      chooseRestore.current = null;
+      setAskRestore(null);
+      if (!choice) return t.cancelled;
+      if (choice === 'replace') {
+        await new Promise((r) => setTimeout(r, 400)); // the choice sheet is closing
+        const ok = await confirmDialog(t.replaceEverythingQ, t.replaceEverythingBody(data.transactions.length, data.goals.length), { confirmText: t.restore, cancelText: t.cancel, destructive: true });
+        if (!ok) return t.cancelled;
+      }
+    }
+    if (choice === 'add') {
+      const { added } = await mergeRestore(data);
+      return added ? t.merged(added) : t.mergedNothing;
+    }
     // The switches a file may not set keep whatever this phone already has (the daily reminder stays scheduled or not as it is).
     // The file just restored is itself a backup of everything now on the phone, made when it was exported.
     const exportedAt = (payload as { exportedAt?: unknown }).exportedAt;
@@ -176,6 +199,14 @@ export default function Backup() {
 
       {status ? <Text variant="body" color={status.error ? colors.danger : colors.text} style={{ marginTop: spacing.lg }}>{status.text}</Text> : null}
 
+      <Sheet visible={!!askRestore} onClose={() => chooseRestore.current?.(null)} title={t.restoreChoiceTitle}>
+        <Text variant="muted">{askRestore ? t.restoreChoiceBody(askRestore.tx, askRestore.goals) : ''}</Text>
+        <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+          <Button title={t.restoreAdd} onPress={() => chooseRestore.current?.('add')} />
+          <Button tone="secondary" title={t.restoreReplace} onPress={() => chooseRestore.current?.('replace')} />
+          <Button tone="ghost" title={t.cancel} onPress={() => chooseRestore.current?.(null)} />
+        </View>
+      </Sheet>
       <Sheet visible={!!askPass} onClose={closePassphrase} title={askPass?.mode === 'encrypt' ? t.choosePassphrase : t.enterPassphrase} scroll>
         <Field label={t.passphrase} value={pass} onChangeText={setPass} secureTextEntry autoCapitalize="none" autoFocus />
         {askPass?.mode === 'encrypt' ? <Field label={t.repeatPassphrase} value={pass2} onChangeText={setPass2} secureTextEntry autoCapitalize="none" /> : null}
