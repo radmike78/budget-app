@@ -90,7 +90,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={onboardingDone}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: t.appName }} />
           <Stack.Screen name="entry/[id]" options={{ title: t.editEntry, presentation: 'modal', ...modalClose }} />
           <Stack.Screen name="category/[id]" options={{ title: t.category, presentation: 'modal', ...modalClose }} />
           <Stack.Screen name="goal/[id]" options={{ title: t.goalTitle, presentation: 'modal', ...modalClose }} />

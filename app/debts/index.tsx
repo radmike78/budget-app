@@ -158,7 +158,7 @@ export default function DebtsScreen() {
       <View style={{ height: spacing.xl }} />
 
       <Sheet visible={!!editing} onClose={() => setEditing(null)} title={editing?.id ? t.edit : t.addDebt} tall scroll>
-        <Field label={t.debtCreditor} value={editing?.creditor ?? ''} onChangeText={(v) => setEditing((e) => ({ ...e, creditor: v }))} autoFocus={!editing?.id} />
+        <Field label={t.debtCreditor} maxLength={80} value={editing?.creditor ?? ''} onChangeText={(v) => setEditing((e) => ({ ...e, creditor: v }))} autoFocus={!editing?.id} />
         <Text variant="label" style={{ marginBottom: 6 }}>{t.debtType}</Text>
         <Row style={{ flexWrap: 'wrap', marginBottom: spacing.lg }}>
           {TYPES.map((ty) => (

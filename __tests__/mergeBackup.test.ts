@@ -60,3 +60,29 @@ describe('mergeBackup', () => {
     expect(plan.skippedTransactions).toBe(2);
   });
 });
+
+describe('mergeBackup keeps the phone safe from a file', () => {
+  it('a transfer keeps its goal only when that goal came in with it or is plainly the same one here', () => {
+    const goal = { id: 'g', name: 'Trip', kind: 'saving' as const, targetAmount: 500, currentAmount: 100, targetDate: null, createdAt: '2026-09-01T00:00:00.000Z', completed: false };
+    const here = { ...empty(), goals: [{ ...goal, name: 'Car' }] };
+    const incoming = { ...empty(), goals: [goal], transactions: [tx({ id: 'x', goalId: 'g' })] };
+    expect(mergeBackup(here, incoming).transactions[0].goalId).toBeNull();
+    const same = { ...empty(), goals: [goal] };
+    expect(mergeBackup(same, incoming).transactions[0].goalId).toBe('g');
+    expect(mergeBackup(empty(), incoming).transactions[0].goalId).toBe('g');
+  });
+  it('two same-named categories inside one file become one', () => {
+    const incoming = { ...empty(), categories: [...DEFAULT_CATEGORIES, cat({ id: 'p1', name: 'Pets' }), cat({ id: 'p2', name: 'pets ' })], transactions: [tx({ id: 'a', categoryId: 'p2' })] };
+    const plan = mergeBackup(empty(), incoming);
+    expect(plan.categories.map((c) => c.id)).toEqual(['p1']);
+    expect(plan.transactions[0].categoryId).toBe('p1');
+  });
+  it('a repeating rule\'s instance on the same day is the same entry on both phones', () => {
+    const rule = { id: 'r1', amount: 1000, type: 'expense' as const, categoryId: 'rent', frequency: 'monthly' as const, nextOccurrence: '2026-11-01', anchorDay: 1, note: null, active: true };
+    const here = { ...empty(), recurringRules: [rule], transactions: [tx({ id: 'b-oct', occurredAt: '2026-10-01', isRecurringInstance: true, recurringRuleId: 'r1', amount: 1000 })] };
+    const incoming = { ...empty(), recurringRules: [rule], transactions: [tx({ id: 'a-oct', occurredAt: '2026-10-01', isRecurringInstance: true, recurringRuleId: 'r1', amount: 1000 }), tx({ id: 'a-sep', occurredAt: '2026-09-01', isRecurringInstance: true, recurringRuleId: 'r1', amount: 1000 })] };
+    const plan = mergeBackup(here, incoming);
+    expect(plan.transactions.map((t) => t.id)).toEqual(['a-sep']);
+    expect(plan.skippedTransactions).toBe(1);
+  });
+});

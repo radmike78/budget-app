@@ -2,7 +2,7 @@
  * Many everyday ways of saying the same thing in English, and what each must
  * become. A failure names the phrasing and shows what the parser made of it.
  */
-import { runCases, type Case } from './harness';
+import { parseOne, runCases, type Case } from './harness';
 
 const CASES: Case[] = [
   // expenses
@@ -736,5 +736,13 @@ describe('English: two rides in one sentence, and the won that is a verb', () =>
     expect(spokenCurrency('won on the lottery 100')).toBeNull();
     expect(spokenCurrency('5000 won for lunch')).toBe('KRW');
     expect(spokenCurrency('lunch 5000 won')).toBe('KRW');
+  });
+});
+
+describe('a goal named by a pronoun', () => {
+  it('"add 50 to it" goes to the goal made last', () => {
+    const r = parseOne('add 50 to it', 'en');
+    expect(r[0]).toMatchObject({ kind: 'contribution', amount: 50, goalId: 'g1' });
+    expect(parseOne('put 20 in that one', 'en')[0]).toMatchObject({ kind: 'contribution', amount: 20, goalId: 'g1' });
   });
 });

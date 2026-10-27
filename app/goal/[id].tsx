@@ -115,7 +115,7 @@ export default function GoalEditor() {
       <View style={{ marginBottom: spacing.lg, marginTop: existing ? 0 : spacing.sm }}>
         <Segmented value={kind} onChange={setKind} options={[{ value: 'saving', label: t.goalKindSaving }, { value: 'debt', label: t.goalKindDebt }]} />
       </View>
-      <Field label={t.nameLabel} value={name} onChangeText={setName} placeholder={t.goalNamePlaceholder} autoFocus={isNew} />
+      <Field label={t.nameLabel} value={name} onChangeText={setName} maxLength={80} placeholder={t.goalNamePlaceholder} autoFocus={isNew} />
       <Field label={t.targetAmount} value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="500" />
       {existing ? <Field label={kind === 'debt' ? t.paidSoFar : t.savedSoFar} value={current} onChangeText={setCurrent} keyboardType="decimal-pad" /> : null}
       <Text variant="label" style={{ marginBottom: 6 }}>{t.targetDate}</Text>

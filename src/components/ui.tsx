@@ -57,7 +57,7 @@ export function Text({ variant = 'body', color, style, ...rest }: TextProps & { 
   // Fraunces has no CJK glyphs: Japanese, Korean and Chinese headings use the system face throughout rather than a mix.
   const face = heading && CJK.has(language) ? { fontFamily: undefined, fontWeight: '700' as const } : null;
   // Screen readers can jump between headings.
-  return <RNText accessibilityRole={heading ? 'header' : undefined} {...rest} style={[scaleText(variantStyles[variant], scale), { color: color ?? defaultColor }, face, style]} />;
+  return <RNText accessibilityRole={heading ? 'header' : undefined} aria-level={heading ? (variant === 'display' || variant === 'title' ? 1 : 2) : undefined} {...rest} style={[scaleText(variantStyles[variant], scale), { color: color ?? defaultColor }, face, style]} />;
 }
 
 // ---------- Layout ----------
@@ -147,7 +147,7 @@ export function Divider() {
 export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <Row style={{ justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: spacing.sm }}>
-      <Text variant="label" accessibilityRole="header">{children}</Text>
+      <Text variant="label" accessibilityRole="header" aria-level={2}>{children}</Text>
       {right}
     </Row>
   );

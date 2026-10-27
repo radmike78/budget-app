@@ -136,6 +136,7 @@ export const it: LanguagePack = {
   goalIntent: /(?<![\p{L}])(?:sto risparmiando|stiamo risparmiando|sto mettendo da parte|stiamo mettendo da parte|sto mettendo via|voglio risparmiare|vorrei risparmiare|devo risparmiare|voglio mettere da parte|voglio mettere via|vorrei mettere da parte|risparmiare|mettere da parte|mettere via|accantonare)(?![\p{L}])/iu,
   goalPastVerbs: /(?<![\p{L}])(?:risparmiato|risparmiati|messo|messi|aggiunto|aggiunti|trasferito|trasferiti|versato|versati|spostato|spostati|depositato|depositati|accantonato|pagato|estinto|ripagato)(?![\p{L}])/iu,
   // "200 al mese per una macchina": the amount is the pace, not the goal's total.
+  goalPronoun: /^(?:quello|questo|lì|li|l'obiettivo|all'obiettivo|il mio obiettivo)$/iu,
   perPeriod: /(?<![\p{L}])(?:(?:al|a|ogni|per|per ogni|a ogni) (?:mese|settimana|anno|giorno|stipendio|busta paga)|mensil(?:e|i|mente)|settimanal(?:e|i|mente)|annual(?:e|i|mente)|ogni (?:due|2) (?:settimane|mesi)|ogni (?:quindici|15) giorni|tutti i mesi|tutte le settimane)(?![\p{L}])/u,
   // "2 caffè 8": a small number right before a word of its own is a count; these words keep it money ("12 di pranzo").
   countStop: /^(?:di|del|della|dello|dei|degli|delle|dell'|d'|per|a|al|alla|allo|ai|alle|all'|in|nel|nella|nello|nell'|su|sul|sulla|sull'|da|dal|dalla|dall'|con|e|ed|o|euro|euri|eur|centesimi|mila|mille|k|totale|tondi|tondo|precisi|spaccati|netti|lordi|più|meno|circa|ieri|oggi|stasera|stamattina|domani|fa|ogni|il|lo|la|i|gli|le|un|uno|una|ancora|anche|solo|appena|già|gia|non|che|come|quasi|tipo)$/iu,

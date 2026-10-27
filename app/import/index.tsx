@@ -2,6 +2,8 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
+import { getDb } from '@/db/database';
+import { allTransactions } from '@/db/repositories';
 import { radius, spacing, useTheme } from '@/theme';
 import { friendlyDate, longDate, monthLabel, toDateString, today } from '@/lib/dates';
 import { confirmDialog, notify } from '@/lib/dialogs';
@@ -64,13 +66,15 @@ export default function ImportScreen() {
       if (!picked) return;
       setStage('reading');
       const ctx = { categories, goals, keywordMap, today: today(), language, categoryLabels: t.categoryNames };
+      // What was typed by hand before the statement arrived must not come in a second time.
+      const knownEntries = new Set((await allTransactions(await getDb())).map((x) => `${x.occurredAt}|${x.amount.toFixed(2)}|${x.type === 'income' ? 'in' : 'out'}`));
       let rows;
       let result: ParsedStatement;
       if (picked.kind === 'csv') {
         // A CSV export is text already: the same rows, the same review, no extractor.
         const csv = csvToRows(picked.text, language, today());
         rows = csv.rows;
-        result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints, period: csv.period, kind: csv.kind });
+        result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints, knownEntries, period: csv.period, kind: csv.kind });
         result.warnings = [...csv.warnings, ...result.warnings.filter((w) => w !== 'noPeriod')];
         if (token !== readToken.current) return;
       } else {
@@ -83,7 +87,7 @@ export default function ImportScreen() {
         }
         if (token !== readToken.current) return; // cancelled while reading
         rows = rowsFromItems(items);
-        result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints });
+        result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints, knownEntries });
       }
       if (result.kind === 'credit_report') {
         const tl = parseCreditReport(rows);
@@ -229,14 +233,14 @@ export default function ImportScreen() {
           <Text variant="muted">
             {parsed.period ? t.importPeriod(longDate(parsed.period.start, '1900-01-01', fmt), longDate(parsed.period.end, '1900-01-01', fmt)) : ''} {t.importLinesFound(lines.length)}
           </Text>
-          {parsed.warnings.filter((w) => t.importWarnings[w]).map((w) => (
+          {parsed.warnings.filter((w) => t.importWarnings[w] && !(w === 'noLines' && lines.length === 0)).map((w) => (
             <Text key={w} variant="small" style={{ marginTop: spacing.xs }}>{t.importWarnings[w]}</Text>
           ))}
           {lines.length === 0 ? <Text variant="body" style={{ marginTop: spacing.md }}>{t.importNothingFound}</Text> : null}
           {parsed.kind === 'card' && parsed.tradelines.length ? (
             <Row style={{ justifyContent: 'space-between', marginTop: spacing.md }}>
               <Text variant="body" style={{ flex: 1 }}>{t.importSaveCard}</Text>
-              <Switch value={saveCard} onValueChange={setSaveCard} trackColor={{ true: colors.accent }} accessibilityLabel={t.importSaveCard} />
+              <Switch value={saveCard} onValueChange={setSaveCard} trackColor={{ true: colors.accent, false: colors.border }} accessibilityLabel={t.importSaveCard} />
             </Row>
           ) : null}
 
@@ -265,7 +269,7 @@ export default function ImportScreen() {
                         <Pressable onPress={() => setPickingCat(i)} accessibilityRole="button" disabled={l.duplicate} hitSlop={10}>
                           <Text variant="small" color={colors.accent}>{cat ? `${cat.icon ?? ''} ${categoryName(cat, t)}`.trim() : t.pickCategory}</Text>
                         </Pressable>
-                        <Switch value={l.include && !l.duplicate} disabled={l.duplicate} onValueChange={(v) => update(i, { include: v })} trackColor={{ true: colors.accent }} accessibilityLabel={t.includeLine(l.description)} />
+                        <Switch value={l.include && !l.duplicate} disabled={l.duplicate} onValueChange={(v) => update(i, { include: v })} trackColor={{ true: colors.accent, false: colors.border }} accessibilityLabel={t.includeLine(l.description)} />
                       </Row>
                     </View>
                   );

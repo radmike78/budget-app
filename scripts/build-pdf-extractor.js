@@ -75,13 +75,17 @@ window.__ob.run = async (maxPages) => {
     const reasons = await inspect(doc, pages);
     if (reasons.length) { post({ type: 'blocked', reasons }); await doc.destroy(); return; }
     const items = [];
+    // A few MB of repetitive text would otherwise become a 100 MB message for the app to parse.
+    let chars = 0;
     outer: for (let p = 1; p <= pages; p += 1) {
       const page = await doc.getPage(p);
       const tc = await page.getTextContent();
       for (const it of tc.items) {
         if (!('str' in it) || !it.str) continue;
-        items.push({ str: String(it.str).slice(0, 500), x: Math.round(it.transform[4] * 10) / 10, y: Math.round(it.transform[5] * 10) / 10, w: Math.round(it.width * 10) / 10, page: p });
-        if (items.length >= 200000) break outer;
+        const str = String(it.str).slice(0, 500);
+        chars += str.length;
+        items.push({ str, x: Math.round(it.transform[4] * 10) / 10, y: Math.round(it.transform[5] * 10) / 10, w: Math.round(it.width * 10) / 10, page: p });
+        if (items.length >= 200000 || chars >= 2000000) break outer;
       }
     }
     post({ type: 'done', numPages: doc.numPages, items });

@@ -12,7 +12,7 @@ import { newId } from '@/lib/ids';
 import { dueOccurrences, resumeFrom } from '@/lib/recurring';
 import { mergeBackup, type MergeSource } from '@/lib/mergeBackup';
 import { learnableWords } from '@/parser';
-import { redactOrMask, redactSensitive } from '@/lib/validate';
+import { redactOrMask, redactSensitive, MAX_REMINDERS, MAX_RULES } from '@/lib/validate';
 import { sweepImportCache } from '@/lib/pdfBytes';
 import { setApiKey } from '@/lib/secrets';
 import { cancelAllReminderNotifications, cancelDailyReminder, cancelReminderNotification, isDailyReminderScheduled, needsRearm, nextOccurrence, notificationPermissionState, scheduleDailyReminder, scheduleReminderNotification, scheduledReminderIds, type PermissionState } from '@/lib/reminders';
@@ -719,6 +719,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { categories, rules, goals, keywords, reminders, debts, imports, carryovers } = get();
     const here: MergeSource = { categories, transactions: await repo.allTransactions(db), recurringRules: rules, goals, keywords, reminders, debts, imports, carryovers };
     const plan = mergeBackup(here, data);
+    // The per-file caps protect the phone; adding to what is here must respect them too.
+    if (here.reminders.length + plan.reminders.length > MAX_REMINDERS || here.recurringRules.length + plan.recurringRules.length > MAX_RULES) throw new Error('MERGE_TOO_MANY');
     await repo.addData(db, plan);
     await get().runRecurringCatchUp();
     await get().refresh();

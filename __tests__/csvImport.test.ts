@@ -330,3 +330,17 @@ describe('exports from other budget apps keep their categories', () => {
     expect(by(p)['Whole Foods']).toMatchObject({ categoryId: 'groceries' });
   });
 });
+
+describe('what was typed by hand before the import', () => {
+  it('a line matching an entry already here by day, amount and direction is marked already in the history', () => {
+    const csv = `Date,Description,Amount
+2026-03-04,CHIPOTLE ONLINE,-12.00
+2026-03-05,STARBUCKS,-4.50`;
+    const c = csvToRows(csv, 'en', TODAY);
+    const known = new Set(['2026-03-04|12.00|out']);
+    const p = parseStatement(c.rows, ctx(), { language: 'en', region: 'US', today: TODAY, period: c.period, kind: c.kind, knownEntries: known });
+    expect(p.lines.find((l) => l.amount === 12)).toMatchObject({ duplicate: true, include: false });
+    expect(p.lines.find((l) => l.amount === 4.5)).toMatchObject({ duplicate: false, include: true });
+    expect(c.kind).toBe('bank');
+  });
+});

@@ -73,6 +73,8 @@ export interface LanguagePack {
    * "back") is the same kind of thing as the one before and takes its category. Anchored; matched against the note.
    */
   continuation?: RegExp;
+  /** Words standing for a goal just mentioned ("it", "that one", "the goal"): the newest open goal. Optional. */
+  goalPronoun?: RegExp;
   /** Words stripped from the start of a goal name. */
   articles: RegExp;
   /** Filler stripped from the start / end of a note. */

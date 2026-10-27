@@ -94,7 +94,7 @@ export default function EditEntry() {
         <Button tone="secondary" small title={category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.pickCategory} onPress={() => setShowCat(true)} />
         <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />
       </Row>
-      <Field label={t.note} value={note} onChangeText={setNote} placeholder={t.optional} />
+      <Field label={t.note} value={note} onChangeText={setNote} maxLength={500} placeholder={t.optional} />
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
       <Button title={t.saveChanges} onPress={save} loading={busy} />
       <View style={{ marginTop: spacing.md }}><Button tone="danger" title={t.removeEntry} onPress={removeEntry} disabled={busy} /></View>

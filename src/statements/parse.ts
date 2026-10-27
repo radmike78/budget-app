@@ -254,8 +254,10 @@ function categorize(rawDescription: string, cleaned: string, direction: 'in' | '
   if (fileCategory && guess.kind !== 'transfer' && guess.kind !== 'payment') {
     const income = guess.kind === 'income' || guess.kind === 'refund';
     // "Fun Money: Dining Out" (a YNAB group and category): the category itself is read before the group.
-    const parts = fileCategory.split(/[:>/]/).map((x) => x.trim()).filter(Boolean);
-    for (const candidate of [...parts.reverse(), fileCategory]) {
+    // Two levels at most (YNAB's group and category); a crafted cell of hundreds of colons never costs hundreds of lookups.
+    const short = fileCategory.slice(0, 80);
+    const parts = short.split(/[:>/]/).map((x) => x.trim()).filter(Boolean).slice(-3);
+    for (const candidate of [...parts.reverse(), short]) {
       // The app's own category names first ("Dining out"), the way a spoken "make that dining" is read; then the dictionary.
       const named = categoryFromWords(candidate, ctx);
       const cat = named ? categories.find((c) => c.id === named.categoryId && !c.archived) : null;
@@ -379,7 +381,7 @@ export function parseStatement(rows: Row[], ctx: ParseContext, opts: ParseOption
     const occurrence = seen.get(base) ?? 0;
     seen.set(base, occurrence + 1);
     const fingerprint = occurrence ? fingerprintOf(date, decided.amount, decided.direction, c.descText, occurrence) : base;
-    const duplicate = opts.knownFingerprints?.has(fingerprint) ?? false;
+    const duplicate = (opts.knownFingerprints?.has(fingerprint) ?? false) || (opts.knownEntries?.has(`${date}|${decided.amount.toFixed(2)}|${decided.direction}`) ?? false);
     const include = !duplicate && cat.lineKind !== 'transfer' && cat.lineKind !== 'payment';
     lines.push({
       fingerprint, date, month: monthOf(date), rawDate: c.hit.raw, description, amount: decided.amount, direction: decided.direction,

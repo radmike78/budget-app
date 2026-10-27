@@ -99,7 +99,8 @@ export function DatePicker({ visible, onClose, value, onPick, future, mode, past
         { label: friendlyDate(addDays(t, -2), t, fmt), date: addDays(t, -2) },
         { label: friendlyDate(addDays(t, -3), t, fmt), date: addDays(t, -3) },
       ];
-  const forward = future || !!mode;
+  // A reminder is for later; a repeating entry may start in the past (last payday), and the catch-up logs what fell due.
+  const forward = future || mode === 'reminder';
   return (
     <Sheet visible={visible} onClose={onClose} title={s.date} scroll>
       <Row style={{ flexWrap: 'wrap' }}>

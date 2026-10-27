@@ -105,7 +105,7 @@ export default function RecurringEditor() {
         <Button tone="secondary" small title={friendlyDate(next, today(), fmt)} onPress={() => setShowDate(true)} />
       </Row>
       <Text variant="small" style={{ marginBottom: spacing.lg }}>{t.firstDateHint}</Text>
-      <Field label={t.note} value={note} onChangeText={setNote} placeholder={t.recurringNotePlaceholder} />
+      <Field label={t.note} value={note} onChangeText={setNote} maxLength={500} placeholder={t.recurringNotePlaceholder} />
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
       <Button title={isNew ? t.startRepeating : t.save} onPress={onSave} loading={saving} />
       {existing ? (

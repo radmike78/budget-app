@@ -71,7 +71,8 @@ const SSN_RE = /\b\d{3}-\d{2}-\d{4}\b/g;
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
 const LONG_DIGITS_RE = /\b\d{8,19}\b/g;
 const IBAN_RE = /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}(?:[ -]?[A-Z0-9]{1,4})?\b/gi;
-const MASKED_RE = /(?:[xX*•·#]{2,}\s?[-]?\s?\d{2,6}\b)|(?:\b(?:ending(?: in)?|last four|acct|account|card|a\/c|iban|routing|no\.?)\s*(?:number|#|no\.?)?\s*:?\s*[xX*•·]*\s?\d{4,}\b)/gi;
+// Every gap is bounded: unbounded `\s*` runs backtracked for seconds on a long run of spaces.
+const MASKED_RE = /(?:[xX*•·#]{2,}\s?[-]?\s?\d{2,6}\b)|(?:\b(?:ending(?: in)?|last four|acct|account|card|a\/c|iban|routing|no\.?)\s{0,3}(?:number|#|no\.?)?\s{0,3}:?\s{0,3}[xX*•·]*\d{4,}\b)/gi;
 
 /**
  * Removes bank account, card, routing and IBAN numbers from free text so they
@@ -272,8 +273,8 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
       amount: money(raw.amount, 'transaction'),
       type: txType(raw.type, 'transaction'),
       categoryId: catRef(raw.categoryId, 'transaction category'),
-      note: text(raw.note, MAX_NOTE_LENGTH, 'note') || null,
-      rawInput: text(raw.rawInput, MAX_ENTRY_LENGTH, 'raw input') || null,
+      note: redactSensitive(text(raw.note, MAX_NOTE_LENGTH, 'note')) || null,
+      rawInput: redactSensitive(text(raw.rawInput, MAX_ENTRY_LENGTH, 'raw input')) || null,
       occurredAt: day(raw.occurredAt, 'transaction'),
       createdAt: stamp(raw.createdAt, now),
       isRecurringInstance: bool(raw.isRecurringInstance),
@@ -293,7 +294,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     seenGoal.add(gid);
     goals.push({
       id: gid,
-      name: text(raw.name, 80, 'goal name', true),
+      name: redactOrMask(text(raw.name, 80, 'goal name', true)),
       kind: raw.kind === 'debt' ? 'debt' : 'saving',
       targetAmount: money(raw.targetAmount, 'goal target'),
       currentAmount: money(raw.currentAmount ?? 0, 'goal current'),
@@ -328,7 +329,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     seenReminder.add(rid);
     reminders.push({
       id: rid,
-      text: text(raw.text, MAX_TEXT_FIELD, 'reminder text', true),
+      text: redactOrMask(text(raw.text, MAX_TEXT_FIELD, 'reminder text', true)),
       date: day(raw.date, 'reminder'),
       time: typeof raw.time === 'string' && TIME_RE.test(raw.time) ? raw.time : fail('reminder time'),
       repeat: oneOf(raw.repeat ?? 'none', REPEATS, 'reminder repeat'),
@@ -349,7 +350,7 @@ export function validateBackup(payload: unknown, now: string): ValidBackupData {
     if (aprRaw != null && (!Number.isFinite(aprRaw) || aprRaw < 0 || aprRaw > MAX_APR)) fail('debt apr');
     debts.push({
       id: did,
-      creditor: text(raw.creditor, 80, 'debt creditor', true),
+      creditor: redactOrMask(text(raw.creditor, 80, 'debt creditor', true)),
       type: oneOf(raw.type ?? 'other', DEBT_TYPES, 'debt type'),
       balance: money(raw.balance ?? 0, 'debt balance'),
       monthlyPayment: optMoney(raw.monthlyPayment, 'debt payment'),

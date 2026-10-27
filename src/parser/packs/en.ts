@@ -182,6 +182,7 @@ export const en: LanguagePack = {
   goalLead: /^(?:(?:new |savings? |debt |payoff )?goal|(?:set|create|make|start|add)(?: up)? (?:a |me a |my |the |another )?(?:new )?(?:savings? |debt |payoff |pay[- ]down )?(?:goal|plan|target)(?: to| of| for)?|i(?:'d| would)? (?:want|like|need) (?:a |to (?:set|make|create|start) (?:a |my )?)(?:new )?(?:savings? |debt )?(?:goal|plan)(?: to| of| for)?)\s*:?\s*/,
   goalIntent: /\b(?:i(?:'d| would)? (?:want|like|need|plan|am trying|'m trying) to (?:save|put away|set aside|have)|want to save|save up|saving up|trying to save|need to save|save)\b/,
   goalPastVerbs: /\b(?:saved|stashed|moved|added|put(?! (?:away|aside))|transferred|deposited|paid)\b/,
+  goalPronoun: /^(?:it|that|this|that one|this one|the goal|my goal|the fund|the pot|the jar)$/iu,
   perPeriod: /\b(?:(?:a|per|each|every)\s+(?:month|week|fortnight|year|paycheck|pay ?day|payday)|monthly|weekly|yearly|biweekly|fortnightly|every (?:two|2|other) weeks?)\b/,
   countStop: /^(?:on|for|at|in|to|of|from|per|a|an|the|and|with|by|off|into|towards?|each|every|dollars?|bucks|quid|k|grand|total|each|apiece|more|less|back|out|up|down|yesterday|today|tonight|last|this|ago|again|not|instead|rather)$/i,
   // "spent 40 on groceries last payday": the pay word says when, not that money came in.

@@ -681,7 +681,10 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
     const m = pack.tokenizer === 'cjk'
       ? text.match(new RegExp(`(.+?)(?:${pack.contributionPreps})`, 'u'))
       : text.match(new RegExp(`${WB_START}(?:${pack.contributionPreps})\\s+(?:${pack.articles.source.replace(/^\^|\+$/g, '')})?(.+?)(?:\\s+(?:${pack.goalWords}))?$`, 'iu'));
-    const goal = m ? findGoal(m[1].replace(pack.currencyWords, ' ').replace(/\d+(?:\.\d+)?/g, ' ').replace(new RegExp(pack.contributionVerbs.source, 'gu'), ' ').trim(), ctx.goals, c) : null;
+    const said = m ? m[1].replace(pack.currencyWords, ' ').replace(/\d+(?:\.\d+)?/g, ' ').replace(new RegExp(pack.contributionVerbs.source, 'gu'), ' ').trim() : '';
+    // "add 50 to it" right after making a goal: the newest open goal is the one meant.
+    const newest = pack.goalPronoun && said && pack.goalPronoun.test(said) ? [...ctx.goals].filter((g) => !g.completed).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null : null;
+    const goal = newest ?? (m ? findGoal(said, ctx.goals, c) : null);
     if (goal) {
       const r = baseResult(raw, ctx.today);
       const dated = applyRules(pack.pastDateRules, text, ctx.today);

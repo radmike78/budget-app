@@ -219,7 +219,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
                   <View style={{ marginBottom: spacing.md }}>
                     <Segmented value={d.goalKind} onChange={(v) => update(i, { goalKind: v })} options={[{ value: 'saving', label: t.goalKindSaving }, { value: 'debt', label: t.goalKindDebt }]} />
                   </View>
-                  <Field label={t.goalName} value={d.goalName} onChangeText={(v) => update(i, { goalName: v })} placeholder={t.goalNamePlaceholder} style={{ marginBottom: spacing.sm }} />
+                  <Field label={t.goalName} maxLength={80} value={d.goalName} onChangeText={(v) => update(i, { goalName: v })} placeholder={t.goalNamePlaceholder} style={{ marginBottom: spacing.sm }} />
                   <Text variant="label" style={{ marginBottom: 6 }}>{t.targetDate}</Text>
                   <Row style={{ marginBottom: spacing.sm, flexWrap: 'wrap' }}>
                     <Button tone="secondary" small title={d.targetDate ? longDate(d.targetDate, today(), fmt) : t.noDate} onPress={() => setPickingTargetDate(i)} />
@@ -242,7 +242,7 @@ export function MultiConfirmationCard({ results, onDone, onCancel }: { results: 
                   {unsure && d.categoryId === d.originalCategoryId ? (
                     <Text variant="small" style={{ marginBottom: spacing.sm }}>{hintText(HINT.unsureCategory, t)}</Text>
                   ) : null}
-                  <Field label={t.note} value={d.note} onChangeText={(v) => update(i, { note: v })} placeholder={t.optional} style={{ marginBottom: spacing.xs }} />
+                  <Field label={t.note} maxLength={500} value={d.note} onChangeText={(v) => update(i, { note: v })} placeholder={t.optional} style={{ marginBottom: spacing.xs }} />
                 </>
               )}
             </View>

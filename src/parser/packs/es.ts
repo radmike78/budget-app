@@ -137,6 +137,7 @@ export const es: LanguagePack = {
   leadingFiller: /^(?:(?:hoy|ayer|pues|bueno|también|otra|vez|gasté|gaste|pagué|pague|compré|compre|gasto|pago|compra|en|de|del|por|para|con|a|al|el|la|los|las|un|una|unos|unas|mi|mis|me|se|he|ha|fui|otro|otra|unos|casi|como|aprox|aproximadamente|más o menos|mas o menos|ya|nada|oye|mira|ah|eh|este|esto|o sea|que|y|le|les)\s+)+/,
   trailingFiller: /(?:\s+(?:hoy|ayer|en|de|del|por|para|con|a|al|el|la|los|las|un|una|y|cada|total|otra vez|también|por favor|gracias|eso|esto|más o menos|mas o menos|aprox|ya|nada más|nada mas|y ya|más|mas|eh|le|les|(?:al|por|cada) (?:mes|semana|año|ano|d[ií]a|quincena)|mensual|semanal|anual))+$/,
   // "200 al mes", "50 a la semana": an amount said per period is a pace, not a goal's total.
+  goalPronoun: /^(?:eso|esto|ese|esa|la meta|mi meta|el objetivo|ahí|ahi)$/iu,
   perPeriod: /(?<![\p{L}])(?:al mes|por mes|cada mes|mensual(?:es|mente)?|a la semana|por semana|cada semana|semanal(?:es|mente)?|a la quincena|por quincena|cada quincena|quincenal(?:es|mente)?|al año|por año|cada año|anual(?:es|mente)?|cada (?:paga|cobro|nómina|nomina|sueldo|quince días|quince dias|15 días|15 dias|dos semanas|2 semanas)|por (?:paga|cobro|nómina|nomina))(?![\p{L}])/iu,
   // Words that may follow a bare number without making it a count: "12 en el almuerzo" is money, "2 cafés 8" is two coffees.
   notIncome: /(?<![\p{L}])(?:el |la )?(?:último|ultimo|última|ultima|pasado|pasada|desde el|antes del|después del|despues del|hasta el) (?:día de pago|dia de pago|pago|quincena|nómina|nomina)(?![\p{L}])/giu,

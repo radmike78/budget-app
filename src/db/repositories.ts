@@ -180,9 +180,9 @@ function filterTransactions(q: TransactionQuery): { where: string; params: (stri
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (q.search && q.search.trim()) {
-    where.push("(LOWER(COALESCE(note, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(raw_input, '')) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\')");
+    where.push("(LOWER(COALESCE(note, '')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(raw_input, '')) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\' OR printf('%.2f', amount) LIKE ? ESCAPE '\\')");
     const like = `%${escapeLike(q.search.trim().toLowerCase())}%`;
-    params.push(like, like, like);
+    params.push(like, like, like, like);
   }
   if (q.type) { where.push('type = ?'); params.push(q.type); }
   if (q.categoryId) { where.push('category_id = ?'); params.push(q.categoryId); }

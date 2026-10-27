@@ -82,3 +82,18 @@ describe('plain-language sentences exist in every locale', () => {
     }
   });
 });
+
+describe('an amount typed with a slip', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { parseMoneyInput } = require('@/lib/money') as typeof import('@/lib/money');
+  it('refuses letters and stray separators instead of keeping part of the number', () => {
+    expect(parseMoneyInput('1e9')).toBeNull();
+    expect(parseMoneyInput('4O')).toBeNull();
+    expect(parseMoneyInput('1.2.3')).toBeNull();
+    expect(parseMoneyInput('12.50')).toBe(12.5);
+    expect(parseMoneyInput('1,234.56')).toBe(1234.56);
+    expect(parseMoneyInput('1.234,56', true)).toBe(1234.56);
+    expect(parseMoneyInput('1,23,456')).toBe(123456);
+    expect(parseMoneyInput('$12')).toBe(12);
+  });
+});

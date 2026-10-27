@@ -330,7 +330,7 @@ export function csvToRows(text: string, language: string, today: string): CsvRow
     if (!end || d > end) end = d;
   }
   const headerText = plan.headerRow != null ? (grid[plan.headerRow] ?? []).join(' ') : '';
-  const kind: StatementKind | undefined = cardStyle || /\b(card|tarjeta|carte|karte|carta|カード|카드|信用卡)\b/iu.test(headerText) ? 'card' : undefined;
+  const kind: StatementKind | undefined = cardStyle || /\b(card|tarjeta|carte|karte|carta|カード|카드|信用卡)\b/iu.test(headerText) ? 'card' : 'bank';
   return { rows, period: start && end ? { start, end } : null, kind, warnings };
 }
 
