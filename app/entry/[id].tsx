@@ -60,7 +60,7 @@ export default function EditEntry() {
     try {
       await update({ ...tx, amount: a, type, categoryId, note: note.trim() || null, occurredAt: date });
       if (categoryId && categoryId !== tx.categoryId && tx.rawInput) await learn(tx.rawInput, categoryId);
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace('/history');
     } catch (e) {
       setError(t.didntWork((e as Error).message));
     } finally {
@@ -74,7 +74,7 @@ export default function EditEntry() {
     setBusy(true);
     try {
       await remove(tx.id);
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace('/history');
     } catch (e) {
       setError(t.didntWork((e as Error).message));
       setBusy(false);

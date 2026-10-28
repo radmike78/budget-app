@@ -90,12 +90,12 @@ export default function CategoryEditor() {
   const toggleArchive = async () => {
     if (!existing) return;
     await save({ ...existing, archived: !existing.archived });
-    router.back();
+    if (router.canGoBack()) router.back(); else router.replace('/budget');
   };
 
   const onDelete = async () => {
     if (!existing) return;
-    if (await confirmDialog(t.deleteCategoryQ(categoryName(existing, t)), usage ? t.deleteCategoryUsed(usage) : t.cannotUndo, { confirmText: t.delete, cancelText: t.cancel, destructive: true })) { await remove(existing.id); router.back(); }
+    if (await confirmDialog(t.deleteCategoryQ(categoryName(existing, t)), usage ? t.deleteCategoryUsed(usage) : t.cannotUndo, { confirmText: t.delete, cancelText: t.cancel, destructive: true })) { await remove(existing.id); if (router.canGoBack()) router.back(); else router.replace('/budget'); }
   };
 
   return (

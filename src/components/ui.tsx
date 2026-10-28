@@ -214,7 +214,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
         const active = o.value === value;
         // The chosen segment is a tinted pill with accent text: card-on-cardAlt was 1.1:1 in dark mode, bold text alone.
         return (
-          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent }]}>
+          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} aria-checked={active} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent }]}>
             <RNText numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: active ? colors.accent : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale, textAlign: 'center' }}>{o.label}</RNText>
           </Pressable>
         );
