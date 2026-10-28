@@ -568,6 +568,10 @@ const putAside: Case[] = [
   ['Ich will 50 pro Woche sparen', pacedGoal],
   ['Jeden Monat 100 fürs Fahrrad zur Seite legen', { ...pacedGoal, goalName: 'Fahrrad' }],
   ['Ich möchte monatlich 150 für den Urlaub ansparen', { ...pacedGoal, goalName: 'Urlaub' }],
+  ['netflix 15,99 jeden monat', { kind: 'transaction', amount: 15.99, categoryId: 'subscriptions', note: 'Netflix', repeat: 'monthly' }],
+  ['miete 800 monatlich', { kind: 'transaction', amount: 800, categoryId: 'rent', repeat: 'monthly' }],
+  ['fitnessstudio 30 pro woche', { kind: 'transaction', amount: 30, repeat: 'weekly' }],
+  ['versicherung 600 pro jahr', { kind: 'transaction', amount: 600, repeat: 'yearly' }],
   ['Ich will 5000 für ein Auto zurücklegen', goal(5000)],
 ];
 

@@ -189,7 +189,7 @@ export function useEntryFlow() {
       dateExplicit: true,
       goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
       reminderText: null, reminderTime: null, reminderRepeat: 'none',
-      question: null, command: null, correction: null,
+      question: null, command: null, correction: null, repeat: null,
       editOf: tx,
       confidence: 1,
       needsReview: false,
@@ -369,7 +369,7 @@ export function useEntryFlow() {
     setPending({
       kind: 'transaction', raw: entry.note ?? '', amount: entry.amount, type: 'expense', typeConfidence: 1, categoryId: entry.categoryId, categoryConfidence: 1,
       note: entry.note, occurredAt: today(), dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
-      reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null, command: null, correction: null, confidence: 1, needsReview: false, hints: [],
+      reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null, command: null, correction: null, repeat: null, confidence: 1, needsReview: false, hints: [],
     });
   }, []);
   const dismissAnswer = useCallback(() => setAnswer(null), []);

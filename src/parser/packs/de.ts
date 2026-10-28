@@ -135,6 +135,7 @@ export const de: LanguagePack = {
   goalPastVerbs: /(?<![\p{L}])(?:gespart|angespart|zurückgelegt|eingezahlt|überwiesen|hinzugefügt|gelegt|beiseitegelegt|weggelegt|getan|gepackt|gesteckt|geschoben|gebucht|bezahlt|abbezahlt|getilgt)(?![\p{L}])/iu,
   // "200 im Monat", "50 pro Woche", "jeden Monat 100": a pace, not the goal's total.
   goalPronoun: /^(?:das|dem|dazu|das ziel|dem ziel|mein ziel)$/iu,
+  repeatOf: { yearly: /(?:jahr|jährlich|jaehrlich)/iu, biweekly: /(?:zwei wochen|2 wochen|vierzehn tage|14 tage)/iu, weekly: /(?:woche|wöchentlich|woechentlich)/iu, monthly: /(?:monat|monatlich|monatsanfang|monatsersten|ersten)/iu },
   perPeriod: /(?<![\p{L}])(?:(?:pro|je|jeden|jede|jedes|im|in der|am|per|alle) (?:monat|monate|woche|wochen|jahr|tag|zahltag|gehalt|lohn|quartal|monatsanfang|monatsersten|ersten)|monatlich|wöchentlich|woechentlich|jährlich|jaehrlich|täglich|taeglich|alle (?:zwei|2|vier|4|14) (?:wochen|tage)|alle zwei monate|zweiwöchentlich|vierzehntägig|jeden monatsersten|pro monat|pro woche)(?![\p{L}])/iu,
   // Words that may follow a bare number without making it a count ("12 für Mittag" is money; "2 Kaffee 8" is two coffees).
   notIncome: /(?<![\p{L}])(?:am|seit dem|seit|vor dem|nach dem|bis zum|zum|beim|letzten|letzter|am letzten|diesen|am ersten) (?:zahltag|gehaltstag|lohntag)(?![\p{L}])/giu,

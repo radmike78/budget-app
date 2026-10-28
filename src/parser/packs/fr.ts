@@ -114,6 +114,7 @@ export const fr: LanguagePack = {
   goalPastVerbs: /(?<![\p{L}])(?:économisé|épargné|mis|ajouté|rajouté|viré|transféré|déposé|versé|placé|payé|remboursé)(?![\p{L}])/iu,
   // "200 par mois", "50 par semaine": an amount said per period is a pace, not the goal's total.
   goalPronoun: /^(?:ça|ca|cela|là|la|l'objectif|mon objectif|la cagnotte)$/iu,
+  repeatOf: { yearly: /(?:\ban\b|année|annuel|\bans\b)/iu, biweekly: /(?:quinzaine|quinze jours|15 jours|deux semaines|2 semaines)/iu, weekly: /(?:semaine|hebdo)/iu, monthly: /(?:\bmois\b|mensuel)/iu },
   perPeriod: /(?<![\p{L}])(?:par (?:mois|semaine|an|année|paie|paye|quinzaine|jour)|chaque (?:mois|semaine|année|paie|paye|quinzaine)|tous les (?:mois|ans|quinze jours|15 jours)|toutes les (?:semaines|deux semaines|2 semaines)|mensuel(?:le|lement)?|hebdo(?:madaire)?|annuel(?:le|lement)?|à chaque paie|à chaque paye)(?![\p{L}])/iu,
   // "2 cafés 8": a small number right before a word of its own is a count; "12 le déjeuner" stays money.
   countStop: /^(?:de|d'|du|des|en|pour|à|a|au|aux|sur|dans|chez|le|la|les|l'|un|une|et|avec|par|euros?|balles|dollars?|piastres?|piasses?|francs?|total|hier|aujourd'hui|ce|cette|plus|moins|encore|aussi|k|mille|cent|cents|chacun|chacune|pièce|environ|là|midi|soir|matin|hui|puis|ensuite)$/i,

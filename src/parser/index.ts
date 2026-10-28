@@ -1,4 +1,4 @@
-import type { Category, Goal, GoalKind, ReminderRepeat, Transaction, TxType } from '@/types';
+import type { Category, Frequency, Goal, GoalKind, ReminderRepeat, Transaction, TxType } from '@/types';
 import { spokenCurrency } from './currencyHint';
 import { FALLBACK_EXPENSE_CATEGORY_ID, FALLBACK_INCOME_CATEGORY_ID } from '@/lib/defaultCategories';
 import { applyRules } from './dateRules';
@@ -54,6 +54,8 @@ export interface ParseResult {
   command: VoiceCommand | null;
   /** Fixing the last entry ("actually it was 14", "make that dining", "delete that"). */
   correction: Correction | null;
+  /** A transaction said with a pace ("netflix 15.99 every month"): the card offers to make it a repeating entry. Never saved on its own. */
+  repeat: Frequency | null;
   /** Set when the card edits an entry that is already saved rather than adding a new one. */
   editOf?: Transaction | null;
   /** 0..1 overall confidence in the parse */
@@ -511,11 +513,23 @@ function cleanGoalName(s: string, pack: LanguagePack): string | null {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
+const FREQUENCY_ORDER: Frequency[] = ['yearly', 'biweekly', 'weekly', 'monthly'];
+
+/** Which frequency a pace phrase names ("every other week" → biweekly); null for one the rules cannot repeat (per paycheck, daily). */
+function repeatFrequency(phrase: string, pack: LanguagePack): Frequency | null {
+  if (!pack.repeatOf) return null;
+  for (const f of FREQUENCY_ORDER) {
+    const re = pack.repeatOf[f];
+    if (re && re.test(phrase)) return f;
+  }
+  return null;
+}
+
 function baseResult(raw: string, today: string): ParseResult {
   return {
     kind: 'unknown', raw, amount: null, type: 'expense', typeConfidence: 0, categoryId: null, categoryConfidence: 0,
     note: null, occurredAt: today, dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
-    reminderText: null, reminderTime: null, reminderRepeat: 'none', command: null, correction: null, question: null,
+    reminderText: null, reminderTime: null, reminderRepeat: 'none', command: null, correction: null, question: null, repeat: null,
     confidence: 0, needsReview: true, hints: [],
   };
 }
@@ -718,9 +732,15 @@ export function parseInput(input: string, ctx: ParseContext): ParseResult {
   if (dated.date) { r.occurredAt = dated.date; r.dateExplicit = true; }
   text = dated.text;
 
+  // "netflix 15.99 every month": the pace names a repeating entry the card can set up, and its words leave the note
+  // either way. It goes before the amount so "toutes les deux semaines" never hands over its "deux" as the money.
+  const pace = pack.perPeriod ? text.match(pack.perPeriod) : null;
+  if (pace) text = text.replace(new RegExp(pack.perPeriod!.source, 'giu'), ' ').replace(/\s+/g, ' ').trim();
+
   const amt = extractAmount(text, pack);
   r.amount = amt.amount;
   text = amt.text;
+  if (pace && r.amount != null) r.repeat = repeatFrequency(pace[0], pack);
 
   // "spent 40 on groceries last payday": the pay word is a time, so the type and the category are read without it.
   const typeText = pack.notIncome ? text.replace(pack.notIncome, ' ').replace(/\s+/g, ' ').trim() : text;

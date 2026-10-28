@@ -468,6 +468,10 @@ const settingAside: Case[] = [
   // an amount per month or week is a pace, so the card asks for the total
   ['je veux mettre 200 par mois de côté pour une voiture', { kind: 'goal', amount: null, goalName: 'Voiture', goalKind: 'saving' }],
   ['je mets 100 par mois de côté', { kind: 'goal', amount: null, goalName: null }],
+  ['netflix 15,99 par mois', { kind: 'transaction', amount: 15.99, categoryId: 'subscriptions', note: 'Netflix', repeat: 'monthly' }],
+  ['loyer 800 chaque mois', { kind: 'transaction', amount: 800, categoryId: 'rent', repeat: 'monthly' }],
+  ['abonnement 10 toutes les deux semaines', { kind: 'transaction', amount: 10, note: 'Abonnement', repeat: 'biweekly' }],
+  ['assurance 600 par an', { kind: 'transaction', amount: 600, repeat: 'yearly' }],
   ['économiser 100 par mois pour Noël', { kind: 'goal', amount: null, goalName: 'Noël' }],
   ['mettre 50 par semaine de côté', { kind: 'goal', amount: null }],
   ['je veux économiser 150 par mois', { kind: 'goal', amount: null }],
