@@ -14,7 +14,7 @@ import { cleanEntry, stripCardNumbers } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { getTransaction, latestSavedTransaction, queryTransactions, recentlySavedTransactions } from '@/db/repositories';
-import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange, answerBiggest, findGoalByWords, totalOwed } from '@/lib/questions';
+import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange, answerBiggest, findGoalByWords, totalOwed, selectRules, dueWithin, rulesSummary, savedTotal, averageOf, countOf } from '@/lib/questions';
 import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
 import { greeting } from '@/lib/personas';
@@ -26,6 +26,8 @@ export interface SpokenAnswer {
   spoken: boolean;
   /** The entries behind the answer, as History can show them ("See in History"). */
   history?: HistoryLink;
+  /** A screen the answer came from ("Open repeating entries"). */
+  route?: { label: string; href: string };
 }
 
 /** Query string for the History tab: a range, a type, a sort and what to search or which category to show. */
@@ -83,8 +85,67 @@ export function useEntryFlow() {
     };
     let text: string;
     let history: HistoryLink | undefined;
+    let route: SpokenAnswer['route'];
+    const ruleName = (r: { note: string | null; categoryId: string | null }) => r.note || (r.categoryId ? nameOf(r.categoryId) : t.otherSpending);
 
-    if (q.ask === 'plan') {
+    if (q.ask === 'due' || q.ask === 'rules') {
+      // "when is rent due", "what's due this week", "how much are my subscriptions a month": the repeating entries.
+      const chosen = selectRules(rules, q, categories, t.categoryNames);
+      const what = q.categoryId ? nameOf(q.categoryId) : q.target;
+      route = { label: t.openRepeating, href: '/recurring' };
+      if (q.ask === 'rules' || (q.target && q.periodDefaulted && chosen.length === 1)) {
+        if (!chosen.length) text = t.answerDueNone(t.dueWindow.days(31), what);
+        else if (chosen.length === 1) { const r = chosen[0]; text = t.answerDueOne(ruleName(r), money(r.amount), t.frequency[r.frequency], friendlyDate(r.nextOccurrence, todayStr, fmt)); }
+        else { const s = rulesSummary(chosen); text = t.answerRules(what, money(s.perMonth), s.rules.slice(0, 6).map((r) => t.answerRuleItem(ruleName(r), money(r.amount), t.frequency[r.frequency]))); }
+      } else {
+        // The window: this week, this month, until payday, the next N days, else the next 31 days.
+        let to: string; let window: string;
+        if (q.periodDefaulted) { to = addDays(todayStr, 31); window = t.dueWindow.days(31); }
+        else if (q.period === 'week' || q.period === 'lastWeek') { to = addDays(periodRange('week', todayStr, current, 7, fmt.firstDay ?? 0).from, 6); window = t.dueWindow.week; }
+        else if (q.period === 'month' || q.period === 'lastMonth' || q.period === 'namedMonth') { to = month.end; window = t.dueWindow.month; }
+        else if (q.period === 'budget' && isPayPeriod) { to = current.end; window = t.dueWindow.budget; }
+        else if (q.period === 'recentDays') { to = addDays(todayStr, q.days ?? 7); window = t.dueWindow.days(q.days ?? 7); }
+        else { to = addDays(todayStr, 31); window = t.dueWindow.days(31); }
+        const items = dueWithin(chosen, todayStr, to);
+        if (!items.length) text = t.answerDueNone(window, chosen.length ? null : what);
+        else text = t.answerDueList(window, items.slice(0, 6).map((i) => t.answerDueItem(ruleName(i.rule), money(i.rule.amount), friendlyDate(i.date, todayStr, fmt))), money(items.reduce((acc, i) => acc + i.rule.amount, 0)));
+      }
+    } else if (q.ask === 'saved') {
+      // A goal by name answers its progress; otherwise what went toward goals and savings in the period.
+      const g = q.target ? findGoalByWords(q.target, goals, getPack(language).goalNouns) : null;
+      if (g) text = t.answerGoalLeft(g.name, money(Math.max(0, g.targetAmount - g.currentAmount)), money(g.currentAmount), money(g.targetAmount));
+      else {
+        const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
+        const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month, q.date);
+        const db = await getDb();
+        const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
+        const s = savedTotal(rows, range);
+        const periodName = periodLabel(period, range);
+        text = s.count > 0 ? t.answerSaved(periodName, money(s.total), s.count) : t.answerSavedNone(periodName);
+        history = { from: range.from, to: range.to, type: 'expense', categoryId: 'savings' };
+      }
+    } else if (q.ask === 'average' || q.ask === 'count') {
+      const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month, q.date);
+      const db = await getDb();
+      const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
+      const periodName = periodLabel(period, range);
+      const a = q.ask === 'average' ? averageOf({ ...q, type: 'expense' }, rows, range, categories, todayStr) : countOf({ ...q, type: 'expense' }, rows, range, categories);
+      const cat = a.categoryId ? categories.find((c) => c.id === a.categoryId) : null;
+      const what = cat && !a.usedFallback ? categoryName(cat, t) : a.target;
+      text = q.ask === 'average' ? t.answerAverage(periodName, money((a as ReturnType<typeof averageOf>).perUnit), q.per ?? 'day', what, money(a.total), a.count) : t.answerCount(periodName, a.count, what, money(a.total));
+      if (a.usedFallback && cat && a.count > 0) text = `${text} ${t.answerFallback(a.target ?? '', categoryName(cat, t))}`;
+      history = { from: range.from, to: range.to, type: 'expense', ...(a.categoryId && !a.usedFallback ? { categoryId: a.categoryId } : a.target ? { search: a.target } : null) };
+    } else if (q.ask === 'last') {
+      const db = await getDb();
+      const last = (await recentlySavedTransactions(db, 1))[0];
+      if (!last) text = t.answerLastNone;
+      else {
+        const cat = last.categoryId ? categories.find((c) => c.id === last.categoryId) : null;
+        text = t.answerLast(last.note || (cat ? categoryName(cat, t) : t.otherSpending), money(last.amount), friendlyDate(last.occurredAt, todayStr, fmt), last.type === 'income');
+        history = { from: last.occurredAt, to: last.occurredAt, type: last.type };
+      }
+    } else if (q.ask === 'plan') {
       // "set my groceries plan to 400": a plan, never logged as spending; said back with where plans are set.
       const cat = q.categoryId ? categories.find((c) => c.id === q.categoryId) : q.fallbackCategoryId ? categories.find((c) => c.id === q.fallbackCategoryId) : null;
       text = t.answerPlanHint(cat ? categoryName(cat, t) : q.target, q.price != null ? money(q.price) : null);
@@ -189,7 +250,7 @@ export function useEntryFlow() {
     }
     const mode = settings?.answerMode ?? 'auto';
     const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
-    setAnswer({ text, spoken, history });
+    setAnswer({ text, spoken, history, route });
     if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
   }, [t, money, fmt]);
 

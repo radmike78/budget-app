@@ -8,6 +8,7 @@ import type { Category, Debt, Goal, MonthStats, Period, RecurringRule, Transacti
 import type { ParsedQuestion, QuestionPeriod } from '@/parser';
 import { addDays, daysBetween, fromDateString, isValidDateString, monthKey, monthRange, shiftMonthKey, toDateString } from '@/lib/dates';
 import { effectivePlan, type CarryState } from '@/lib/rollover';
+import { advance, monthlyEquivalent } from '@/lib/recurring';
 import { safeToSpend } from '@/lib/safeToSpend';
 
 export interface DateRange { from: string; to: string }
@@ -70,6 +71,16 @@ function mentions(tx: Transaction, needle: string): boolean {
   return !!((tx.note && tx.note.toLowerCase().includes(n)) || (tx.rawInput && tx.rawInput.toLowerCase().includes(n)));
 }
 
+/** "how many coffees": a plural that matches nothing is tried in the singular ("coffee"); still a plain substring test. */
+function singularOf(target: string): string | null {
+  const t = target.trim();
+  if (t.length < 4 || !/^[\p{Script=Latin}\s'-]+$/u.test(t)) return null;
+  if (/ies$/i.test(t)) return t.replace(/ies$/i, 'y');
+  if (/(?:ches|shes|sses|xes|zes)$/i.test(t)) return t.replace(/es$/i, '');
+  if (/s$/i.test(t) && !/ss$/i.test(t)) return t.replace(/s$/i, '');
+  return null;
+}
+
 /**
  * Sums the entries the question is about. `transactions` should already be
  * limited to the period (see periodRange) but the range is checked again here.
@@ -85,7 +96,9 @@ function selectEntries(q: ParsedQuestion, transactions: Transaction[], range: Da
   }
   if (q.categoryId) return { list: inRange.filter((tx) => tx.categoryId === q.categoryId), categoryId: q.categoryId, target: null, usedFallback: false };
   if (q.target) {
-    const list = inRange.filter((tx) => mentions(tx, q.target!));
+    let list = inRange.filter((tx) => mentions(tx, q.target!));
+    const singular = list.length ? null : singularOf(q.target);
+    if (singular) list = inRange.filter((tx) => mentions(tx, singular));
     if (list.length > 0 || !q.fallbackCategoryId || !categories.some((c) => c.id === q.fallbackCategoryId)) return { list, categoryId: null, target: q.target, usedFallback: false };
     return { list: inRange.filter((tx) => tx.categoryId === q.fallbackCategoryId), categoryId: q.fallbackCategoryId, target: q.target, usedFallback: true };
   }
@@ -125,6 +138,78 @@ export function findGoalByWords(target: string, goals: Goal[], goalNouns?: RegEx
     if (words.length === 1 && nameWords.length === 1 && (!/\s/.test(key) && key.length > 1) && !/^[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}'\-]+$/u.test(key)) return nameWords[0].includes(key) || key.includes(nameWords[0]);
     return subset(words, nameWords) || subset(nameWords, words);
   }) ?? null;
+}
+
+export type RuleLike = Pick<RecurringRule, 'id' | 'amount' | 'type' | 'categoryId' | 'frequency' | 'nextOccurrence' | 'anchorDay' | 'note' | 'active'>;
+
+/** The active expense rules a question is about: by category, by words in the note or category name, or all of them. */
+export function selectRules<R extends RuleLike>(rules: R[], q: Pick<ParsedQuestion, 'target' | 'categoryId' | 'categoryIds' | 'fallbackCategoryId'>, categories: Category[], categoryLabels?: Record<string, string>): R[] {
+  const active = rules.filter((r) => r.active && r.type === 'expense');
+  if (q.categoryIds && q.categoryIds.length) { const ids = new Set(q.categoryIds); return active.filter((r) => r.categoryId != null && ids.has(r.categoryId)); }
+  if (q.categoryId) return active.filter((r) => r.categoryId === q.categoryId);
+  if (q.target) {
+    const key = q.target.toLowerCase().trim();
+    const nameOf = (id: string | null) => { const c = id ? categories.find((x) => x.id === id) : null; return c ? `${c.name} ${categoryLabels?.[c.id] ?? ''}`.toLowerCase() : ''; };
+    const byWords = active.filter((r) => (r.note ?? '').toLowerCase().includes(key) || nameOf(r.categoryId).includes(key));
+    if (byWords.length) return byWords;
+    if (q.fallbackCategoryId) return active.filter((r) => r.categoryId === q.fallbackCategoryId);
+    return [];
+  }
+  return active;
+}
+
+/** Every date a rule falls due from `from` to `to` inclusive, from its next date on (never more than `cap`). */
+export function dueDates(rule: RuleLike, from: string, to: string, cap = 60): string[] {
+  const out: string[] = [];
+  let next = rule.nextOccurrence;
+  const anchorDay = rule.anchorDay ?? Number(rule.nextOccurrence.slice(8, 10));
+  let guard = 0;
+  while (next <= to && guard < 400) {
+    if (next >= from) { out.push(next); if (out.length >= cap) break; }
+    next = advance(next, rule.frequency, anchorDay);
+    guard += 1;
+  }
+  return out;
+}
+
+export interface DueItem<R extends RuleLike = RuleLike> { rule: R; date: string }
+
+/** "What's due this week?": the rules' dates inside the window, soonest first, biggest first on a day. */
+export function dueWithin<R extends RuleLike>(rules: R[], from: string, to: string): DueItem<R>[] {
+  const out: DueItem<R>[] = [];
+  for (const rule of rules) for (const date of dueDates(rule, from, to)) out.push({ rule, date });
+  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : b.rule.amount - a.rule.amount));
+}
+
+/** "How much are my subscriptions a month?": the rules, biggest monthly cost first, and what they come to a month. */
+export function rulesSummary<R extends RuleLike>(rules: R[]): { rules: R[]; perMonth: number } {
+  const sorted = [...rules].sort((a, b) => monthlyEquivalent(b) - monthlyEquivalent(a));
+  return { rules: sorted, perMonth: round2(sorted.reduce((acc, r) => acc + monthlyEquivalent(r), 0)) };
+}
+
+/** "How much have I saved this month?": transfers toward goals plus the savings category, in the range. */
+export function savedTotal(transactions: Transaction[], range: DateRange, savingsCategoryId = 'savings'): { total: number; count: number } {
+  const list = transactions.filter((tx) => tx.type === 'expense' && tx.occurredAt >= range.from && tx.occurredAt <= range.to && (tx.goalId != null || tx.categoryId === savingsCategoryId));
+  return { total: round2(list.reduce((acc, tx) => acc + tx.amount, 0)), count: list.length };
+}
+
+/**
+ * "Average spend per day this month": what the question is about, over the days of the range that have happened
+ * (a range in the future counts as one day), per day or per week.
+ */
+export function averageOf(q: ParsedQuestion, transactions: Transaction[], range: DateRange, categories: Category[], todayStr: string): { perUnit: number; total: number; count: number; units: number; categoryId: string | null; target: string | null; usedFallback: boolean } {
+  const { list, categoryId, target, usedFallback } = selectEntries(q, transactions, range, categories);
+  const to = range.to < todayStr ? range.to : todayStr;
+  const days = Math.max(1, daysBetween(range.from, to) + 1);
+  const units = q.per === 'week' ? Math.max(1, days / 7) : days;
+  const total = round2(list.reduce((acc, tx) => acc + tx.amount, 0));
+  return { perUnit: round2(total / units), total, count: list.length, units, categoryId, target, usedFallback };
+}
+
+/** "How many times did I eat out this month?": the entries the question is about, counted. */
+export function countOf(q: ParsedQuestion, transactions: Transaction[], range: DateRange, categories: Category[]): { count: number; total: number; categoryId: string | null; target: string | null; usedFallback: boolean } {
+  const { list, categoryId, target, usedFallback } = selectEntries(q, transactions, range, categories);
+  return { count: list.length, total: round2(list.reduce((acc, tx) => acc + tx.amount, 0)), categoryId, target, usedFallback };
 }
 
 export interface BiggestAnswer {

@@ -51,6 +51,28 @@ export interface QuestionPack {
   biggestWords?: RegExp;
   /** "how much do I owe", "what's my total debt": debts and debt goals added up. */
   oweLead?: RegExp;
+  /** "when is rent due", "what bills are coming up", "what's due this week": repeating entries falling due. */
+  dueLead?: RegExp;
+  /** "how much are my subscriptions a month", "what are my repeating entries", "how much is my rent": the rules themselves. */
+  rulesLead?: RegExp;
+  /** Words removed from the target of a due or rules question ("bills", "due", "payment"). Global. */
+  dueWords?: RegExp;
+  /** "how much have I saved this month", "how much is in the trip fund": money put away, or a goal's progress. */
+  savedLead?: RegExp;
+  /** Words removed from the target of a saved question ("saved", "for", "fund"). Global. */
+  savedWords?: RegExp;
+  /** "average spend per day this month", "how much do I spend on coffee a week on average". */
+  averageLead?: RegExp;
+  /** "a week", "per week", "weekly": the average is per week, else per day. */
+  perWeek?: RegExp;
+  /** Words removed from the target of an average question ("per day", "on average"). Global. */
+  averageWords?: RegExp;
+  /** "how many times did I eat out this month", "how many coffees this week". */
+  countLead?: RegExp;
+  /** Words removed from the target of a count question ("times", "often"). Global. */
+  countWords?: RegExp;
+  /** "what was my last entry", "what did I log last". */
+  lastLead?: RegExp;
   /**
    * "set my groceries plan to 400", "budget 400 for groceries": a plan, not spending. Tried first, on the sentence with its
    * amount taken out (the amount becomes `price`), so a plan is never logged as an entry.
@@ -77,7 +99,9 @@ export interface ParsedQuestion {
    * against what is left; `biggest` names the single largest entry; `owe` adds up debts and debt goals; `plan` is a plan
    * said with its amount (answered with where plans are set, never logged); `owed` is money someone owes the person.
    */
-  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford' | 'biggest' | 'owe' | 'plan' | 'owed';
+  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford' | 'biggest' | 'owe' | 'plan' | 'owed' | 'due' | 'rules' | 'saved' | 'average' | 'count' | 'last';
+  /** For `average`: per week when the sentence said so, else per day. */
+  per?: 'day' | 'week';
   period: QuestionPeriod;
   /** True when no period was said; the answer then uses the current budget period. */
   periodDefaulted: boolean;
@@ -200,14 +224,22 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   // Without an amount: comparing first ("how am I doing compared to last month"), then "how much do I have
   // left", as some spending leads ("多少", "は…いくら") would also match it, then "the most", which also holds
   // spending words. With an amount in the sentence it is an entry, never a question ("left 5 for the tip").
-  // What is owed comes first: "how much do I owe" holds a spending lead too.
+  // What is owed comes first: "how much do I owe" holds a spending lead too. Then what is due, what was put away, averages,
+  // counts and the last entry, each of which also holds words a spending lead would take.
   const owe = affordLead || hasDigit ? null : pack.oweLead?.exec(text) ?? null;
-  const compare = affordLead || owe || hasDigit ? null : pack.compareLead?.exec(text) ?? null;
-  const remaining = affordLead || owe || compare || hasDigit ? null : pack.remainingLead.exec(text) ?? affordAsLeft;
+  const due = affordLead || owe || hasDigit ? null : pack.dueLead?.exec(text) ?? null;
+  const rulesQ = affordLead || owe || due || hasDigit ? null : pack.rulesLead?.exec(text) ?? null;
+  const saved = affordLead || owe || due || rulesQ || hasDigit ? null : pack.savedLead?.exec(text) ?? null;
+  const average = affordLead || owe || due || rulesQ || saved || hasDigit ? null : pack.averageLead?.exec(text) ?? null;
+  const countQ = affordLead || owe || due || rulesQ || saved || average || hasDigit ? null : pack.countLead?.exec(text) ?? null;
+  const last = affordLead || owe || due || rulesQ || saved || average || countQ || hasDigit ? null : pack.lastLead?.exec(text) ?? null;
+  const early = owe ?? due ?? rulesQ ?? saved ?? average ?? countQ ?? last;
+  const compare = affordLead || early || hasDigit ? null : pack.compareLead?.exec(text) ?? null;
+  const remaining = affordLead || early || compare || hasDigit ? null : pack.remainingLead.exec(text) ?? affordAsLeft;
   // The single biggest entry before the biggest category: "my biggest expense" is one thing, "my biggest expenses" are where the money went.
-  const biggest = affordLead || owe || remaining || compare || hasDigit ? null : pack.biggestLead?.exec(text) ?? null;
-  const top = affordLead || owe || remaining || compare || biggest || hasDigit ? null : pack.topLead?.exec(text) ?? null;
-  const special = affordLead ?? owe ?? remaining ?? compare ?? biggest ?? top;
+  const biggest = affordLead || early || remaining || compare || hasDigit ? null : pack.biggestLead?.exec(text) ?? null;
+  const top = affordLead || early || remaining || compare || biggest || hasDigit ? null : pack.topLead?.exec(text) ?? null;
+  const special = affordLead ?? early ?? remaining ?? compare ?? biggest ?? top;
   let expense = special ? null : pack.lead.exec(text);
   const income = special ? null : pack.incomeLead.exec(text);
   if (!special && !expense && !income && pack.weakLead && !hasDigit) expense = pack.weakLead.exec(text);
@@ -216,7 +248,8 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   const useIncome = !special && !!income && (!expense || income.index < expense.index);
   const lead = special ?? (useIncome ? income! : expense!);
   const type: ParsedQuestion['type'] = useIncome ? 'income' : 'expense';
-  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : owe ? 'owe' : remaining ? 'left' : compare ? 'compare' : biggest ? 'biggest' : top ? 'top' : 'spent';
+  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : owe ? 'owe' : due ? 'due' : rulesQ ? 'rules' : saved ? 'saved' : average ? 'average' : countQ ? 'count' : last ? 'last' : remaining ? 'left' : compare ? 'compare' : biggest ? 'biggest' : top ? 'top' : 'spent';
+  const per: 'day' | 'week' | undefined = average ? (pack.perWeek?.test(text) ? 'week' : 'day') : undefined;
   let rest = text.slice(0, lead.index) + ' ' + text.slice(lead.index + lead[0].length);
 
   let period: QuestionPeriod = 'month';
@@ -238,7 +271,9 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
     period = 'namedMonth'; month = namedIdx; periodDefaulted = false;
     rest = rest.slice(0, named.index) + ' ' + rest.slice(named.index + named[0].length);
   } else {
-    // "last Wednesday", "on the 3rd", "two days ago": one day, read by the same rules that date an entry. A period word
+    // "what's due this week" in a language whose lead holds the period word: the period is read from the lead itself.
+  if (periodDefaulted && (due || rulesQ)) for (const p of pack.periods) { if (p.re.test(lead[0])) { period = p.period; periodDefaulted = false; break; } }
+  // "last Wednesday", "on the 3rd", "two days ago": one day, read by the same rules that date an entry. A period word
     // wins unless the day phrase says more ("先週の水曜日" is last week's Wednesday, not last week); "yesterday" stays a period.
     const found = ctx.pastDate?.(rest);
     for (const p of pack.periods) {
@@ -269,9 +304,14 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   }
   if (affordLead || compare || top || biggest) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
   if (biggest && pack.biggestWords) rest = rest.replace(pack.biggestWords, ' ');
+  if ((due || rulesQ) && pack.dueWords) rest = rest.replace(pack.dueWords, ' ');
+  if (saved && pack.savedWords) rest = rest.replace(pack.savedWords, ' ');
+  if (average && pack.averageWords) rest = rest.replace(pack.averageWords, ' ');
+  if (countQ && pack.countWords) rest = rest.replace(pack.countWords, ' ');
+  if ((due || rulesQ || saved || average || countQ) && pack.askWords) rest = rest.replace(pack.askWords, ' ');
   rest = stripAll(rest, pack.strip);
-  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && (ask === 'spent' || ask === 'top' || ask === 'compare' || ask === 'biggest') ? { days } : null), ...(month != null ? { month } : null), ...(date != null ? { date } : null), ...(price != null ? { price } : null) };
-  if (!rest || owe) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
+  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && (ask === 'spent' || ask === 'top' || ask === 'compare' || ask === 'biggest' || ask === 'average' || ask === 'count' || ask === 'due') ? { days } : null), ...(month != null ? { month } : null), ...(date != null ? { date } : null), ...(price != null ? { price } : null), ...(per ? { per } : null) };
+  if (!rest || owe || last) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
 
   const key = rest.replace(/\s+/g, ' ').toLowerCase();
   const compact = key.replace(/\s+/g, '');
