@@ -5,7 +5,7 @@
  */
 import { ko } from '@/i18n/locales/ko';
 import type { Goal } from '@/types';
-import { parseOne, runCases, type Case } from './harness';
+import { GOALS, parseOne, runCases, type Case } from './harness';
 
 const labels = ko.s.categoryNames as Record<string, string>;
 
@@ -564,7 +564,7 @@ const moreQuestions: Case[] = [
   ['이번 달에 어디에 제일 많이 썼어', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
   ['제일 큰 지출이 뭐야', { kind: 'question', question: { ask: 'biggest', target: null } }],
   ['지난 수요일에 얼마 썼어', { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['식비 예산 40만원으로 설정', { kind: 'question', question: { ask: 'plan', price: 400000 } }],
+  ['식비 예산 40만원으로 설정', { kind: 'plan', amount: 400000 }],
   ['빚이 얼마야', { kind: 'question', question: { ask: 'owe' } }],
   ['수진이가 나한테 갚을 돈 2만원', { kind: 'question', question: { ask: 'owed', price: 20000, target: '수진' } }],
   ['월세 언제 내', { kind: 'question', question: { ask: 'due' } }],
@@ -754,4 +754,27 @@ describe('after core merge', () => {
     ['지난 월급날에 마트 4만원', { kind: 'transaction', type: 'expense', amount: 40000, categoryId: 'groceries' }],
   ];
   runCases('ko', pending, labels);
+});
+
+describe('ko: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: '일본 여행' }];
+  const ruleNames = ['넷플릭스', '헬스장', '스포티파이'];
+  it.each([
+    ['넷플릭스 일시정지', { kind: 'command', command: { rule: { action: 'pause', target: '넷플릭스' } } }],
+    ['넷플릭스 다시 시작해줘', { kind: 'command', command: { rule: { action: 'resume', target: '넷플릭스' } } }],
+    ['스포티파이 구독을 삭제해줘', { kind: 'command', command: { rule: { action: 'remove', target: '스포티파이' } } }],
+    ['일본 여행 목표 달성했어', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['같은 거', { kind: 'command', command: { again: { target: null } } }],
+    ['커피 하나 더', { kind: 'command', command: { again: { target: '커피' } } }],
+    ['영어로 바꿔줘', { kind: 'command', command: { language: 'en' } }],
+    ['통화를 달러로 바꿔', { kind: 'command', command: { currency: 'USD' } }],
+    ['다크 모드로 해줘', { kind: 'command', command: { theme: 'dark' } }],
+    ['도움말', { kind: 'command', command: { help: true } }],
+    ['일본 여행 목표 다시 열어줘', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'ko', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
 });

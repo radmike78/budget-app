@@ -2,7 +2,7 @@
  * Many everyday ways of saying the same thing in English, and what each must
  * become. A failure names the phrasing and shows what the parser made of it.
  */
-import { parseOne, runCases, type Case } from './harness';
+import { GOALS, parseOne, runCases, type Case } from './harness';
 
 const CASES: Case[] = [
   // expenses
@@ -575,11 +575,11 @@ const REAL_QUESTIONS: Case[] = [
   ['biggest expense last week', { kind: 'question', question: { ask: 'biggest', period: 'lastWeek', target: null } }],
   ['my biggest expenses this month', { kind: 'question', question: { ask: 'top', period: 'month' } }],
   // a plan said with its amount is never logged as spending; money owed to the person is nothing to log yet
-  ['set my groceries plan to 400', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
-  ['set a budget of 400 for groceries', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
-  ['budget 400 for groceries', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
-  ['my dining out budget is 200', { kind: 'question', question: { ask: 'plan', price: 200, categoryId: 'dining' } }],
-  ['change the groceries limit to 350 a month', { kind: 'question', question: { ask: 'plan', price: 350, categoryId: 'groceries' } }],
+  ['set my groceries plan to 400', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
+  ['set a budget of 400 for groceries', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
+  ['budget 400 for groceries', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
+  ['my dining out budget is 200', { kind: 'plan', amount: 200, categoryId: 'dining' }],
+  ['change the groceries limit to 350 a month', { kind: 'plan', amount: 350, categoryId: 'groceries' }],
   ['sarah owes me 20', { kind: 'question', question: { ask: 'owed', price: 20, target: 'Sarah' } }],
   ['mike still owes me 50', { kind: 'question', question: { ask: 'owed', price: 50, target: 'Mike' } }],
   ['i am owed 40 by tom', { kind: 'question', question: { ask: 'owed', price: 40, target: 'Tom' } }],
@@ -835,3 +835,34 @@ describe('money for a goal that is done', () => {
   });
 });
 const GOALS_FOR_DONE = [{ id: 'g1', name: 'Trip to Japan', kind: 'saving', targetAmount: 3000, currentAmount: 3000, targetDate: null, completed: true, createdAt: '2026-01-01' }] as unknown as import('@/types').Goal[];
+
+describe('en: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: 'Trip to Japan' }];
+  const ruleNames = ['netflix', 'gym', 'spotify'];
+  it.each([
+    ['pause netflix', { kind: 'command', command: { rule: { action: 'pause', target: 'netflix' } } }],
+    ['stop the gym for now', { kind: 'command', command: { rule: { action: 'pause', target: 'gym' } } }],
+    ['resume netflix', { kind: 'command', command: { rule: { action: 'resume', target: 'netflix' } } }],
+    ['delete the spotify subscription', { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+    ['pause hulu', { kind: 'command', command: { rule: { action: 'pause', target: 'hulu' } } }],
+    ['cancel netflix 15.99', { kind: 'transaction', amount: 15.99 }],
+    ['mark the trip goal done', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['I reached my trip to japan goal', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['close the japan fund', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['same again', { kind: 'command', command: { again: { target: null } } }],
+    ['another coffee', { kind: 'command', command: { again: { target: 'coffee' } } }],
+    ['log coffee again', { kind: 'command', command: { again: { target: 'coffee' } } }],
+    ['the usual', { kind: 'command', command: { again: { target: null } } }],
+    ['switch to spanish', { kind: 'command', command: { language: 'es' } }],
+    ['change currency to euros', { kind: 'command', command: { currency: 'EUR' } }],
+    ['dark mode', { kind: 'command', command: { theme: 'dark' } }],
+    ['what can I say', { kind: 'command', command: { help: true } }],
+    ['spent 12 on lunch again', { kind: 'transaction', amount: 12 }],
+    ['reopen the trip goal', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'en', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
+});

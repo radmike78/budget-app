@@ -29,6 +29,8 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   const fmt = useDateFormat();
   const categories = useAppStore((s) => s.categories);
   const goals = useAppStore((s) => s.goals);
+  const saveCategory = useAppStore((s) => s.saveCategory);
+  const payMode = useAppStore((s) => s.settings?.budgetPeriod === 'pay');
   const addTransaction = useAppStore((s) => s.addTransaction);
   const updateTransaction = useAppStore((s) => s.updateTransaction);
   const saveGoal = useAppStore((s) => s.saveGoal);
@@ -114,6 +116,21 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
       return;
     }
     if (amount == null || amount <= 0) { setError(t.enterAmount); return; }
+    if (result.kind === 'plan') {
+      // "set my groceries plan to 400": the category's plan, saved like on its own screen; nothing is logged.
+      if (!category || category.kind !== 'expense') { setError(t.planNeedsCategory); return; }
+      setSaving(true);
+      try {
+        await saveCategory({ ...category, monthlyLimit: amount });
+        onDone(t.toastPlanSet(categoryName(category, t), money(amount, { compact: true })));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      } catch (e) {
+        setError(t.didntWork((e as Error).message));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     setSaving(true);
     try {
       if (result.kind === 'goal') {
@@ -147,7 +164,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   };
 
   if (!result) return null;
-  const title = result.editOf ? t.editEntry : result.kind === 'reminder' ? t.newReminder : result.kind === 'goal' ? t.newGoal : result.kind === 'contribution' ? t.addTo(goal?.name ?? '') : type === 'income' ? t.moneyIn : t.moneyOut;
+  const title = result.editOf ? t.editEntry : result.kind === 'reminder' ? t.newReminder : result.kind === 'goal' ? t.newGoal : result.kind === 'plan' ? t.newPlan : result.kind === 'contribution' ? t.addTo(goal?.name ?? '') : type === 'income' ? t.moneyIn : t.moneyOut;
   const catLabel = category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.pickCategory;
 
   return (
@@ -165,7 +182,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
       ) : null}
 
       {result.kind !== 'reminder' ? <Field
-        label={result.kind === 'goal' ? t.targetAmount : t.amount}
+        label={result.kind === 'goal' ? t.targetAmount : result.kind === 'plan' ? (payMode ? t.periodLimit : t.monthlyLimit) : t.amount}
         value={amountText}
         onChangeText={setAmountText}
         keyboardType="decimal-pad"
@@ -207,6 +224,16 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
           ) : null}
           <DatePicker visible={showTargetDate} onClose={() => setShowTargetDate(false)} value={targetDate ?? today()} onPick={setTargetDate} future />
         </>
+      ) : result.kind === 'plan' ? (
+        <>
+          <Text variant="label" style={{ marginBottom: 6 }}>{t.category}</Text>
+          <Row style={{ marginBottom: spacing.md, flexWrap: 'wrap' }}>
+            <Button tone="secondary" small title={catLabel} onPress={() => setShowCat(true)} />
+          </Row>
+          {category?.monthlyLimit ? <Text variant="small" style={{ marginBottom: spacing.sm }}>{t.planNow(money(category.monthlyLimit, { compact: true }))}</Text> : null}
+          <Text variant="small" style={{ marginBottom: spacing.lg }}>{t.limitHint}</Text>
+          <CategoryPicker visible={showCat} onClose={() => setShowCat(false)} onPick={(c) => setCategoryId(c.id)} kind="expense" selectedId={categoryId} categories={categories} />
+        </>
       ) : result.kind === 'contribution' && goal ? (
         <>
           <Text variant="muted" style={{ marginBottom: spacing.md }}>{t.goalSoFar(goal.name, money(goal.currentAmount, { compact: true }), money(goal.targetAmount, { compact: true }))}</Text>
@@ -242,7 +269,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
       )}
 
       {error ? <Text variant="small" color={colors.danger} style={{ marginBottom: spacing.sm }}>{error}</Text> : null}
-      <Button title={result.editOf ? t.saveChanges : result.kind === 'reminder' ? t.setReminder : result.kind === 'goal' ? t.setGoal : t.save} onPress={save} loading={saving} />
+      <Button title={result.editOf ? t.saveChanges : result.kind === 'reminder' ? t.setReminder : result.kind === 'goal' ? t.setGoal : result.kind === 'plan' ? t.setPlan : t.save} onPress={save} loading={saving} />
     </Sheet>
   );
 }

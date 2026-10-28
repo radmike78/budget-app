@@ -692,7 +692,7 @@ const MORE_QUESTIONS: Case[] = [
   ['最大的一笔开销是什么', { kind: 'question', question: { ask: 'biggest', target: null } }],
   ['这个月最大的开销是啥', { kind: 'question', question: { ask: 'biggest', period: 'month', target: null } }],
   ['上周三花了多少', { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['把买菜预算设成3000', { kind: 'question', question: { ask: 'plan', price: 3000, fallbackCategoryId: 'groceries' } }],
+  ['把买菜预算设成3000', { kind: 'plan', amount: 3000, categoryId: 'groceries' }],
   ['我欠多少钱', { kind: 'question', question: { ask: 'owe' } }],
   ['小明欠我200', { kind: 'question', question: { ask: 'owed', price: 200, target: '小明' } }],
   ['房租什么时候交', { kind: 'question', question: { ask: 'due' } }],
@@ -865,5 +865,28 @@ describe('after core merge', () => {
     expect(r).toHaveLength(2);
     expect(r[0]).toMatchObject({ kind: 'transaction', amount: 45, categoryId: 'transport' });
     expect(r[1]).toMatchObject({ kind: 'transaction', amount: 50, categoryId: 'transport' });
+  });
+});
+
+describe('zh: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: '日本旅行' }];
+  const ruleNames = ['netflix', '健身房', 'spotify'];
+  it.each([
+    ['把netflix暂停', { kind: 'command', command: { rule: { action: 'pause', target: 'netflix' } } }],
+    ['恢复netflix', { kind: 'command', command: { rule: { action: 'resume', target: 'netflix' } } }],
+    ['把spotify的订阅删掉', { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+    ['把日本旅行目标标为完成', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['一样的', { kind: 'command', command: { again: { target: null } } }],
+    ['再来一杯咖啡', { kind: 'command', command: { again: { target: '咖啡' } } }],
+    ['切换成英文', { kind: 'command', command: { language: 'en' } }],
+    ['货币换成美元', { kind: 'command', command: { currency: 'USD' } }],
+    ['深色模式', { kind: 'command', command: { theme: 'dark' } }],
+    ['帮助', { kind: 'command', command: { help: true } }],
+    ['重新打开日本旅行目标', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'zh', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
   });
 });

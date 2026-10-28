@@ -712,7 +712,7 @@ const MORE_QUESTIONS: Case[] = [
   ['cosa mi è costato di più questo mese', { kind: 'question', question: { ask: 'top', period: 'month', target: null } }],
   ['qual è la mia spesa più alta', { kind: 'question', question: { ask: 'biggest', target: null } }],
   ['quanto ho speso mercoledì scorso', { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['imposta il budget della spesa a 400', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
+  ['imposta il budget della spesa a 400', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
   ['sara mi deve 20', { kind: 'question', question: { ask: 'owed', price: 20, target: 'Sara' } }],
   ['quanto devo', { kind: 'question', question: { ask: 'owe' } }],
   ['2 caffè 4 ciascuno', { kind: 'transaction', amount: 8, note: '2 caffè' }],
@@ -929,4 +929,27 @@ describe('after core merge', () => {
     ['quanto ho speso ad agosto', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
   ];
   runCases('it', pending, LABELS);
+});
+
+describe('it: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: 'Viaggio in Giappone' }];
+  const ruleNames = ['netflix', 'palestra', 'spotify'];
+  it.each([
+    ['metti in pausa netflix', { kind: 'command', command: { rule: { action: 'pause', target: 'netflix' } } }],
+    ['riprendi netflix', { kind: 'command', command: { rule: { action: 'resume', target: 'netflix' } } }],
+    ["elimina l'abbonamento spotify", { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+    ["segna l'obiettivo viaggio come raggiunto", { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['lo stesso', { kind: 'command', command: { again: { target: null } } }],
+    ['un altro caffè', { kind: 'command', command: { again: { target: 'caffè' } } }],
+    ["passa all'inglese", { kind: 'command', command: { language: 'en' } }],
+    ['cambia valuta in euro', { kind: 'command', command: { currency: 'EUR' } }],
+    ['modalità scura', { kind: 'command', command: { theme: 'dark' } }],
+    ['aiuto', { kind: 'command', command: { help: true } }],
+    ["riapri l'obiettivo viaggio", { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'it', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
 });

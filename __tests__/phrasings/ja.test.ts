@@ -636,7 +636,7 @@ const MORE_QUESTIONS: Case[] = [
   ['今週何に一番使った？', { kind: 'question', question: { ask: 'top', period: 'week', target: null } }],
   ['今月一番大きかった出費は', { kind: 'question', question: { ask: 'biggest', period: 'month', target: null } }],
   ['先週の水曜日にいくら使った', { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['食費の予算を3万円にして', { kind: 'question', question: { ask: 'plan', price: 30000 } }],
+  ['食費の予算を3万円にして', { kind: 'plan', amount: 30000 }],
   ['借金はいくら', { kind: 'question', question: { ask: 'owe' } }],
   ['さくらが私に借金がある', { kind: 'question', question: { ask: 'owed', target: 'さくら' } }],
   ['家賃はいつ', { kind: 'question', question: { ask: 'due' } }],
@@ -788,4 +788,27 @@ describe('after core merge', () => {
     ['8月いくら使った', { kind: 'question', question: { ask: 'spent', period: 'namedMonth', month: 7 } }],
   ];
   runCases('ja', pending, labels);
+});
+
+describe('ja: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: '日本旅行' }];
+  const ruleNames = ['ネットフリックス', 'ジム', 'スポティファイ'];
+  it.each([
+    ['ネットフリックスを一時停止', { kind: 'command', command: { rule: { action: 'pause', target: 'ネットフリックス' } } }],
+    ['ネットフリックスを再開して', { kind: 'command', command: { rule: { action: 'resume', target: 'ネットフリックス' } } }],
+    ['スポティファイのサブスクを削除', { kind: 'command', command: { rule: { action: 'remove', target: 'スポティファイ' } } }],
+    ['日本旅行の目標を達成にして', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['同じの', { kind: 'command', command: { again: { target: null } } }],
+    ['コーヒーをもう一回', { kind: 'command', command: { again: { target: 'コーヒー' } } }],
+    ['英語にして', { kind: 'command', command: { language: 'en' } }],
+    ['通貨をドルにして', { kind: 'command', command: { currency: 'USD' } }],
+    ['ダークモードにして', { kind: 'command', command: { theme: 'dark' } }],
+    ['使い方', { kind: 'command', command: { help: true } }],
+    ['日本旅行の目標を再開して', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'ja', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
 });
