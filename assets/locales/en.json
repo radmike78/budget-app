@@ -1,6 +1,8 @@
 {
-  "NSMicrophoneUsageDescription": "OnlyBudget uses the microphone while you speak an entry like \"spent 12 on lunch\". Your phone's speech recognizer turns it into text; OnlyBudget never records or stores audio.",
-  "NSSpeechRecognitionUsageDescription": "OnlyBudget uses speech recognition to turn what you say into a budget entry. Nothing is sent to us.",
-  "NSFaceIDUsageDescription": "OnlyBudget can use Face ID to unlock the app if you turn the app lock on.",
-  "CFBundleDisplayName": "OnlyBudget"
+  "ios": {
+    "NSMicrophoneUsageDescription": "OnlyBudget uses the microphone while you speak an entry like \"spent 12 on lunch\". Your phone's speech recognizer turns it into text; OnlyBudget never records or stores audio.",
+    "NSSpeechRecognitionUsageDescription": "OnlyBudget uses speech recognition to turn what you say into a budget entry. Nothing is sent to us.",
+    "NSFaceIDUsageDescription": "OnlyBudget can use Face ID to unlock the app if you turn the app lock on.",
+    "CFBundleDisplayName": "OnlyBudget"
+  }
 }

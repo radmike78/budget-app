@@ -1,6 +1,8 @@
 {
-  "NSMicrophoneUsageDescription": "OnlyBudget utilise le micro pendant que vous dictez une opération comme « 12 pour le déjeuner ». La reconnaissance vocale de votre téléphone la transforme en texte ; OnlyBudget n’enregistre ni ne conserve jamais d’audio.",
-  "NSSpeechRecognitionUsageDescription": "OnlyBudget utilise la reconnaissance vocale pour transformer ce que vous dites en opération. Rien ne nous est envoyé.",
-  "NSFaceIDUsageDescription": "OnlyBudget peut utiliser Face ID pour déverrouiller l’app si vous activez le verrouillage.",
-  "CFBundleDisplayName": "OnlyBudget"
+  "ios": {
+    "NSMicrophoneUsageDescription": "OnlyBudget utilise le micro pendant que vous dictez une opération comme « 12 pour le déjeuner ». La reconnaissance vocale de votre téléphone la transforme en texte ; OnlyBudget n’enregistre ni ne conserve jamais d’audio.",
+    "NSSpeechRecognitionUsageDescription": "OnlyBudget utilise la reconnaissance vocale pour transformer ce que vous dites en opération. Rien ne nous est envoyé.",
+    "NSFaceIDUsageDescription": "OnlyBudget peut utiliser Face ID pour déverrouiller l’app si vous activez le verrouillage.",
+    "CFBundleDisplayName": "OnlyBudget"
+  }
 }
