@@ -1,6 +1,6 @@
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import { parseEntries, type ParseContext } from '@/parser';
-import { answerBiggest, answerQuestion, compareRanges, findGoalByWords, periodRange, totalOwed } from '@/lib/questions';
+import { answerBiggest, answerQuestion, averageOf, compareRanges, countOf, dueWithin, findGoalByWords, periodRange, rulesSummary, savedTotal, selectRules, totalOwed } from '@/lib/questions';
 import type { Transaction } from '@/types';
 
 const TODAY = '2026-09-16'; // a Wednesday
@@ -49,7 +49,7 @@ describe('parsing questions', () => {
   });
   it('does not turn ordinary entries into questions', () => {
     expect(parseEntries('spent 12 on lunch', ctx())[0].kind).toBe('transaction');
-    expect(parseEntries('how much is my rent', ctx())[0].kind).not.toBe('question');
+    expect(parseEntries('how much is my rent', ctx())[0].question?.ask).toBe('rules');
     expect(parseEntries('got paid 2400', ctx())[0].kind).toBe('transaction');
     expect(parseEntries('remind me to pay rent on the 1st at 9am', ctx())[0].kind).toBe('reminder');
   });
@@ -154,6 +154,34 @@ describe('what is owed and which goal is meant', () => {
     expect(findGoalByWords('car', goals, nouns)).toBeNull();
     expect(findGoalByWords('(.*', goals, nouns)).toBeNull();
     expect(findGoalByWords('goal', goals, nouns)).toBeNull();
+  });
+});
+
+describe('bills, rules, savings, averages and counts', () => {
+  const rule = (id: string, note: string, amount: number, frequency: 'weekly' | 'biweekly' | 'monthly' | 'yearly', nextOccurrence: string, categoryId = 'subscriptions', active = true) => ({ id, note, amount, frequency, nextOccurrence, categoryId, active, type: 'expense' as const, anchorDay: null });
+  const rules = [rule('r1', 'Netflix', 15.99, 'monthly', '2026-09-28'), rule('r2', 'Rent', 1200, 'monthly', '2026-10-01', 'rent'), rule('r3', 'Gym', 10, 'weekly', '2026-09-17', 'health'), rule('r4', 'Old', 5, 'monthly', '2026-09-20', 'subscriptions', false), { ...rule('r5', 'Pay', 3000, 'biweekly', '2026-09-18', 'salary'), type: 'income' as const }];
+  it('picks rules by category, by words, or all the active expense ones', () => {
+    expect(selectRules(rules, ask('when is rent due').question!, DEFAULT_CATEGORIES).map((r) => r.id)).toEqual(['r2']);
+    expect(selectRules(rules, ask('how much do I pay for netflix').question!, DEFAULT_CATEGORIES).map((r) => r.id)).toEqual(['r1']);
+    expect(selectRules(rules, ask('what bills are coming up').question!, DEFAULT_CATEGORIES).map((r) => r.id)).toEqual(['r1', 'r2', 'r3']);
+  });
+  it('lists what falls due in a window, soonest first, and what the rules come to a month', () => {
+    expect(dueWithin(rules.filter((r) => r.active && r.type === 'expense'), TODAY, '2026-09-30').map((d) => `${d.rule.id}@${d.date}`)).toEqual(['r3@2026-09-17', 'r3@2026-09-24', 'r1@2026-09-28']);
+    expect(dueWithin(rules, TODAY, '2026-10-02').filter((d) => d.rule.id === 'r2').map((d) => d.date)).toEqual(['2026-10-01']);
+    const s = rulesSummary(rules.filter((r) => r.active && r.type === 'expense'));
+    expect(s.rules.map((r) => r.id)).toEqual(['r2', 'r3', 'r1']);
+    expect(s.perMonth).toBe(1259.32);
+  });
+  it('sums what went toward goals and savings, averages per day or week, and counts', () => {
+    const rows = [tx({ amount: 200, occurredAt: '2026-09-02', categoryId: 'savings' }), tx({ amount: 50, occurredAt: '2026-09-10', goalId: 'g1' }), tx({ amount: 12, occurredAt: '2026-09-10', note: 'Lunch' }), tx({ amount: 4, occurredAt: '2026-09-14', note: 'Coffee' }), tx({ amount: 4, occurredAt: '2026-09-15', note: 'Coffee' })];
+    const month = { from: '2026-09-01', to: '2026-09-30' };
+    expect(savedTotal(rows, month)).toEqual({ total: 250, count: 2 });
+    const avg = averageOf(ask('average spend per day this month').question!, rows, month, DEFAULT_CATEGORIES, TODAY);
+    expect(avg).toMatchObject({ total: 270, count: 5, units: 16, perUnit: 16.88 });
+    const week = averageOf(ask('how much do I spend on coffee a week on average').question!, rows, month, DEFAULT_CATEGORIES, TODAY);
+    expect(week).toMatchObject({ total: 8, count: 2, target: 'Coffee' });
+    expect(week.perUnit).toBe(3.5);
+    expect(countOf(ask('how many coffees this month').question!, rows, month, DEFAULT_CATEGORIES)).toMatchObject({ count: 2, total: 8 });
   });
 });
 

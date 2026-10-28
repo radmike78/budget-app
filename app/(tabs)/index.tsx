@@ -95,6 +95,7 @@ export default function HomeScreen() {
         <Card tone="accent" style={{ marginTop: spacing.md }}>
           <Text variant="heading" style={{ lineHeight: 26 }}>{answer.text}</Text>
           <Row style={{ marginTop: spacing.sm, justifyContent: 'flex-end' }}>
+            {answer.route ? <Button tone="ghost" small title={answer.route.label} onPress={() => { const r = answer.route!; dismissAnswer(); router.push(r.href as never); }} /> : null}
             {answer.history ? <Button tone="ghost" small title={t.seeInHistory} onPress={() => { const h = answer.history!; dismissAnswer(); router.push({ pathname: '/history', params: { from: h.from, to: h.to, ...(h.type ? { type: h.type } : null), ...(h.sort ? { sort: h.sort } : null), ...(h.search ? { q: h.search } : null), ...(h.categoryId ? { cat: h.categoryId } : null) } }); }} /> : null}
             <Button tone="ghost" small title={t.readAloud} onPress={() => speak(answer.text, language, settings.voiceGender)} />
             <Button tone="ghost" small title={t.done} onPress={dismissAnswer} />
