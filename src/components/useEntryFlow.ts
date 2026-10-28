@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { longDate, monthKey, monthName, monthRange, today } from '@/lib/dates';
+import { addDays, friendlyDate, longDate, monthKey, monthName, monthRange, today } from '@/lib/dates';
 import { periodContaining, shiftPeriod } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
 import { parseEntries, type Correction, type ParseResult } from '@/parser';
-import type { Transaction } from '@/types';
+import type { Transaction, TxType } from '@/types';
 import { SMART_ASSIST } from '@/lib/features';
 import { llmParse } from '@/parser/llmFallback';
 import { categoryName, resolveLanguage, useDateFormat, useMoney, useT } from '@/i18n';
@@ -13,7 +13,7 @@ import { cleanEntry, stripCardNumbers } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { getTransaction, latestSavedTransaction, queryTransactions, recentlySavedTransactions } from '@/db/repositories';
-import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange } from '@/lib/questions';
+import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange, answerBiggest } from '@/lib/questions';
 import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
 import { greeting } from '@/lib/personas';
@@ -23,6 +23,18 @@ export interface SpokenAnswer {
   text: string;
   /** True when the answer was read aloud as well as shown. */
   spoken: boolean;
+  /** The entries behind the answer, as History can show them ("See in History"). */
+  history?: HistoryLink;
+}
+
+/** Query string for the History tab: a range, a type, a sort and what to search or which category to show. */
+export interface HistoryLink {
+  from: string;
+  to: string;
+  type?: TxType;
+  sort?: 'date' | 'type' | 'amount';
+  search?: string;
+  categoryId?: string;
 }
 
 /**
@@ -63,18 +75,20 @@ export function useEntryFlow() {
     // How the period is said back: "this week", "the last 7 days", or the month's own name for "in August".
     const periodLabel = (period: string, range: { from: string }): string => {
       if (period === 'recentDays') return t.periodLastDays(q.days ?? 7);
+      if (period === 'day') return range.from === todayStr ? t.periodNames.today : range.from === addDays(todayStr, -1) ? t.periodNames.yesterday : t.periodOnDay(friendlyDate(range.from, todayStr, fmt));
       if (period === 'namedMonth') return monthName(range.from.slice(0, 7), fmt);
       if (period === 'budget' && !isPayPeriod) return t.periodNames.month;
       return t.periodNames[period] ?? period;
     };
     let text: string;
+    let history: HistoryLink | undefined;
 
     if (q.ask === 'compare') {
       // The period so far against the same point in the one before, so half a month never meets a whole one.
       const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
       const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);
       const whole = kind === 'lastWeek' || kind === 'lastMonth' || kind === 'lastYear' || kind === 'yesterday' || kind === 'weekend' || kind === 'recentDays' || kind === 'today' || kind === 'namedMonth';
-      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0, q.days, q.month);
+      const r = compareRanges(kind, todayStr, current, previous, fmt.firstDay ?? 0, q.days, q.month, q.date);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: r.before.from, to: r.now.to, limit: 100000 });
       const spentQ = { ...q, ask: 'spent' as const };
@@ -84,15 +98,35 @@ export function useEntryFlow() {
       const what = now.categoryIds ? now.target : cat && !now.usedFallback ? categoryName(cat, t) : now.target;
       const periodName = periodLabel(kind, r.now);
       const prev = kind === 'recentDays' ? t.comparePrevDays(q.days ?? 7) : kind === 'namedMonth' ? t.comparePrev.lastMonth : t.comparePrev[kind] ?? kind;
+      history = { from: r.now.from, to: r.now.to, type: 'expense', ...(now.categoryId && !now.usedFallback ? { categoryId: now.categoryId } : now.target && !now.categoryIds ? { search: now.target } : null) };
       text = t.answerCompare(periodName, money(now.total), what, compareWeeks(now.total, before.total), money(Math.abs(now.total - before.total)), prev, whole);
+    } else if (q.ask === 'biggest') {
+      // The single largest entry: said with its day, and History can show the rest biggest first.
+      const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month, q.date);
+      const db = await getDb();
+      const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
+      const periodName = periodLabel(period, range);
+      const b = answerBiggest(q, rows, range, categories);
+      if (!b) text = t.answerNone(periodName, q.target, false);
+      else {
+        const cat = b.categoryId ? categories.find((c) => c.id === b.categoryId) : null;
+        const what = cat && !b.usedFallback ? categoryName(cat, t) : b.target;
+        const entryCat = b.entry.categoryId ? categories.find((c) => c.id === b.entry.categoryId) : null;
+        const name = b.entry.note || (entryCat ? categoryName(entryCat, t) : t.otherSpending);
+        text = t.answerBiggest(periodName, what, name, money(b.entry.amount), friendlyDate(b.entry.occurredAt, todayStr, fmt), b.count, money(b.total));
+        if (b.usedFallback && cat) text = `${text} ${t.answerFallback(b.target ?? '', categoryName(cat, t))}`;
+      }
+      history = { from: range.from, to: range.to, type: 'expense', sort: 'amount', ...(b?.categoryId ? { categoryId: b.categoryId } : q.target ? { search: q.target } : null) };
     } else if (q.ask === 'top') {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month, q.date);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: 'expense', from: range.from, to: range.to, limit: 100000 });
       const periodName = periodLabel(period, range);
       const top = answerTop(rows, range);
       text = top ? t.answerTop(periodName, top.categoryId ? nameOf(top.categoryId) : t.otherSpending, money(top.amount), money(top.total)) : t.answerNone(periodName, null, false);
+      history = { from: range.from, to: range.to, type: 'expense', sort: 'amount', ...(top?.categoryId ? { categoryId: top.categoryId } : null) };
     } else if (q.ask === 'afford') {
       await useAppStore.getState().goToCurrentPeriod();
       const { stats, carry } = useAppStore.getState();
@@ -128,10 +162,11 @@ export function useEntryFlow() {
       }
     } else {
       const period = q.periodDefaulted && isPayPeriod ? 'budget' : q.period;
-      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month);
+      const range = periodRange(period, todayStr, current, q.days, fmt.firstDay ?? 0, q.month, q.date);
       const db = await getDb();
       const rows = await queryTransactions(db, { type: q.type, from: range.from, to: range.to, limit: 100000 });
       const a = answerQuestion(q, rows, range, categories);
+      history = { from: range.from, to: range.to, type: q.type, ...(a.categoryId && !a.usedFallback ? { categoryId: a.categoryId } : a.target && !a.categoryIds ? { search: a.target } : null) };
       const periodName = periodLabel(period, range);
       const cat = a.categoryId ? categories.find((c) => c.id === a.categoryId) : null;
       const what = a.categoryIds ? a.target : cat && !a.usedFallback ? categoryName(cat, t) : a.target;
@@ -140,7 +175,7 @@ export function useEntryFlow() {
     }
     const mode = settings?.answerMode ?? 'auto';
     const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
-    setAnswer({ text, spoken });
+    setAnswer({ text, spoken, history });
     if (spoken) await speak(text, language, settings?.voiceGender ?? 'female');
   }, [t, money, fmt]);
 

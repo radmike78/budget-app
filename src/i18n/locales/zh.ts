@@ -533,9 +533,12 @@ export const zh: LocaleDef = {
       if (direction === 'same') return whole ? `${base}，和${prev}差不多。` : `${base}，和${prev}同一时间差不多。`;
       return whole ? `${base}，比${prev}${direction === 'more' ? '多' : '少'}${diff}。` : `${base}，比${prev}同一时间${direction === 'more' ? '多' : '少'}${diff}。`;
     },
-    comparePrev: { week: '上周', month: '上个月', year: '去年', budget: '上个发薪周期', lastWeek: '再上一周', lastMonth: '再上个月', lastYear: '前一年', yesterday: '前一天', today: '昨天', weekend: '上上个周末' } as Record<string, string>,
+    comparePrev: { week: '上周', month: '上个月', year: '去年', budget: '上个发薪周期', lastWeek: '再上一周', lastMonth: '再上个月', lastYear: '前一年', yesterday: '前一天', today: '昨天', weekend: '上上个周末', day: '前一天' } as Record<string, string>,
     comparePrevDays: (n: number): string => `再往前 ${n} 天`,
     answerTop: (period, category, amount, total) => `${period}花得最多的是${category}：${total}里占${amount}。`,
+    periodOnDay: (day: string): string => `${day}`,
+    answerBiggest: (period: string, what: string | null, name: string, amount: string, day: string, count: number, total: string): string => `${period}${what ? `在${what}上` : ''}最大的一笔支出是${amount}：${name}，${day}。${count > 1 ? `${count}笔共${total}，这一笔占${amount}。` : ''}`,
+    seeInHistory: '在记录中查看',
     answerAffordFits: (price, left, what, until) => (what ? `花了${price}以后，${what}计划到${until}为止还剩${left}。` : `花了${price}以后，到${until}为止还剩${left}。`),
     answerAffordShort: (price, short, what, until) => (what ? `${price}比${what}计划到${until}为止剩下的多${short}。` : `${price}比到${until}为止剩下的多${short}。`),
     answerAffordUnknown: (price) => `这个周期还没有计划，也没有收入，所以没有可以和${price}比较的数。`,
@@ -558,7 +561,7 @@ export const zh: LocaleDef = {
       ['添加记录', '点麦克风说出发生了什么，或者直接打字："午饭花了12块"、"发工资了8000"、"昨天加油花了300"。一口气说几笔也可以："午饭花了12块，打车35块"。卡片会显示理解到的内容，点"保存"就记下了。输入栏下方列出你最常记的几笔，点一下就打开同一张已填好的卡片。'],
       ['修改记录', '保存前，在卡片上点金额、分类或日期就能改。之后在"最近"或"记录"里点任意一条都可以编辑。改了分类后，这些词会被记住，下次就会自动归对。也可以直接说："其实是14块"、"改成餐饮"、"那是昨天的"或"删掉"。'],
       ['删除记录', '打开这条记录，点"删除记录"。它会立刻消失，"撤销"条会停留几秒，以防你不是有意的。'],
-      ['提问', '问"这周咖啡花了多少？"或"上个月买菜花了多少钱？"。答案会显示在屏幕上或读出来，取决于 设置 → 回答问题的方式。一周从周一开始。问"预算还剩多少？"或"吃饭还剩多少？"，会告诉你计划还剩多少，或扣掉待付账单后收入还剩多少。也可以说"这个发薪周期"或"发工资以来"；"吃饭"把买菜和外出就餐算在一起。"周末"和"最近7天"也可以。还可以问："比上个月花得多吗"、"钱主要花在哪了"或"买200块的外套可以吗"。'],
+      ['提问', '问"这周咖啡花了多少？"或"上个月买菜花了多少钱？"。答案会显示在屏幕上或读出来，取决于 设置 → 回答问题的方式。一周从周一开始。问"预算还剩多少？"或"吃饭还剩多少？"，会告诉你计划还剩多少，或扣掉待付账单后收入还剩多少。也可以说"这个发薪周期"或"发工资以来"；"吃饭"把买菜和外出就餐算在一起。"周末"和"最近7天"也可以。还可以问："比上个月花得多吗"、"钱主要花在哪了"或"买200块的外套可以吗"。也可以只问某一天："上周三花了多少"、"3号在星巴克花了多少"。"上个月最大的一笔支出是什么"会说出最大的那一笔。每个回答下面的"在记录中查看"会打开它所依据的记录；问的是最大时，就按金额从大到小排。'],
       ['目标', '说"目标：年底前存5000去旅行"或"6个月内还清信用卡"。保存前卡片会先展示计划。用"往旅行里存了200"来加钱。'],
       ['提醒', '说"每月1号早上9点提醒我交房租"或"每天晚上8点提醒我记账"。提醒是手机通知，所以第一次会请求权限。它们在 设置 → 提醒 里。在 Android 上可能晚几分钟到达，电池设置也可能拦下它们；那个页面写了怎样允许。'],
       ['定期记录', '房租、工资、订阅：在 设置 → 定期记录 里设一次，到期时会替你记上。也可以带上周期直接说："netflix 60 每月"，卡片上会多一个设为定期记录的开关。记下的记录可以像平常一样编辑或删除。"今天"页的即将到期会列出下个月内到期的账单。'],
