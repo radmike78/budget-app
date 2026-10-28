@@ -604,6 +604,7 @@ export const ko: LocaleDef = {
     restoreReplace: '모두 바꾸기',
     merged: (n: number) => `기록 ${n}건을 추가했어요. 원래 있던 것은 그대로예요.`,
     mergedNothing: '그 파일에 새로운 건 없어요. 들어 있는 내용이 모두 이미 여기 있어요.',
+    mergedOther: (n: number) => `내역이 아닌 항목도 ${n}개 추가했어요: 목표, 반복 내역, 알림, 빚, 카테고리.`,
     mergeTooMany: '이 파일을 추가하면 반복 내역이나 알림이 앱이 보관할 수 있는 수를 넘어요. 대신 모두 바꾸거나, 먼저 몇 개를 지워 주세요.',
     categoryExists: '같은 이름의 카테고리가 이미 있어요.',
     goalExists: '같은 이름의 목표가 이미 있어요.',
@@ -696,6 +697,7 @@ export const ko: LocaleDef = {
     yes: '예',
     no: '아니요',
     openError: '데이터를 여는 중 문제가 생겼어요.',
+    openErrorOtherTab: 'OnlyBudget이 다른 탭에 열려 있거나 페이지를 너무 빨리 새로고침했어요. 다른 탭을 닫고 다시 시도해 주세요.',
     tryAgain: '다시 시도',
     screenError: '이 화면에 문제가 생겼어요. 기록은 안전해요.',
     categoryNames: {

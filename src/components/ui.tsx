@@ -199,7 +199,7 @@ export function Chip({ label, selected, onPress, tone = 'default', style, access
   const bg = selected ? (tone === 'danger' ? colors.dangerSoft : colors.accent) : colors.cardAlt;
   const fg = selected ? (tone === 'danger' ? colors.danger : colors.onAccent) : colors.text;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: !!selected }} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ selected: !!selected }} aria-selected={!!selected} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.chip, { backgroundColor: bg, opacity: pressed ? 0.8 : 1 }, style]}>
       <RNText style={{ color: fg, fontSize: 14 * scale, fontWeight: selected ? '600' : '500' }}>{label}</RNText>
     </Pressable>
   );
@@ -214,7 +214,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
         const active = o.value === value;
         // The chosen segment is a tinted pill with accent text: card-on-cardAlt was 1.1:1 in dark mode, bold text alone.
         return (
-          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent }]}>
+          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: active, selected: active }} aria-checked={active} onPress={() => onChange(o.value)} style={[styles.segment, active && { backgroundColor: colors.accentSoft, borderWidth: 1, borderColor: colors.accent }]}>
             <RNText numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: active ? colors.accent : colors.muted, fontWeight: active ? '600' : '500', fontSize: 14 * scale, textAlign: 'center' }}>{o.label}</RNText>
           </Pressable>
         );
@@ -247,7 +247,7 @@ export function Field({ label, hint, error, style, inputStyle, ...rest }: TextIn
 export function ListItem({ title, subtitle, right, onPress, left, style }: { title: string; subtitle?: string | null; right?: React.ReactNode; left?: React.ReactNode; onPress?: () => void; style?: StyleProp<ViewStyle> }) {
   const { colors } = useTheme();
   return (
-    <Pressable accessibilityRole={onPress ? 'button' : undefined} onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.listItem, { backgroundColor: pressed ? colors.cardAlt : colors.card, borderColor: colors.border }, style]}>
+    <Pressable accessibilityRole={onPress ? 'button' : undefined} onPress={onPress} focusable={!!onPress} style={({ pressed }) => [styles.listItem, { backgroundColor: pressed && onPress ? colors.cardAlt : colors.card, borderColor: colors.border }, style]}>
       {left ? <View style={{ marginRight: spacing.md }}>{left}</View> : null}
       <View style={{ flex: 1 }}>
         <Text variant="body" numberOfLines={1}>{title}</Text>

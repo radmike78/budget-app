@@ -11,6 +11,7 @@ const labels = es.s.categoryNames as Record<string, string>;
 
 const expenses: Case[] = [
   ['gasté 12 en el almuerzo', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
+  ['constructor 500', { kind: 'transaction', amount: 500 }],
   ['me gasté 12 en la comida', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
   ['pagué 12 por el almuerzo', { type: 'expense', amount: 12, categoryId: 'dining' }],
   ['el almuerzo me costó 12', { type: 'expense', amount: 12, categoryId: 'dining' }],

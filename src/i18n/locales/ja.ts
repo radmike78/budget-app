@@ -604,6 +604,7 @@ export const ja: LocaleDef = {
     restoreReplace: 'すべて置き換える',
     merged: (n: number) => `記録を${n}件追加しました。もともとあったものはそのままです。`,
     mergedNothing: 'そのファイルに新しいものはありません。中身はすべてここにあります。',
+    mergedOther: (n: number) => `記録以外の項目も ${n} 件追加しました（目標、定期の記録、リマインダー、借金、カテゴリ）。`,
     mergeTooMany: 'このファイルを追加すると、定期の記録やリマインダーがアプリで保持できる数を超えます。すべて置き換えるか、先にいくつか削除してください。',
     categoryExists: '同じ名前のカテゴリがすでにあります。',
     goalExists: '同じ名前の目標がすでにあります。',
@@ -696,6 +697,7 @@ export const ja: LocaleDef = {
     yes: 'はい',
     no: 'いいえ',
     openError: 'データを開くときに問題が起きました。',
+    openErrorOtherTab: 'OnlyBudget が別のタブで開いているか、ページの再読み込みが早すぎました。別のタブを閉じてから、もう一度お試しください。',
     tryAgain: 'もう一度',
     screenError: 'この画面で問題が起きました。記録は無事です。',
     categoryNames: {

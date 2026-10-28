@@ -46,7 +46,7 @@ export function VoicePicker({ compact = false }: { compact?: boolean }) {
       {personas.map((p) => {
         const selected = voice === p.value;
         return (
-          <Pressable key={p.value} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => updateSettings({ voice: p.value })}>
+          <Pressable key={p.value} accessibilityRole="button" accessibilityState={{ selected }} aria-selected={selected} onPress={() => updateSettings({ voice: p.value })}>
             <View style={{ borderWidth: 2, borderColor: selected ? colors.accent : colors.border, backgroundColor: selected ? colors.accentSoft : colors.card, borderRadius: radius.md, paddingVertical: compact ? spacing.sm : spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
               <Text variant="body" style={{ fontWeight: '600' }}>{p.label}</Text>
               <Text variant="small" style={{ marginTop: 2 }}>{p.desc}</Text>

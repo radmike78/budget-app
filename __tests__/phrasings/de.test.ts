@@ -284,6 +284,7 @@ const staysAnEntry: Case[] = [
   ['Die Stromrechnung ist da, 120', ex(120, 'utilities')],
   ['Miete wurde überwiesen, 1500', ex(1500, 'rent')],
   ['Ich schulde Tom 20 Euro', { kind: 'transaction', amount: 20 }],
+  ['constructor 500', { kind: 'transaction', amount: 500 }],
   ['Einnahmen 50 vom Flohmarkt', inc(50)],
   ['Blumen zum Geburtstag 30', ex(30, 'shopping')],
   ['Flug nach Japan für 800 gebucht', ex(800, 'transport')],

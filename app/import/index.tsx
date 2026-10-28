@@ -72,7 +72,7 @@ export default function ImportScreen() {
       let result: ParsedStatement;
       if (picked.kind === 'csv') {
         // A CSV export is text already: the same rows, the same review, no extractor.
-        const csv = csvToRows(picked.text, language, today());
+        const csv = csvToRows(picked.text, language, today(), deviceRegion());
         rows = csv.rows;
         result = parseStatement(rows, ctx, { language, region: deviceRegion(), today: today(), knownFingerprints: fingerprints, knownEntries, period: csv.period, kind: csv.kind });
         result.warnings = [...csv.warnings, ...result.warnings.filter((w) => w !== 'noPeriod')];

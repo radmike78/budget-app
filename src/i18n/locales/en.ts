@@ -634,6 +634,7 @@ export const en = {
     restoreReplace: 'Replace everything',
     merged: (n: number) => `Added ${n} ${n === 1 ? 'entry' : 'entries'}. Everything already here was kept.`,
     mergedNothing: 'Nothing new in that file: everything in it is already here.',
+    mergedOther: (n: number) => `Also added ${n} ${n === 1 ? 'thing' : 'things'} that ${n === 1 ? 'was' : 'were'} not an entry: a goal, repeating entry, reminder, debt or category.`,
     mergeTooMany: 'Adding this file would leave more repeating entries or reminders than the app can keep. Replace everything instead, or remove some first.',
     categoryExists: 'There is already a category with that name.',
     goalExists: 'There is already a goal with that name.',
@@ -733,6 +734,7 @@ export const en = {
     no: 'no',
     // errors
     openError: 'Something went wrong opening your data.',
+    openErrorOtherTab: 'OnlyBudget is open in another tab, or the page was reloaded too soon. Close the other tab, then try again.',
     tryAgain: 'Try again',
     screenError: 'This screen ran into a problem. Your entries are safe.',
     // default category names (by id)

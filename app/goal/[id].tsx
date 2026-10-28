@@ -58,7 +58,7 @@ export default function GoalEditor() {
       // "Mark done" is an answer, not a calculation: editing the name later must not undo it.
       const completed = currentValue >= targetValue || (existing?.completed ?? false);
       await save({ id: existing?.id ?? newGoalId.current, name: name.trim(), kind, targetAmount: targetValue, currentAmount: currentValue, targetDate, createdAt: existing?.createdAt ?? nowIso(), completed });
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace('/goals');
     } catch (e) {
       setError(t.didntWork((e as Error).message));
     } finally {
@@ -83,7 +83,7 @@ export default function GoalEditor() {
 
   const onDelete = async () => {
     if (!existing) return;
-    if (await confirmDialog(t.removeGoalQ(existing.name), t.removeGoalBody, { confirmText: t.remove, cancelText: t.keep, destructive: true })) { await remove(existing.id); router.back(); }
+    if (await confirmDialog(t.removeGoalQ(existing.name), t.removeGoalBody, { confirmText: t.remove, cancelText: t.keep, destructive: true })) { await remove(existing.id); if (router.canGoBack()) router.back(); else router.replace('/goals'); }
   };
 
   const progress = existing ? goalProgress(existing, currency, today(), locale) : null;
@@ -129,7 +129,7 @@ export default function GoalEditor() {
       <Button title={isNew ? t.setGoal : t.save} onPress={onSave} loading={saving} />
       {existing ? (
         <Row style={{ marginTop: spacing.md }}>
-          <Button tone="secondary" title={existing.completed ? t.markActive : t.markDone} style={{ flex: 1 }} onPress={async () => { await save({ ...existing, completed: !existing.completed }); router.back(); }} />
+          <Button tone="secondary" title={existing.completed ? t.markActive : t.markDone} style={{ flex: 1 }} onPress={async () => { await save({ ...existing, completed: !existing.completed }); if (router.canGoBack()) router.back(); else router.replace('/goals'); }} />
           <Button tone="danger" title={t.remove} style={{ flex: 1 }} onPress={onDelete} />
         </Row>
       ) : null}

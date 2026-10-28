@@ -113,7 +113,7 @@ interface AppState {
   forgetKeyword: (word: string) => Promise<void>;
   restoreAll: (data: Parameters<typeof repo.replaceAllData>[1]) => Promise<void>;
   /** Adds what a backup has that this phone does not; returns how many entries came in. */
-  mergeRestore: (data: MergeSource) => Promise<{ added: number; skipped: number }>;
+  mergeRestore: (data: MergeSource) => Promise<{ added: number; other: number; skipped: number }>;
   resetAll: () => Promise<void>;
   /** Reads the trial dates and what the store knows, and moves the latest-seen day forward. */
   refreshLicense: () => Promise<void>;
@@ -647,6 +647,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // The note is copied into every entry the rule logs, so it is redacted like any other note.
     await repo.upsertRule(db, { ...r, amount: toCurrencyUnits(r.amount, get().settings?.currency ?? 'USD'), note: r.note ? redactSensitive(r.note) || null : null, anchorDay });
     await get().runRecurringCatchUp();
+    // A new rule from the entry bar: "delete that" must reach what it just logged, never the entry before it.
+    if (!existing) set({ lastSavedId: (await repo.latestInstanceOf(db, r.id))?.id ?? '' });
     await get().refresh();
   },
 
@@ -728,7 +730,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().refresh();
     // Reminders that came in carry no notification id; this schedules them on this phone.
     await get().rearmReminders().catch(() => {});
-    return { added: plan.transactions.length, skipped: plan.skippedTransactions };
+    // What else came in (goals, rules, reminders, debts, categories), so a file that brought only a reminder is not called empty.
+    const other = plan.goals.length + plan.recurringRules.length + plan.reminders.length + plan.debts.length + plan.categories.length;
+    return { added: plan.transactions.length, other, skipped: plan.skippedTransactions };
   },
 
   restoreAll: async (data) => {

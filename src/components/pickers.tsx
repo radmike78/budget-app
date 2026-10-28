@@ -163,6 +163,7 @@ function MonthGrid({ value, earliest, latest, onPick }: { value: string; earlies
                 accessibilityRole="button"
                 accessibilityLabel={friendlyDate(d, todayStr, fmt)}
                 accessibilityState={{ selected, disabled: off }}
+                aria-selected={selected}
                 disabled={off}
                 onPress={() => onPick(d)}
                 style={{ flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' }}

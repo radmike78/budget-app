@@ -98,10 +98,6 @@ export function findDates(text: string, language: string): DateHit[] {
   while ((m = RE_ISO.exec(text)) !== null) push(out, Number(m[2]) - 1, Number(m[3]), Number(m[1]), m.index, m.index + m[0].length, m[0]);
   RE_CJK.lastIndex = 0;
   while ((m = RE_CJK.exec(text)) !== null) push(out, Number(m[2]) - 1, Number(m[3]), m[1] ? Number(m[1]) : null, m.index, m.index + m[0].length, m[0]);
-  RE_MONTH_DAY.lastIndex = 0;
-  while ((m = RE_MONTH_DAY.exec(text)) !== null) push(out, MONTHS[m[1].toLowerCase()], Number(m[2]), fullYear(m[3]), m.index, m.index + m[0].length, m[0]);
-  RE_DAY_MONTH.lastIndex = 0;
-  while ((m = RE_DAY_MONTH.exec(text)) !== null) push(out, MONTHS[m[2].toLowerCase()], Number(m[1]), fullYear(m[3]), m.index, m.index + m[0].length, m[0]);
   RE_NUMERIC.lastIndex = 0;
   while ((m = RE_NUMERIC.exec(text)) !== null) {
     const a = Number(m[1]);
@@ -116,6 +112,12 @@ export function findDates(text: string, language: string): DateHit[] {
     else { month = a; day = b; }
     push(out, month - 1, day, year, m.index, m.index + m[0].length, m[0]);
   }
+  // Month words come after the numeric forms: "03/15 MAY DEPT STORE" is March 15th, not "15 May", and the
+  // overlap rule in push keeps the first hit.
+  RE_MONTH_DAY.lastIndex = 0;
+  while ((m = RE_MONTH_DAY.exec(text)) !== null) push(out, MONTHS[m[1].toLowerCase()], Number(m[2]), fullYear(m[3]), m.index, m.index + m[0].length, m[0]);
+  RE_DAY_MONTH.lastIndex = 0;
+  while ((m = RE_DAY_MONTH.exec(text)) !== null) push(out, MONTHS[m[2].toLowerCase()], Number(m[1]), fullYear(m[3]), m.index, m.index + m[0].length, m[0]);
   return out.sort((x, y) => x.start - y.start);
 }
 

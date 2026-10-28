@@ -68,7 +68,7 @@ export default function RecurringEditor() {
     setSaving(true);
     try {
       await save(rule);
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace('/recurring');
     } catch (e) {
       notify(t.didntWork((e as Error).message));
     } finally {
@@ -84,7 +84,7 @@ export default function RecurringEditor() {
 
   const onDelete = async () => {
     if (!existing) return;
-    if (await confirmDialog(t.removeRecurringQ, t.removeRecurringBody, { confirmText: t.remove, cancelText: t.keep, destructive: true })) { await remove(existing.id); router.back(); }
+    if (await confirmDialog(t.removeRecurringQ, t.removeRecurringBody, { confirmText: t.remove, cancelText: t.keep, destructive: true })) { await remove(existing.id); if (router.canGoBack()) router.back(); else router.replace('/recurring'); }
   };
 
   if (isNew && !adding) return <Screen><TrialEnded /></Screen>;

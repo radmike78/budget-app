@@ -558,6 +558,11 @@ const REAL_QUESTIONS: Case[] = [
   ['how much on groceries so far', { kind: 'question', question: { ask: 'spent', categoryId: 'groceries', period: 'all' } }],
   ['how much did the weekend cost', { kind: 'question', question: { ask: 'spent', period: 'weekend', target: null } }],
   ['how much have I spent on takeout in the last 30 days', { kind: 'question', question: { ask: 'spent', period: 'recentDays', days: 30, target: 'Takeout' } }],
+  ['where did most of my money go in the last 30 days', { kind: 'question', question: { ask: 'top', period: 'recentDays', days: 30 } }],
+  ['am I spending more in the last 30 days', { kind: 'question', question: { ask: 'compare', period: 'recentDays', days: 30 } }],
+  // a word that is also a property every object inherits is not a number word
+  ['paid the constructor 500 for the deck', { kind: 'transaction', amount: 500 }],
+  ['constructor 500', { kind: 'transaction', amount: 500 }],
   ['what did I spend on amazon last week', { kind: 'question', question: { ask: 'spent', target: 'Amazon', period: 'lastWeek' } }],
   ['what did I drop on drinks this week', { kind: 'question', question: { ask: 'spent', target: 'Drinks', period: 'week' } }],
   ['how much did I blow on takeout last month', { kind: 'question', question: { ask: 'spent', target: 'Takeout', period: 'lastMonth' } }],

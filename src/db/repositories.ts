@@ -146,6 +146,12 @@ export async function latestSavedTransaction(db: DB): Promise<Transaction | null
   return row ? toTx(row) : null;
 }
 
+/** The entry a rule logged last, so a spoken correction after "netflix 15.99 every month" reaches the instance just logged. */
+export async function latestInstanceOf(db: DB, ruleId: string): Promise<Transaction | null> {
+  const row = await db.getFirstAsync<TxRow>('SELECT * FROM transactions WHERE recurring_rule_id = ? ORDER BY created_at DESC, occurred_at DESC LIMIT 1', [ruleId]);
+  return row ? toTx(row) : null;
+}
+
 export async function recentTransactions(db: DB, limit = 10): Promise<Transaction[]> {
   const rows = await db.getAllAsync<TxRow>('SELECT * FROM transactions ORDER BY occurred_at DESC, created_at DESC LIMIT ?', [limit]);
   return rows.map(toTx);
