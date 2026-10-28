@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Transaction, TxType } from '@/types';
 import { getDb } from '@/db/database';
-import { queryTransactionTotals, queryTransactions } from '@/db/repositories';
+import { queryTransactionTotals, queryTransactions, type TransactionSort } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
 import { addDays, monthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
@@ -31,6 +31,8 @@ export default function HistoryScreen() {
   const [type, setType] = useState<TxType | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [range, setRange] = useState<Range>('month');
+  const [sort, setSort] = useState<TransactionSort>('date');
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
   const [showCat, setShowCat] = useState(false);
   const [rows, setRows] = useState<Transaction[]>([]);
   // Counted in SQL over every match, so the one line under the filters is true
@@ -78,11 +80,11 @@ export default function HistoryScreen() {
     const db = await getDb();
     const query = { search: searchQuery, type, categoryId, from: bounds.start, to: bounds.end };
     const [list, sums] = await Promise.all([
-      queryTransactions(db, { ...query, limit: shown }),
+      queryTransactions(db, { ...query, sort, direction, limit: shown }),
       queryTransactionTotals(db, query),
     ]);
     if (id === requestId.current) { setRows(list); setTotals(sums); }
-  }, [searchQuery, type, categoryId, bounds, shown]);
+  }, [searchQuery, type, categoryId, bounds, shown, sort, direction]);
 
   useEffect(() => { load(); }, [load, recent]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -94,6 +96,18 @@ export default function HistoryScreen() {
   useEffect(() => { if (categoryId && !category) setCategoryId(null); }, [categoryId, category]);
 
   // A category of the other kind would leave an empty list, so the filter drops with the type.
+  // Tapping the chosen sort again turns it round: newest or oldest, money out or in, biggest or smallest first.
+  const changeSort = (next: TransactionSort) => {
+    if (next === sort) setDirection((d) => (d === 'desc' ? 'asc' : 'desc'));
+    else { setSort(next); setDirection('desc'); }
+  };
+  const sortWords: Record<TransactionSort, [string, string]> = { date: [t.sortNewestFirst, t.sortOldestFirst], type: [t.sortOutFirst, t.sortInFirst], amount: [t.sortBiggestFirst, t.sortSmallestFirst] };
+  const sortChip = (s: TransactionSort, label: string) => {
+    const chosen = sort === s;
+    const way = sortWords[s][chosen && direction === 'asc' ? 1 : 0];
+    return <Chip key={s} label={chosen ? `${label} ${direction === 'desc' ? '↓' : '↑'}` : label} selected={chosen} onPress={() => changeSort(s)} accessibilityLabel={`${t.sortBy} ${label}, ${way}`} />;
+  };
+
   const changeType = (next: TxType | null) => {
     setType(next);
     if (next && category && category.kind !== next) setCategoryId(null);
@@ -110,6 +124,11 @@ export default function HistoryScreen() {
         <Chip label={t.moneyOut} selected={type === 'expense'} onPress={() => changeType('expense')} />
         <Chip label={t.moneyIn} selected={type === 'income'} onPress={() => changeType('income')} />
         <Chip label={category ? `${category.icon ?? ''} ${categoryName(category, t)}`.trim() : t.anyCategory} selected={!!categoryId} onPress={() => (categoryId ? setCategoryId(null) : setShowCat(true))} />
+      </ChipRow>
+      <ChipRow style={{ marginBottom: spacing.md }}>
+        {sortChip('date', t.sortDate)}
+        {sortChip('type', t.sortType)}
+        {sortChip('amount', t.sortAmount)}
       </ChipRow>
       <Text variant="small" style={{ marginBottom: spacing.md }}>{t.historySummary(totals.count, money(totals.income, { compact: true }), money(totals.expenses, { compact: true }))}</Text>
     </View>

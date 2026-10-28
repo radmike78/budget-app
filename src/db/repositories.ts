@@ -176,7 +176,20 @@ export interface TransactionQuery {
   to?: string | null;
   limit?: number;
   offset?: number;
+  /** The order of the list: by date (the default), by type (money out and money in apart) or by amount. */
+  sort?: TransactionSort;
+  /** `desc` is newest, money out or biggest first; `asc` the other way round. */
+  direction?: 'asc' | 'desc';
 }
+
+export type TransactionSort = 'date' | 'type' | 'amount';
+
+/** ORDER BY clauses built only from these literals: the sort and direction never reach SQL as text. */
+const ORDER_BY: Record<TransactionSort, Record<'asc' | 'desc', string>> = {
+  date: { desc: 'occurred_at DESC, created_at DESC', asc: 'occurred_at ASC, created_at ASC' },
+  type: { desc: 'type ASC, occurred_at DESC, created_at DESC', asc: 'type DESC, occurred_at DESC, created_at DESC' },
+  amount: { desc: 'amount DESC, occurred_at DESC, created_at DESC', asc: 'amount ASC, occurred_at DESC, created_at DESC' },
+};
 
 /** `%` and `_` typed in a search box are letters to the person typing, not wildcards. */
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
@@ -199,7 +212,8 @@ function filterTransactions(q: TransactionQuery): { where: string; params: (stri
 
 export async function queryTransactions(db: DB, q: TransactionQuery): Promise<Transaction[]> {
   const { where, params } = filterTransactions(q);
-  const sql = `SELECT * FROM transactions ${where} ORDER BY occurred_at DESC, created_at DESC LIMIT ? OFFSET ?`;
+  const order = ORDER_BY[q.sort ?? 'date'][q.direction ?? 'desc'];
+  const sql = `SELECT * FROM transactions ${where} ORDER BY ${order} LIMIT ? OFFSET ?`;
   const rows = await db.getAllAsync<TxRow>(sql, [...params, q.limit ?? 200, q.offset ?? 0]);
   return rows.map(toTx);
 }
