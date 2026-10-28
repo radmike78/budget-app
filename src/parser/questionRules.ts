@@ -49,6 +49,17 @@ export interface QuestionPack {
   biggestLead?: RegExp;
   /** Words removed from the target of a `biggest` question ("expense", "bought"), so "my biggest grocery expense" asks about groceries. Global. */
   biggestWords?: RegExp;
+  /** "how much do I owe", "what's my total debt": debts and debt goals added up. */
+  oweLead?: RegExp;
+  /**
+   * "set my groceries plan to 400", "budget 400 for groceries": a plan, not spending. Tried first, on the sentence with its
+   * amount taken out (the amount becomes `price`), so a plan is never logged as an entry.
+   */
+  planLead?: RegExp;
+  /** Words removed from the target of a `plan` sentence ("plan", "budget", "to"). Global. */
+  planWords?: RegExp;
+  /** "sarah owes me 20": money owed to the person, which is nothing to log yet. Group 1 is who. Tried with `planLead`. */
+  owedLead?: RegExp;
   /** "can I afford a $200 jacket?": the one question that carries an amount. */
   affordLead?: RegExp;
   /** Words removed from the target of a compare, top or afford question ("more", "than", "most", "on it"). Global. */
@@ -63,9 +74,10 @@ export interface ParsedQuestion {
   /**
    * `spent` sums entries; `left` asks what remains of this period's plan or income; `compare` sets spending so
    * far against the same point in the period before; `top` names where most went; `afford` weighs `price`
-   * against what is left; `biggest` names the single largest entry.
+   * against what is left; `biggest` names the single largest entry; `owe` adds up debts and debt goals; `plan` is a plan
+   * said with its amount (answered with where plans are set, never logged); `owed` is money someone owes the person.
    */
-  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford' | 'biggest';
+  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford' | 'biggest' | 'owe' | 'plan' | 'owed';
   period: QuestionPeriod;
   /** True when no period was said; the answer then uses the current budget period. */
   periodDefaulted: boolean;
@@ -97,6 +109,8 @@ export interface QuestionContext {
   restoreCase: (fragment: string) => string;
   /** Finds the amount in a sentence (for "can I afford 200 for shoes"), supplied by the parser. */
   amount?: (text: string) => { amount: number | null; text: string };
+  /** True when the sentence is a goal ("make a plan to pay down 5000 of debt"): then it is never read as a plan. */
+  isGoal?: boolean;
   /** Reads a day said the way an entry's date is said ("last Wednesday"), supplied by the parser from the pack's date rules. */
   pastDate?: (text: string) => { date: string | null; text: string; phrase: string | null };
 }
@@ -142,6 +156,33 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
       text = `${text.slice(0, recent.index)} ${text.slice(recent.index + recent[0].length)}`.replace(/\s+/g, ' ').trim();
     }
   }
+  // "set my groceries plan to 400" and "sarah owes me 20" carry an amount but are not entries: read first, with the
+  // amount taken out, so neither can ever be logged as spending.
+  if (pack.planLead || pack.owedLead) {
+    const found = ctx.amount?.(text);
+    const bare = found && found.amount != null ? found.text : text;
+    const plan = found && found.amount != null && !ctx.isGoal ? pack.planLead?.exec(bare) ?? null : null;
+    const owed = plan ? null : pack.owedLead?.exec(bare) ?? null;
+    if (plan || owed) {
+      const price = found && found.amount != null && found.amount > 0 ? found.amount : null;
+      const lead = (plan ?? owed)!;
+      let rest = bare.slice(0, lead.index) + ' ' + bare.slice(lead.index + lead[0].length);
+      if (owed) rest = owed.slice(1).find((g) => g != null) ?? '';
+      if (plan && pack.planWords) rest = rest.replace(pack.planWords, ' ');
+      rest = stripAll(rest, pack.strip);
+      const base = { type: 'expense' as const, ask: plan ? ('plan' as const) : ('owed' as const), period: 'budget' as const, periodDefaulted: true, categoryIds: null, ...(price != null ? { price } : null) };
+      if (!rest) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
+      if (owed) return { ...base, target: ctx.restoreCase(rest), categoryId: null, fallbackCategoryId: null };
+      const key = rest.replace(/\s+/g, ' ').toLowerCase();
+      for (const cat of ctx.categories) {
+        if (cat.archived) continue;
+        const names = [cat.name, ctx.categoryLabels?.[cat.id]].filter((n): n is string => typeof n === 'string' && !!n).map((n) => n.toLowerCase().trim());
+        if (names.some((n) => n === key || n.split(/\s*[/&,]\s*/u).some((part) => part.trim() === key || part.trim().split(/\s+/u)[0] === key))) return { ...base, target: ctx.restoreCase(rest), categoryId: cat.id, fallbackCategoryId: null };
+      }
+      const detected = ctx.detect(rest);
+      return { ...base, target: ctx.restoreCase(rest), categoryId: null, fallbackCategoryId: detected?.categoryId ?? null };
+    }
+  }
   // "can I afford a $200 jacket?" is the one question with an amount in it; the amount is the price, taken out
   // before the lead is read again ("is 80 ok for dinner" reads as "is ok for dinner"). Without an amount,
   // "can I afford to eat out?" asks what is left.
@@ -159,12 +200,14 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   // Without an amount: comparing first ("how am I doing compared to last month"), then "how much do I have
   // left", as some spending leads ("多少", "は…いくら") would also match it, then "the most", which also holds
   // spending words. With an amount in the sentence it is an entry, never a question ("left 5 for the tip").
-  const compare = affordLead || hasDigit ? null : pack.compareLead?.exec(text) ?? null;
-  const remaining = affordLead || compare || hasDigit ? null : pack.remainingLead.exec(text) ?? affordAsLeft;
+  // What is owed comes first: "how much do I owe" holds a spending lead too.
+  const owe = affordLead || hasDigit ? null : pack.oweLead?.exec(text) ?? null;
+  const compare = affordLead || owe || hasDigit ? null : pack.compareLead?.exec(text) ?? null;
+  const remaining = affordLead || owe || compare || hasDigit ? null : pack.remainingLead.exec(text) ?? affordAsLeft;
   // The single biggest entry before the biggest category: "my biggest expense" is one thing, "my biggest expenses" are where the money went.
-  const biggest = affordLead || remaining || compare || hasDigit ? null : pack.biggestLead?.exec(text) ?? null;
-  const top = affordLead || remaining || compare || biggest || hasDigit ? null : pack.topLead?.exec(text) ?? null;
-  const special = affordLead ?? remaining ?? compare ?? biggest ?? top;
+  const biggest = affordLead || owe || remaining || compare || hasDigit ? null : pack.biggestLead?.exec(text) ?? null;
+  const top = affordLead || owe || remaining || compare || biggest || hasDigit ? null : pack.topLead?.exec(text) ?? null;
+  const special = affordLead ?? owe ?? remaining ?? compare ?? biggest ?? top;
   let expense = special ? null : pack.lead.exec(text);
   const income = special ? null : pack.incomeLead.exec(text);
   if (!special && !expense && !income && pack.weakLead && !hasDigit) expense = pack.weakLead.exec(text);
@@ -173,7 +216,7 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   const useIncome = !special && !!income && (!expense || income.index < expense.index);
   const lead = special ?? (useIncome ? income! : expense!);
   const type: ParsedQuestion['type'] = useIncome ? 'income' : 'expense';
-  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : remaining ? 'left' : compare ? 'compare' : biggest ? 'biggest' : top ? 'top' : 'spent';
+  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : owe ? 'owe' : remaining ? 'left' : compare ? 'compare' : biggest ? 'biggest' : top ? 'top' : 'spent';
   let rest = text.slice(0, lead.index) + ' ' + text.slice(lead.index + lead[0].length);
 
   let period: QuestionPeriod = 'month';
@@ -219,11 +262,16 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
     // "this week than last week" names both sides: neither is the thing asked about.
     for (const p of pack.periods) rest = rest.replace(new RegExp(p.re.source, `${p.re.flags.replace('g', '')}g`), ' ');
   }
+  if (compare || top || biggest) {
+    // "what did I spend on groceries vs last month": the spending phrase is not the thing asked about.
+    const spent = pack.lead.exec(rest);
+    if (spent) rest = rest.slice(0, spent.index) + ' ' + rest.slice(spent.index + spent[0].length);
+  }
   if (affordLead || compare || top || biggest) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
   if (biggest && pack.biggestWords) rest = rest.replace(pack.biggestWords, ' ');
   rest = stripAll(rest, pack.strip);
   const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && (ask === 'spent' || ask === 'top' || ask === 'compare' || ask === 'biggest') ? { days } : null), ...(month != null ? { month } : null), ...(date != null ? { date } : null), ...(price != null ? { price } : null) };
-  if (!rest) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
+  if (!rest || owe) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
 
   const key = rest.replace(/\s+/g, ' ').toLowerCase();
   const compact = key.replace(/\s+/g, '');

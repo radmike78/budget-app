@@ -4,7 +4,7 @@
  * sentence itself comes from the locale so it reads naturally in every language.
  * No React Native imports.
  */
-import type { Category, MonthStats, Period, RecurringRule, Transaction } from '@/types';
+import type { Category, Debt, Goal, MonthStats, Period, RecurringRule, Transaction } from '@/types';
 import type { ParsedQuestion, QuestionPeriod } from '@/parser';
 import { addDays, daysBetween, fromDateString, isValidDateString, monthKey, monthRange, shiftMonthKey, toDateString } from '@/lib/dates';
 import { effectivePlan, type CarryState } from '@/lib/rollover';
@@ -96,6 +96,35 @@ export function answerQuestion(q: ParsedQuestion, transactions: Transaction[], r
   const { list, ...rest } = selectEntries(q, transactions, range, categories);
   const total = Math.round(list.reduce((acc, tx) => acc + tx.amount, 0) * 100) / 100;
   return { total, count: list.length, ...rest };
+}
+
+/** "How much do I owe?": the debts on file and what is still to pay on each open debt goal, added up. */
+export function totalOwed(debts: Pick<Debt, 'balance'>[], goals: Pick<Goal, 'kind' | 'completed' | 'targetAmount' | 'currentAmount'>[]): { total: number; count: number } {
+  let total = 0;
+  let count = 0;
+  for (const d of debts) if (d.balance > 0) { total += d.balance; count += 1; }
+  for (const g of goals) if (g.kind === 'debt' && !g.completed && g.targetAmount - g.currentAmount > 0) { total += g.targetAmount - g.currentAmount; count += 1; }
+  return { total: round2(total), count };
+}
+
+/**
+ * "How much is left on my credit card goal?": the open goal the words name, by a plain substring either way once the
+ * generic words ("goal", "fund") are dropped; never a RegExp from the words.
+ */
+export function findGoalByWords(target: string, goals: Goal[], goalNouns?: RegExp): Goal | null {
+  const words = target.toLowerCase().split(/\s+/u).filter((w) => w && !(goalNouns && goalNouns.test(w)));
+  const key = words.join(' ').trim();
+  if (!key) return null;
+  const open = goals.filter((g) => !g.completed);
+  const exact = open.find((g) => g.name.toLowerCase() === key);
+  if (exact) return exact;
+  // Whole words either way ("credit card goal" names "Credit card", "car" does not); scripts without spaces use the run itself.
+  const subset = (a: string[], b: string[]) => a.length > 0 && a.every((w) => b.includes(w));
+  return open.find((g) => {
+    const nameWords = g.name.toLowerCase().split(/\s+/u).filter(Boolean);
+    if (words.length === 1 && nameWords.length === 1 && (!/\s/.test(key) && key.length > 1) && !/^[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}'\-]+$/u.test(key)) return nameWords[0].includes(key) || key.includes(nameWords[0]);
+    return subset(words, nameWords) || subset(nameWords, words);
+  }) ?? null;
 }
 
 export interface BiggestAnswer {
