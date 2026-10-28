@@ -477,6 +477,17 @@ const SLANG: Case[] = [
   // a monthly thing said in passing is an expense with the pace dropped from the note, never a goal
   ['gym 40 a month', { kind: 'transaction', type: 'expense', amount: 40, categoryId: 'health', note: 'Gym' }],
   ['Netflix 15.99 a month', { kind: 'transaction', type: 'expense', amount: 15.99, categoryId: 'subscriptions', note: 'Netflix' }],
+  // a pace on an entry is offered as a repeating entry; the words never reach the note, and a goal or a pay-day pace is not one
+  ['netflix 15.99 every month', { kind: 'transaction', amount: 15.99, categoryId: 'subscriptions', note: 'Netflix', repeat: 'monthly' }],
+  ['rent 1200 on the 1st every month', { kind: 'transaction', amount: 1200, categoryId: 'rent', repeat: 'monthly', dateExplicit: true }],
+  ['spotify 10 monthly', { kind: 'transaction', amount: 10, note: 'Spotify', repeat: 'monthly' }],
+  ['phone bill 45 every other week', { kind: 'transaction', amount: 45, repeat: 'biweekly' }],
+  ['paid 1500 salary every 2 weeks', { kind: 'transaction', type: 'income', amount: 1500, categoryId: 'salary', repeat: 'biweekly' }],
+  ['car insurance 600 a year', { kind: 'transaction', amount: 600, note: 'Car insurance', repeat: 'yearly' }],
+  ['cleaner 60 a week', { kind: 'transaction', amount: 60, repeat: 'weekly' }],
+  ['20 per paycheck for gas', { kind: 'transaction', amount: 20, categoryId: 'transport', repeat: null }],
+  ['coffee 4', { kind: 'transaction', amount: 4, repeat: null }],
+  ['save 200 a month for a car', { kind: 'goal', repeat: null }],
   ['um like 23 on uber', { type: 'expense', amount: 23, categoryId: 'transport', note: 'Uber' }],
   ['so I went and got groceries and it was like 85', { type: 'expense', amount: 85, categoryId: 'groceries', note: 'Groceries' }],
   ['beers with the lads 30 quid', { type: 'expense', amount: 30, categoryId: 'dining' }],

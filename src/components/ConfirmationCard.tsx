@@ -32,6 +32,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   const addTransaction = useAppStore((s) => s.addTransaction);
   const updateTransaction = useAppStore((s) => s.updateTransaction);
   const saveGoal = useAppStore((s) => s.saveGoal);
+  const saveRule = useAppStore((s) => s.saveRule);
   const contributeToGoal = useAppStore((s) => s.contributeToGoal);
   const currency = useAppStore((s) => s.settings?.currency ?? 'USD');
   const learnCategory = useAppStore((s) => s.learnCategory);
@@ -50,6 +51,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
   const [showTime, setShowTime] = useState(false);
   const [targetDate, setTargetDate] = useState<string | null>(null);
   const [logTransfer, setLogTransfer] = useState(true);
+  const [repeat, setRepeat] = useState(true);
   const [showCat, setShowCat] = useState(false);
   const [showDate, setShowDate] = useState(false);
   const [showTargetDate, setShowTargetDate] = useState(false);
@@ -70,6 +72,7 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
     setReminderRepeat(result.reminderRepeat ?? 'none');
     setTargetDate(result.targetDate);
     setLogTransfer(true);
+    setRepeat(true);
     setError(null);
   }, [result]);
 
@@ -125,6 +128,11 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
         // A spoken correction ("make that 14") changes the saved entry; what was first said stays its source.
         await updateTransaction({ ...result.editOf, amount, type, categoryId, note: note.trim() || null, occurredAt: date });
         onDone(t.toastUpdated(money(amount, { compact: true }), categoryName(category, t)));
+      } else if (result.repeat && repeat) {
+        // "netflix 15.99 every month" with the switch left on: a repeating entry, and the catch-up logs what is due now.
+        await saveRule({ id: newId(), amount, type, categoryId, frequency: result.repeat, nextOccurrence: date, note: note.trim() || null, active: true });
+        if (categoryId && categoryId !== result.categoryId && result.raw) await learnCategory(result.raw, categoryId);
+        onDone(t.toastRepeatingSet(money(amount, { compact: true }), t.frequency[result.repeat]));
       } else {
         await addTransaction({ amount, type, categoryId, note: note.trim() || null, rawInput: result.raw, occurredAt: date });
         if (categoryId && categoryId !== result.categoryId && result.raw) await learnCategory(result.raw, categoryId);
@@ -222,6 +230,12 @@ export function ConfirmationCard({ result, onDone, onCancel }: { result: ParseRe
             <Button tone="secondary" small title={friendlyDate(date, today(), fmt)} onPress={() => setShowDate(true)} />
           </Row>
           <Field label={t.note} maxLength={500} value={note} onChangeText={setNote} placeholder={t.optional} />
+          {result.repeat && !result.editOf ? (
+            <Row style={{ justifyContent: 'space-between', marginBottom: spacing.lg }}>
+              <Text variant="body" style={{ flex: 1 }}>{t.makeRepeating(t.frequency[result.repeat])}</Text>
+              <Switch value={repeat} onValueChange={setRepeat} trackColor={{ true: colors.accent }} accessibilityLabel={t.makeRepeating(t.frequency[result.repeat])} />
+            </Row>
+          ) : null}
           <CategoryPicker visible={showCat} onClose={() => setShowCat(false)} onPick={(c) => setCategoryId(c.id)} kind={type} selectedId={categoryId} categories={categories} />
           <DatePicker visible={showDate} onClose={() => setShowDate(false)} value={date} onPick={setDate} />
         </>

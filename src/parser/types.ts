@@ -1,4 +1,4 @@
-import type { TxType } from '@/types';
+import type { TxType, Frequency } from '@/types';
 
 /** A date rule: regex over normalized text, resolver returns YYYY-MM-DD or null. */
 import type { ReminderPack } from './reminderRules';
@@ -73,6 +73,8 @@ export interface LanguagePack {
    * "back") is the same kind of thing as the one before and takes its category. Anchored; matched against the note.
    */
   continuation?: RegExp;
+  /** Which frequency a `perPeriod` phrase names ("every month" → monthly); a phrase that matches none (per paycheck) makes no repeat. Optional. */
+  repeatOf?: Partial<Record<Frequency, RegExp>>;
   /** Words standing for a goal just mentioned ("it", "that one", "the goal"): the newest open goal. Optional. */
   goalPronoun?: RegExp;
   /** Words stripped from the start of a goal name. */

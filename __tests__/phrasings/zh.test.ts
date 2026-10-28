@@ -254,6 +254,10 @@ const goals: Case[] = [
 const reminders: Case[] = [
   ['提醒我明天交房租', { kind: 'reminder' }],
   ['记得提醒我每月1号还信用卡', { kind: 'reminder', reminderRepeat: 'monthly' }],
+  ['netflix 60 每月', { kind: 'transaction', amount: 60, categoryId: 'subscriptions', repeat: 'monthly' }],
+  ['房租 3000 每个月', { kind: 'transaction', amount: 3000, categoryId: 'rent', repeat: 'monthly' }],
+  ['健身房 200 每周', { kind: 'transaction', amount: 200, repeat: 'weekly' }],
+  ['保险 6000 每年', { kind: 'transaction', amount: 6000, repeat: 'yearly' }],
   ['别让我忘了周五交电费', { kind: 'reminder' }],
   ['设个提醒，每周日记账', { kind: 'reminder', reminderRepeat: 'weekly' }],
   ['明天早上9点提醒我交水费', { kind: 'reminder', reminderTime: '09:00' }],

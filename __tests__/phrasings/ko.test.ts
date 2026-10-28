@@ -221,6 +221,10 @@ const contributionsToSharedGoal: Case[] = [
 const reminders: Case[] = [
   ['내일 아침 8시에 월세 내라고 알려줘', { kind: 'reminder', reminderTime: '08:00', occurredAt: '2026-09-17' }],
   ['매달 25일에 카드값 내라고 알려줘', { kind: 'reminder', reminderRepeat: 'monthly' }],
+  ['넷플릭스 15000원 매달', { kind: 'transaction', amount: 15000, categoryId: 'subscriptions', repeat: 'monthly' }],
+  ['월세 80만원 매월', { kind: 'transaction', amount: 800000, categoryId: 'rent', repeat: 'monthly' }],
+  ['헬스장 3만원 매주', { kind: 'transaction', amount: 30000, repeat: 'weekly' }],
+  ['보험 60만원 매년', { kind: 'transaction', amount: 600000, repeat: 'yearly' }],
   ['금요일에 영수증 정리하라고 리마인드해 줘', { kind: 'reminder', occurredAt: '2026-09-18' }],
   ['월세 내는 거 잊지 않게 해 줘', { kind: 'reminder' }],
   ['매주 일요일 저녁에 가계부 쓰라고 알림 설정해 줘', { kind: 'reminder', reminderRepeat: 'weekly' }],

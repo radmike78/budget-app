@@ -512,6 +512,10 @@ const savingEntries: Case[] = [
   ['aparté 200 para imprevistos', { kind: 'transaction', amount: 200, categoryId: 'savings', note: 'Imprevistos' }],
   // An amount per period is a pace, not the goal's total: the card asks for the total.
   ['quiero apartar 200 al mes para un coche', { kind: 'goal', amount: null, goalName: 'Coche', goalKind: 'saving', hints: ['hint.goalPace', 'hint.goalNoDate'] }],
+  ['netflix 15,99 cada mes', { kind: 'transaction', amount: 15.99, categoryId: 'subscriptions', note: 'Netflix', repeat: 'monthly' }],
+  ['alquiler 800 al mes', { kind: 'transaction', amount: 800, categoryId: 'rent', repeat: 'monthly' }],
+  ['gimnasio 30 cada semana', { kind: 'transaction', amount: 30, repeat: 'weekly' }],
+  ['seguro del coche 600 al año', { kind: 'transaction', amount: 600, repeat: 'yearly' }],
   ['quiero ahorrar 50 a la semana', { kind: 'goal', amount: null, goalName: null }],
   ['ahorrar 100 cada mes para las vacaciones', { kind: 'goal', amount: null, goalName: 'Vacaciones' }],
   ['quiero guardar 300 por mes para un depa', { kind: 'goal', amount: null, goalName: 'Depa' }],
