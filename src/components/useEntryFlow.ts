@@ -4,6 +4,7 @@ import { addDays, friendlyDate, longDate, monthKey, monthName, monthRange, today
 import { periodContaining, shiftPeriod } from '@/lib/periods';
 import { getApiKey } from '@/lib/secrets';
 import { parseEntries, type Correction, type ParseResult } from '@/parser';
+import { getPack } from '@/parser/packs';
 import type { Transaction, TxType } from '@/types';
 import { SMART_ASSIST } from '@/lib/features';
 import { llmParse } from '@/parser/llmFallback';
@@ -13,7 +14,7 @@ import { cleanEntry, stripCardNumbers } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { getTransaction, latestSavedTransaction, queryTransactions, recentlySavedTransactions } from '@/db/repositories';
-import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange, answerBiggest } from '@/lib/questions';
+import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange, answerBiggest, findGoalByWords, totalOwed } from '@/lib/questions';
 import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
 import { greeting } from '@/lib/personas';
@@ -65,7 +66,7 @@ export function useEntryFlow() {
   const answerFor = useCallback(async (result: ParseResult, source: EntrySource, language: string) => {
     const q = result.question;
     if (!q) return;
-    const { categories, settings, rules } = useAppStore.getState();
+    const { categories, settings, rules, goals, debts } = useAppStore.getState();
     const todayStr = today();
     // The budget period: payday to payday in pay mode, else the month. With no period said, a question means this one.
     const current = periodContaining(settings?.budgetPeriod ?? 'month', rules, todayStr);
@@ -83,7 +84,20 @@ export function useEntryFlow() {
     let text: string;
     let history: HistoryLink | undefined;
 
-    if (q.ask === 'compare') {
+    if (q.ask === 'plan') {
+      // "set my groceries plan to 400": a plan, never logged as spending; said back with where plans are set.
+      const cat = q.categoryId ? categories.find((c) => c.id === q.categoryId) : q.fallbackCategoryId ? categories.find((c) => c.id === q.fallbackCategoryId) : null;
+      text = t.answerPlanHint(cat ? categoryName(cat, t) : q.target, q.price != null ? money(q.price) : null);
+    } else if (q.ask === 'owed') {
+      text = t.answerOwed(q.target, q.price != null ? money(q.price) : null);
+    } else if (q.ask === 'owe') {
+      const owed = totalOwed(debts, goals);
+      text = owed.count > 0 ? t.answerOwe(money(owed.total), owed.count) : t.answerOweNone;
+    } else if (q.ask === 'left' && q.target && !q.categoryId && !q.categoryIds && findGoalByWords(q.target, goals, getPack(language).goalNouns)) {
+      // "how much is left on my credit card goal": the goal, not the Debt category's plan.
+      const g = findGoalByWords(q.target, goals, getPack(language).goalNouns)!;
+      text = t.answerGoalLeft(g.name, money(Math.max(0, g.targetAmount - g.currentAmount)), money(g.currentAmount), money(g.targetAmount));
+    } else if (q.ask === 'compare') {
       // The period so far against the same point in the one before, so half a month never meets a whole one.
       const kind = q.period === 'budget' && !isPayPeriod ? 'month' : q.period;
       const previous = shiftPeriod(settings?.budgetPeriod ?? 'month', rules, current, -1);

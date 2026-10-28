@@ -306,7 +306,28 @@ function prepare(raw: string, pack: LanguagePack): string {
   return mergeCents(pack.numberWords(normalize(raw, pack)), pack);
 }
 
+/**
+ * "3 x 5 coffee", "coffee 4 x3", "2 coffees 4 each", "half of 50 on lunch": the arithmetic people say is done before the
+ * amount is read, so the money is 15, 12, 8 and 25, and the count stays in the note ("2 coffees").
+ */
+export function applyMultipliers(text: string, pack: LanguagePack): string {
+  const fmt = (n: number) => String(Math.round(n * 100) / 100);
+  let out = text.replace(/(?<![\p{L}\p{N}.])(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)(?![\p{L}\p{N}.])/giu, (_m, a: string, b: string) => fmt(Number(a) * Number(b)));
+  if (pack.multiply?.each) {
+    const each = pack.multiply.each.source;
+    const word = `(\\p{L}[\\p{L}'-]*(?: \\p{L}[\\p{L}'-]*)?)`;
+    out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}.])(\\d{1,3}) ${word} (\\d+(?:\\.\\d+)?) (?:${each})(?![\\p{L}\\p{N}])`, 'iu'), (_m, n: string, what: string, price: string) => `${n} ${what} ${fmt(Number(n) * Number(price))}`);
+    out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}.])(\\d{1,3}) ${word} (?:${each}) (\\d+(?:\\.\\d+)?)(?![\\p{N}.])`, 'iu'), (_m, n: string, what: string, price: string) => `${n} ${what} ${fmt(Number(n) * Number(price))}`);
+  }
+  if (pack.multiply?.half) {
+    const half = pack.multiply.half.source;
+    out = out.replace(new RegExp(`(?<![\\p{L}])(?:${half})\\s*(\\d+(?:\\.\\d+)?)(?![\\p{N}.])`, 'iu'), (_m, n: string) => fmt(Number(n) / 2));
+  }
+  return out === text ? text : out.replace(/\s+/g, ' ').trim();
+}
+
 export function extractAmount(text: string, pack: LanguagePack): AmountExtraction {
+  text = applyMultipliers(text, pack);
   const candidates = findAmounts(text, pack);
   if (candidates.length === 0) return { amount: null, text, confidence: 0, multiple: false };
   const markedOnes = candidates.filter((c) => c.marked);
@@ -910,6 +931,7 @@ function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): 
     restoreCase: (fragment) => restoreCase(fragment, raw) ?? fragment,
     amount: (t) => { const a = extractAmount(t, pack); return { amount: a.multiple ? null : a.amount, text: a.text }; },
     pastDate: (t) => { const d = applyRules(pack.pastDateRules, t, ctx.today); return { date: d.date, text: d.text, phrase: d.phrase }; },
+    isGoal: pack.goalLead.test(text) || (pack.goalIntent.test(text) && !pack.goalPastVerbs.test(text)) || isDebtGoal(text, pack, ctx.today),
   });
   if (!q) return null;
   return { ...baseResult(raw, ctx.today), kind: 'question', type: q.type, question: q, confidence: 0.9, needsReview: false };
@@ -1019,9 +1041,11 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
   const pack = getPack(ctx.language);
   const raw = input.trim();
   if (!raw) return [baseResult(raw, ctx.today)];
+  const question = parseQuestionText(raw, ctx, pack);
+  // A plan ("set my groceries budget to 400") or money someone owes is never an entry nor a correction, whatever else fits.
+  if (question?.question && (question.question.ask === 'plan' || question.question.ask === 'owed')) return [question];
   const correction = parseCorrectionText(raw, ctx, pack);
   if (correction) return [correction];
-  const question = parseQuestionText(raw, ctx, pack);
   if (question) return [question];
   const command = ctx.language === 'en' && raw.length <= MAX_QUESTION_LENGTH ? parseVoiceCommand(raw) : null;
   if (command) return [{ ...baseResult(raw, ctx.today), kind: 'command', command, confidence: 1, needsReview: false }];

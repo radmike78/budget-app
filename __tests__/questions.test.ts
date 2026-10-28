@@ -1,6 +1,6 @@
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import { parseEntries, type ParseContext } from '@/parser';
-import { answerBiggest, answerQuestion, compareRanges, periodRange } from '@/lib/questions';
+import { answerBiggest, answerQuestion, compareRanges, findGoalByWords, periodRange, totalOwed } from '@/lib/questions';
 import type { Transaction } from '@/types';
 
 const TODAY = '2026-09-16'; // a Wednesday
@@ -132,6 +132,28 @@ describe('one day and the biggest entry', () => {
     expect(answerBiggest(ask('what was my biggest expense last month').question!, rows, month, DEFAULT_CATEGORIES)).toMatchObject({ entry: { id: 'c' }, total: 1320, count: 3 });
     expect(answerBiggest(ask('what was my biggest grocery expense last month').question!, rows, month, DEFAULT_CATEGORIES)).toMatchObject({ entry: { id: 'e' }, total: 120, count: 2, usedFallback: true });
     expect(answerBiggest(ask('what was my biggest expense last month').question!, rows, { from: '2026-07-01', to: '2026-07-31' }, DEFAULT_CATEGORIES)).toBeNull();
+  });
+});
+
+describe('what is owed and which goal is meant', () => {
+  it('adds up debts on file and what is still to pay on open debt goals', () => {
+    const goals = [
+      { id: 'g1', name: 'Credit card', kind: 'debt' as const, targetAmount: 2000, currentAmount: 500, completed: false },
+      { id: 'g2', name: 'Trip', kind: 'saving' as const, targetAmount: 500, currentAmount: 100, completed: false },
+      { id: 'g3', name: 'Old loan', kind: 'debt' as const, targetAmount: 1000, currentAmount: 1000, completed: true },
+    ];
+    expect(totalOwed([{ balance: 3200 }, { balance: 0 }], goals)).toEqual({ total: 4700, count: 2 });
+    expect(totalOwed([], [])).toEqual({ total: 0, count: 0 });
+  });
+  it('names the open goal behind "my credit card goal", never a RegExp from the words', () => {
+    const goal = (id: string, name: string, completed = false) => ({ id, name, kind: 'saving' as const, targetAmount: 100, currentAmount: 0, targetDate: null, createdAt: '2026-01-01T00:00:00Z', completed, startingAmount: 0 });
+    const goals = [goal('a', 'Credit card'), goal('b', 'Trip to Japan'), goal('c', 'Car', true)];
+    const nouns = /^(?:fund|funds|goal|money)$/u;
+    expect(findGoalByWords('credit card goal', goals, nouns)?.id).toBe('a');
+    expect(findGoalByWords('japan', goals, nouns)?.id).toBe('b');
+    expect(findGoalByWords('car', goals, nouns)).toBeNull();
+    expect(findGoalByWords('(.*', goals, nouns)).toBeNull();
+    expect(findGoalByWords('goal', goals, nouns)).toBeNull();
   });
 });
 

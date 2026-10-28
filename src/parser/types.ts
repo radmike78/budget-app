@@ -73,6 +73,11 @@ export interface LanguagePack {
    * "back") is the same kind of thing as the one before and takes its category. Anchored; matched against the note.
    */
   continuation?: RegExp;
+  /**
+   * "2 coffees 4 each", "half of 50": `each` follows a unit price after a count and a word, `half` precedes a number.
+   * "3 x 5" and "4 x3" are read in every language. Optional.
+   */
+  multiply?: { each?: RegExp; half?: RegExp };
   /** Which frequency a `perPeriod` phrase names ("every month" → monthly); a phrase that matches none (per paycheck) makes no repeat. Optional. */
   repeatOf?: Partial<Record<Frequency, RegExp>>;
   /** Words standing for a goal just mentioned ("it", "that one", "the goal"): the newest open goal. Optional. */
