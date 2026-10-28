@@ -1,5 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
+import { needsSnapshot } from '@/lib/snapshot';
+import { deleteSnapshot, takeSnapshot } from './snapshot';
 
 export type DB = SQLite.SQLiteDatabase;
 
@@ -16,6 +18,10 @@ export function getDb(): Promise<DB> {
       const db = await SQLite.openDatabaseAsync('onlybudget.db');
       // secure_delete: a removed entry is overwritten in the file, not left in a free page for a recovery tool.
       await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;');
+      // A database about to move to a newer schema is copied first, so an update that goes wrong can be undone
+      // from Settings. A copy that fails never keeps the app from opening.
+      const stored = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+      if (needsSnapshot(stored?.user_version ?? 0, MIGRATIONS.length)) await takeSnapshot(db).catch(() => {});
       await migrate(db);
       return db;
     })();
@@ -216,5 +222,7 @@ export async function resetDatabase(db: DB): Promise<void> {
   });
   // Nothing erased may linger in the write-ahead log or in pages the file still holds.
   await db.execAsync('PRAGMA wal_checkpoint(TRUNCATE); VACUUM;').catch(() => {});
+  // The copy made before an update holds what was just erased.
+  await deleteSnapshot().catch(() => {});
   await seedDefaultCategories(db);
 }

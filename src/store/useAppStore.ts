@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CarryDecision, Category, Debt, Goal, ImportRecord, KeywordMapping, MonthStats, Period, RecurringRule, Reminder, Settings, Transaction } from '@/types';
 import type { StatementLine, Tradeline } from '@/statements';
 import { getDb, resetDb, type DB } from '@/db/database';
+import { deleteSnapshot, restoreSnapshotInto, snapshotInfo, type SnapshotInfo } from '@/db/snapshot';
 import * as repo from '@/db/repositories';
 import { addDays, nowIso, toDateString, today } from '@/lib/dates';
 import { periodContaining, samePeriod, shiftPeriod } from '@/lib/periods';
@@ -129,6 +130,12 @@ interface AppState {
   /** The day "Not now" was tapped on the backup line, or null. */
   backupNudgeDismissedOn: string | null;
   dismissBackupNudge: () => Promise<void>;
+  /** The copy of the database made before the last schema update, or null (always null on the web). */
+  snapshot: SnapshotInfo | null;
+  refreshSnapshot: () => Promise<void>;
+  /** Puts that copy back and runs the update on it again; everything entered since is gone. */
+  restoreSnapshot: () => Promise<void>;
+  deleteSnapshot: () => Promise<void>;
 }
 
 /** Creditor names are compared without case or punctuation, in any script. */
@@ -252,6 +259,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   license: null,
   trialNoticeDismissed: false,
   backupNudgeDismissedOn: null,
+  snapshot: null,
 
   // A start that hung (the database never opened) is forgotten so Try again starts from the beginning.
   resetInit: () => {
@@ -270,6 +278,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         await get().refresh();
         await get().refreshLicense();
         set({ ready: true });
+        get().refreshSnapshot().catch(() => {});
         // The store is asked after the screens are up, once per launch, and never holds anything up.
         onUnlocked(() => { get().recordUnlock().catch(() => {}); });
         get().reconcileWithStore().catch(() => {});
@@ -750,6 +759,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().rearmReminders().catch(() => {});
   },
 
+  refreshSnapshot: async () => {
+    set({ snapshot: await snapshotInfo().catch(() => null) });
+  },
+
+  restoreSnapshot: async () => {
+    const db = await getDb();
+    await restoreSnapshotInto(db);
+    // The connection held the newer schema; the database is opened again from the copy and migrated once more.
+    await db.closeAsync().catch(() => {});
+    resetDb();
+    await getDb();
+    // Reminders scheduled since the copy point at entries that are gone; the restored ones are armed below.
+    await cancelAllReminderNotifications().catch(() => {});
+    await cancelDailyReminder().catch(() => {});
+    set({ lastDeleted: null, lastSavedId: null });
+    await get().runRecurringCatchUp();
+    await get().refresh();
+    await get().refreshLicense();
+    await get().rearmReminders().catch(() => {});
+    await get().refreshSnapshot();
+  },
+
+  deleteSnapshot: async () => {
+    await deleteSnapshot();
+    set({ snapshot: null });
+  },
+
   resetAll: async () => {
     const db = await getDb();
     // Reminders already on the phone's schedule would outlive the data they came from,
@@ -766,7 +802,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { forgetRecentLines } = await import('@/components/persona');
     forgetRecentLines();
     // Nothing erased may come back through the undo bar or be changed by "make that 14".
-    set({ lastDeleted: null, lastSavedId: null });
+    set({ lastDeleted: null, lastSavedId: null, snapshot: null });
     await get().refresh();
     await get().refreshLicense();
   },
