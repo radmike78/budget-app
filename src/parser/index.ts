@@ -12,7 +12,7 @@ import type { LanguagePack } from './types';
 export type { VoiceCommand } from './commandRules';
 export type { ParsedQuestion, QuestionPeriod };
 
-export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'command' | 'correction' | 'unknown';
+export type ParseKind = 'transaction' | 'goal' | 'contribution' | 'reminder' | 'question' | 'command' | 'correction' | 'plan' | 'unknown';
 
 /** A change to the last entry, said rather than tapped. Nothing is changed until the card is saved. */
 export interface Correction {
@@ -81,6 +81,8 @@ export interface ParseContext {
   categoryLabels?: Record<string, string>;
   /** The app's currency code ('USD'), so "20 euros" said into a dollar budget gets a hint. */
   currency?: string;
+  /** The repeating entries' names (note, else category name), lower-cased, so "pause netflix" is a command only when there is one to pause. */
+  ruleNames?: string[];
 }
 
 /** Hint identifiers; the UI maps these to translated sentences. */
@@ -916,6 +918,134 @@ const BARE_AMOUNT = /^[^\p{L}\p{N}]*\d[\d.,\s]*(?:\s?(?:k|万|萬|千|円|元|�
  */
 const MAX_QUESTION_LENGTH = 160;
 
+/** A name said for a repeating entry or a goal: the words as said, lower-cased, trimmed of punctuation. */
+const saidName = (s: string) => s.toLowerCase().replace(/^[\s,.;:!?¿¡'"()]+|[\s,.;:!?¿¡'"()]+$/gu, '').trim();
+
+/**
+ * "pause netflix", "stop the gym", "delete the spotify subscription", "mark the trip goal done", "reopen the car fund".
+ * A command only when the words name a repeating entry (`ctx.ruleNames`) or a goal that exists; otherwise the
+ * sentence goes on to be a correction, a question or an entry.
+ */
+/**
+ * A number makes it an entry ("cancel netflix 15.99" is the cancellation fee, "veinticinco dólares" is money), never
+ * a command. Number words count in the space-tokenized languages; in the CJK ones a counter ("もう一回") is not money,
+ * so only digits as said count.
+ */
+function saysNumber(raw: string, text: string, pack: LanguagePack): boolean {
+  return /\d/.test(raw) || (pack.tokenizer === 'space' && /\d/.test(text));
+}
+
+function parseControl(raw: string, ctx: ParseContext, pack: LanguagePack): VoiceCommand | null {
+  const text = prepare(raw, pack);
+  if (!text || saysNumber(raw, text, pack)) return null;
+  // A goal named with its finishing or reopening words comes first: "再開" reopens a goal as well as resuming a rule.
+  const gc = pack.goalControl;
+  if (gc && ctx.goals.length) {
+    const c = compile(pack);
+    for (const action of ['reopen', 'done'] as const) {
+      const m = gc[action]?.exec(text);
+      const target = m ? saidName(m.slice(1).find((g) => g != null) ?? '') : '';
+      if (!target) continue;
+      // The goal in the state the words expect first, else any goal by that name: the flow then says it is already there.
+      const wanted = ctx.goals.filter((g) => (action === 'done' ? !g.completed : g.completed));
+      const goal = findGoal(target, wanted.map((g) => ({ ...g, completed: false })), c) ?? findGoal(target, ctx.goals.map((g) => ({ ...g, completed: false })), c);
+      if (goal) return { goal: { action, id: goal.id } };
+    }
+  }
+  const rc = pack.ruleControl;
+  if (rc && ctx.ruleNames) {
+    for (const action of ['remove', 'resume', 'pause'] as const) {
+      const m = rc[action]?.exec(text);
+      const target = m ? saidName(m.slice(1).find((g) => g != null) ?? '') : '';
+      if (!target || target.length > 80) continue;
+      if (ctx.ruleNames.some((n) => n.includes(target) || target.includes(n))) return { rule: { action, target } };
+      // "pause hulu" with no such rule: still a command, answered with what did not match, not an entry card.
+      if (rc.strong?.test(text)) return { rule: { action, target } };
+    }
+  }
+  return null;
+}
+
+/** "switch to spanish", "change currency to euros", "dark mode", "what can I say": a setting or the Help screen. */
+function parseSpokenSetting(raw: string, pack: LanguagePack): VoiceCommand | null {
+  const text = prepare(raw, pack);
+  const sc = pack.settingsControl;
+  if (!text || !sc || saysNumber(raw, text, pack)) return null;
+  if (sc.help?.test(text)) return { help: true };
+  if (sc.languageLead?.test(text) && sc.languages) for (const [code, re] of Object.entries(sc.languages)) if (re.test(text)) return { language: code };
+  if (sc.currencyLead?.test(text) && sc.currencies) for (const [code, re] of Object.entries(sc.currencies)) if (re.test(text)) return { currency: code };
+  if (sc.themeLead?.test(text) && sc.themes) for (const theme of ['dark', 'light', 'system'] as const) if (sc.themes[theme]?.test(text)) return { theme };
+  return null;
+}
+
+/** "same again", "another coffee", "log that again": the last entry (matching the words, if any) opens again, dated today. */
+function parseAgain(raw: string, pack: LanguagePack): VoiceCommand | null {
+  const text = prepare(raw, pack);
+  if (!text || !pack.againLead || saysNumber(raw, text, pack)) return null;
+  const m = pack.againLead.exec(text);
+  if (!m) return null;
+  const target = saidName(m.slice(1).find((g) => g != null) ?? '');
+  return { again: { target: target || null } };
+}
+
+/**
+ * One purchase across several categories. "costco 60, 40 groceries 20 household": the first amount is the total and
+ * the rest, each followed by words, add up to it. "split 60 between groceries and household": equal parts, or each
+ * part with its own amount. Returns the entries, with the purchase as the note, or null.
+ */
+function parseSplit(raw: string, ctx: ParseContext, pack: LanguagePack): ParseResult[] | null {
+  const text = prepare(raw, pack);
+  if (!text) return null;
+  const build = (note: string | null, parts: { amount: number; words: string }[]): ParseResult[] | null => {
+    if (parts.length < 2 || parts.some((p) => !(p.amount > 0))) return null;
+    return parts.map((p) => {
+      const r = parseInput(`${p.amount} ${p.words}`.trim(), ctx);
+      r.kind = 'transaction';
+      r.amount = p.amount;
+      r.raw = raw;
+      // The purchase names the entry; the part's words name the category and stay in the note only when they are not one.
+      const isCategory = r.categoryId != null && r.categoryConfidence >= 0.8;
+      r.note = restoreCase(note && isCategory ? note : note ? `${note} ${p.words}` : p.words, raw) ?? r.note;
+      r.needsReview = false;
+      r.confidence = Math.max(r.confidence, 0.8);
+      return r;
+    });
+  };
+  // "split 60 between groceries and household" / "split 60 into 40 groceries and 20 household"
+  const sl = pack.splitLead?.exec(text);
+  if (sl) {
+    const head = sl[1] ?? '';
+    const tail = sl[2] ?? '';
+    const total = extractAmount(head, pack);
+    const names = tail.split(pack.splitJoin ?? /\s*(?:,|;| and )\s*/u).map((s) => s.trim()).filter(Boolean);
+    if (total.amount != null && names.length >= 2 && names.length <= 6) {
+      const withAmounts = names.map((n) => extractAmount(n, pack));
+      const parts = withAmounts.every((w) => w.amount != null)
+        ? withAmounts.map((w) => ({ amount: w.amount!, words: w.text }))
+        : names.map((n, i) => ({ amount: Math.round((total.amount! / names.length) * 100) / 100 + (i === 0 ? Math.round((total.amount! - Math.round((total.amount! / names.length) * 100) / 100 * names.length) * 100) / 100 : 0), words: n }));
+      const sum = parts.reduce((a, p) => a + p.amount, 0);
+      if (Math.abs(sum - total.amount) < 0.011) return build(total.text.trim() || null, parts);
+    }
+  }
+  // "costco 60, 40 groceries 20 household"
+  const amounts = findAmounts(text, pack);
+  if (amounts.length >= 3 && amounts.length <= 7) {
+    const [first, ...rest] = amounts;
+    const sum = rest.reduce((a, c) => a + c.value, 0);
+    if (Math.abs(sum - first.value) < 0.011 && first.value > 0) {
+      const note = text.slice(0, first.start).replace(/[,;:]+$/u, '').trim();
+      const parts: { amount: number; words: string }[] = [];
+      for (let i = 0; i < rest.length; i += 1) {
+        const words = text.slice(rest[i].end, i + 1 < rest.length ? rest[i + 1].start : text.length).replace(/^[\s,;:]+|[\s,;:]+$/gu, '').replace(/\s+(?:and|y|et|und|e)$/iu, '').trim();
+        if (!words || !/\p{L}/u.test(words)) return null;
+        parts.push({ amount: rest[i].value, words });
+      }
+      return build(note || null, parts);
+    }
+  }
+  return null;
+}
+
 /** "how much have I spent this week on Starbucks?" -> a question result, or null when the text is not a question. */
 function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): ParseResult | null {
   // Questions are short sentences; long input is an entry (or noise) and skips these patterns.
@@ -1042,13 +1172,23 @@ export function parseEntries(input: string, ctx: ParseContext): ParseResult[] {
   const raw = input.trim();
   if (!raw) return [baseResult(raw, ctx.today)];
   const question = parseQuestionText(raw, ctx, pack);
-  // A plan ("set my groceries budget to 400") or money someone owes is never an entry nor a correction, whatever else fits.
-  if (question?.question && (question.question.ask === 'plan' || question.question.ask === 'owed')) return [question];
+  // A plan ("set my groceries budget to 400") opens the plan card; money someone owes is answered. Neither is an entry nor a correction.
+  if (question?.question?.ask === 'plan') {
+    const q = question.question;
+    return [{ ...baseResult(raw, ctx.today), kind: 'plan', amount: q.price ?? null, categoryId: q.categoryId ?? q.fallbackCategoryId ?? null, categoryConfidence: q.categoryId ? 1 : 0.6, note: q.target, confidence: 0.9, needsReview: false }];
+  }
+  if (question?.question?.ask === 'owed') return [question];
+  // "pause netflix", "mark the trip goal done": only when the words name a repeating entry or a goal that exists.
+  const control = raw.length <= MAX_QUESTION_LENGTH ? parseControl(raw, ctx, pack) : null;
+  if (control) return [{ ...baseResult(raw, ctx.today), kind: 'command', command: control, confidence: 1, needsReview: false }];
   const correction = parseCorrectionText(raw, ctx, pack);
   if (correction) return [correction];
   if (question) return [question];
-  const command = ctx.language === 'en' && raw.length <= MAX_QUESTION_LENGTH ? parseVoiceCommand(raw) : null;
+  const command = raw.length <= MAX_QUESTION_LENGTH ? (ctx.language === 'en' ? parseVoiceCommand(raw) : null) ?? parseSpokenSetting(raw, pack) ?? parseAgain(raw, pack) : null;
   if (command) return [{ ...baseResult(raw, ctx.today), kind: 'command', command, confidence: 1, needsReview: false }];
+  // "costco 60, 40 groceries 20 household", "split 60 between groceries and household": several entries from one purchase.
+  const split = parseSplit(raw, ctx, pack);
+  if (split) return split;
   const sentences = splitSentences(raw, pack.code === 'de');
   const results: ParseResult[] = [];
   let sharedDate: string | null = null;

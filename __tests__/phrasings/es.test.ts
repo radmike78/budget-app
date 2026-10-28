@@ -433,7 +433,7 @@ const insights: Case[] = [
   ['¿cuál es mi mayor gasto?', { kind: 'question', question: { ask: 'biggest', target: null } }],
   ['¿cuál fue mi mayor gasto el mes pasado?', { kind: 'question', question: { ask: 'biggest', period: 'lastMonth', target: null } }],
   ['cuánto gasté el miércoles pasado', { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['pon 400 de presupuesto para supermercado', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
+  ['pon 400 de presupuesto para supermercado', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
   ['sara me debe 20', { kind: 'question', question: { ask: 'owed', price: 20, target: 'Sara' } }],
   ['cuánto debo', { kind: 'question', question: { ask: 'owe' } }],
   ['2 cafés 4 cada uno', { kind: 'transaction', amount: 8, note: '2 cafés' }],
@@ -817,4 +817,28 @@ describe('after core merge', () => {
     ['eran 15 no 51', { kind: 'correction', correction: { amount: 15 } }],
   ];
   runCases('es', pending, labels);
+});
+
+describe('es: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: 'Viaje a Japón' }];
+  const ruleNames = ['netflix', 'gimnasio', 'spotify'];
+  it.each([
+    ['pausa netflix', { kind: 'command', command: { rule: { action: 'pause', target: 'netflix' } } }],
+    ['reanuda netflix', { kind: 'command', command: { rule: { action: 'resume', target: 'netflix' } } }],
+    ['elimina la suscripción de spotify', { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+    ['marca la meta del viaje como conseguida', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['lo mismo', { kind: 'command', command: { again: { target: null } } }],
+    ['otro café', { kind: 'command', command: { again: { target: 'café' } } }],
+    ['cambia a inglés', { kind: 'command', command: { language: 'en' } }],
+    ['cambia la moneda a euros', { kind: 'command', command: { currency: 'EUR' } }],
+    ['modo oscuro', { kind: 'command', command: { theme: 'dark' } }],
+    ['ayuda', { kind: 'command', command: { help: true } }],
+    ['cancela netflix 15,99', { kind: 'transaction', amount: 15.99 }],
+    ['reabre la meta del viaje', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'es', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
 });

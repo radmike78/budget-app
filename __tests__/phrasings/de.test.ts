@@ -5,7 +5,7 @@
  * goal is "Trip to Japan" (g1). Category names are the German ones the app shows.
  */
 import { de } from '@/i18n/locales/de';
-import { parseOne, runCases, type Case } from './harness';
+import { GOALS, parseOne, runCases, type Case } from './harness';
 
 const labels = de.s.categoryNames as Record<string, string>;
 const ex = (amount: number, categoryId?: string, more: Record<string, unknown> = {}) => ({ kind: 'transaction', type: 'expense', amount, ...(categoryId ? { categoryId } : {}), ...more });
@@ -488,7 +488,7 @@ const insights: Case[] = [
   ['Was ist mein größter Posten diesen Monat?', top({ period: 'month', target: null })],
   ['Was war letzte Woche meine größte Ausgabe?', { kind: 'question', question: { ask: 'biggest', period: 'lastWeek', target: null } }],
   ['wie viel habe ich letzten mittwoch ausgegeben', { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['setze mein budget für lebensmittel auf 400', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
+  ['setze mein budget für lebensmittel auf 400', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
   ['sarah schuldet mir 20', { kind: 'question', question: { ask: 'owed', price: 20, target: 'Sarah' } }],
   ['wie viel schulde ich', { kind: 'question', question: { ask: 'owe' } }],
   ['2 kaffee je 4', { kind: 'transaction', amount: 8, note: '2 kaffee' }],
@@ -843,4 +843,29 @@ describe('after core merge', () => {
     ['es waren 15 nicht 54', { kind: 'correction', correction: { amount: 15 } }],
   ];
   runCases('de', pending, labels);
+});
+
+describe('de: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: 'Reise nach Japan' }];
+  const ruleNames = ['netflix', 'fitnessstudio', 'spotify'];
+  it.each([
+    ['pausiere netflix', { kind: 'command', command: { rule: { action: 'pause', target: 'netflix' } } }],
+    ['reaktiviere netflix', { kind: 'command', command: { rule: { action: 'resume', target: 'netflix' } } }],
+    ['lösche das spotify abo', { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+    ['markiere das reise ziel als erreicht', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['das gleiche', { kind: 'command', command: { again: { target: null } } }],
+    ['noch ein kaffee', { kind: 'command', command: { again: { target: 'kaffee' } } }],
+    ['wechsle auf englisch', { kind: 'command', command: { language: 'en' } }],
+    ['währung auf euro', { kind: 'command', command: { currency: 'EUR' } }],
+    ['dunkelmodus', { kind: 'command', command: { theme: 'dark' } }],
+    ['hilfe', { kind: 'command', command: { help: true } }],
+    ['öffne das reise-ziel wieder', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+    ['markiere das reiseziel als erreicht', { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['lösche das spotify-abo', { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'de', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
 });

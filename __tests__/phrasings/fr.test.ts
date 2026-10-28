@@ -4,7 +4,7 @@
  */
 import { fr } from '@/i18n/locales/fr';
 import type { Goal } from '@/types';
-import { parseOne, runCases, type Case } from './harness';
+import { GOALS, parseOne, runCases, type Case } from './harness';
 
 const LABELS = fr.s.categoryNames as Record<string, string>;
 
@@ -637,7 +637,7 @@ const moreQuestions: Case[] = [
   ['ma plus grosse dépense', ask({ ask: 'biggest', target: null })],
   ['ma plus grosse dépense ce mois-ci', ask({ ask: 'biggest', period: 'month', target: null })],
   ["combien j'ai dépensé mercredi dernier", { kind: 'question', question: { ask: 'spent', period: 'day', date: '2026-09-09', target: null } }],
-  ['mets un budget de 400 pour les courses', { kind: 'question', question: { ask: 'plan', price: 400, categoryId: 'groceries' } }],
+  ['mets un budget de 400 pour les courses', { kind: 'plan', amount: 400, categoryId: 'groceries' }],
   ['sarah me doit 20', { kind: 'question', question: { ask: 'owed', price: 20, target: 'Sarah' } }],
   ['combien je dois', { kind: 'question', question: { ask: 'owe' } }],
   ['2 cafés 4 chacun', { kind: 'transaction', amount: 8, note: '2 cafés' }],
@@ -850,4 +850,27 @@ describe('after core merge', () => {
     ["c'était 15 pas 51", { kind: 'correction', correction: { amount: 15 } }],
   ];
   runCases('fr', pending, LABELS);
+});
+
+describe('fr: things to do by voice', () => {
+  // A goal named in this language and the repeating entries' names, as the app hands them to the parser.
+  const goals = [{ ...GOALS[0], name: 'Voyage au Japon' }];
+  const ruleNames = ['netflix', 'salle de sport', 'spotify'];
+  it.each([
+    ['mets en pause netflix', { kind: 'command', command: { rule: { action: 'pause', target: 'netflix' } } }],
+    ['reprends netflix', { kind: 'command', command: { rule: { action: 'resume', target: 'netflix' } } }],
+    ["supprime l'abonnement spotify", { kind: 'command', command: { rule: { action: 'remove', target: 'spotify' } } }],
+    ["marque l'objectif voyage comme atteint", { kind: 'command', command: { goal: { action: 'done', id: 'g1' } } }],
+    ['la même chose', { kind: 'command', command: { again: { target: null } } }],
+    ['encore un café', { kind: 'command', command: { again: { target: 'café' } } }],
+    ['passe en anglais', { kind: 'command', command: { language: 'en' } }],
+    ['mets la devise en euros', { kind: 'command', command: { currency: 'EUR' } }],
+    ['mode sombre', { kind: 'command', command: { theme: 'dark' } }],
+    ['aide', { kind: 'command', command: { help: true } }],
+    ['rouvre l’objectif voyage', { kind: 'command', command: { goal: { action: 'reopen', id: 'g1' } } }],
+  ])('%s', (text, expected) => {
+    const r = parseOne(text as string, 'fr', undefined, goals, ruleNames);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject(expected as object);
+  });
 });

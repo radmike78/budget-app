@@ -9,6 +9,18 @@ export interface VoiceCommand {
   voice?: Voice;
   attitude?: Attitude;
   gender?: VoiceGender;
+  /** "pause netflix", "resume the gym", "delete the spotify subscription": a repeating entry, found by its words in `useEntryFlow`. */
+  rule?: { action: 'pause' | 'resume' | 'remove'; target: string };
+  /** "mark the trip goal done", "reopen the car fund": a goal by its id. */
+  goal?: { action: 'done' | 'reopen'; id: string };
+  /** "same again", "another coffee": the last entry (matching the words, if any) opens in a card dated today. */
+  again?: { target: string | null };
+  /** "switch to spanish", "change currency to euros", "dark mode": a setting, applied at once. */
+  language?: string;
+  currency?: string;
+  theme?: 'system' | 'light' | 'dark';
+  /** "what can I say", "help": the Help screen. */
+  help?: boolean;
 }
 
 /** Something must say this is about the voice, or the sentence is an entry. */

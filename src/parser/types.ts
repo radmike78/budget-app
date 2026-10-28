@@ -78,6 +78,17 @@ export interface LanguagePack {
    * "3 x 5" and "4 x3" are read in every language. Optional.
    */
   multiply?: { each?: RegExp; half?: RegExp };
+  /** "pause netflix", "resume the gym", "delete the spotify subscription": group 1 is the words naming the rule. Optional. */
+  ruleControl?: { pause?: RegExp; resume?: RegExp; remove?: RegExp; /** Verbs that only ever mean a rule ("pause", "resume"): the command stands even when no rule matches, and is answered as such. */ strong?: RegExp };
+  /** "mark the trip goal done", "reopen the car fund": group 1 is the words naming the goal. Optional. */
+  goalControl?: { done?: RegExp; reopen?: RegExp };
+  /** "same again", "another coffee": a capture group, when it matched, names the entry to repeat. Optional. */
+  againLead?: RegExp;
+  /** "switch to spanish", "change currency to euros", "dark mode", "what can I say". Optional. */
+  settingsControl?: { help?: RegExp; languageLead?: RegExp; languages?: Record<string, RegExp>; currencyLead?: RegExp; currencies?: Record<string, RegExp>; themeLead?: RegExp; themes?: { dark?: RegExp; light?: RegExp; system?: RegExp } };
+  /** "split 60 between groceries and household": group 1 is the purchase with its total, group 2 the parts; `splitJoin` splits the parts. Optional. */
+  splitLead?: RegExp;
+  splitJoin?: RegExp;
   /** Which frequency a `perPeriod` phrase names ("every month" → monthly); a phrase that matches none (per paycheck) makes no repeat. Optional. */
   repeatOf?: Partial<Record<Frequency, RegExp>>;
   /** Words standing for a goal just mentioned ("it", "that one", "the goal"): the newest open goal. Optional. */

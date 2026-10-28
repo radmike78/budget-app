@@ -23,8 +23,11 @@ function matches(actual: unknown, expected: unknown): boolean {
 }
 
 /** Parses one phrasing the way the app does (with the language's category names) and returns the single result. */
-export function parseOne(text: string, language: string, categoryLabels?: Record<string, string>, goals: Goal[] = GOALS) {
-  return parseEntries(text, { categories: DEFAULT_CATEGORIES, goals, keywordMap: {}, today: TODAY, nowTime: '12:00', language, categoryLabels });
+/** The repeating entries a probe may name ("pause netflix"), lower-cased as the app hands them to the parser. */
+export const RULE_NAMES = ['netflix', 'gym', 'rent / mortgage', 'spotify'];
+
+export function parseOne(text: string, language: string, categoryLabels?: Record<string, string>, goals: Goal[] = GOALS, ruleNames: string[] = RULE_NAMES) {
+  return parseEntries(text, { categories: DEFAULT_CATEGORIES, goals, keywordMap: {}, today: TODAY, nowTime: '12:00', language, categoryLabels, ruleNames });
 }
 
 /** Runs every case; a failure names the phrasing and shows what came back. */

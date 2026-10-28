@@ -14,6 +14,8 @@ import { cleanEntry, stripCardNumbers } from '@/lib/validate';
 import { notify } from '@/lib/dialogs';
 import { getDb } from '@/db/database';
 import { getTransaction, latestSavedTransaction, queryTransactions, recentlySavedTransactions } from '@/db/repositories';
+import { getLocale } from '@/i18n';
+import { CURRENCIES } from '@/lib/money';
 import { answerAfford, answerQuestion, answerRemaining, answerTop, compareRanges, periodRange, answerBiggest, findGoalByWords, totalOwed, selectRules, dueWithin, rulesSummary, savedTotal, averageOf, countOf } from '@/lib/questions';
 import { compareWeeks } from '@/lib/recap';
 import { speak } from '@/lib/speak';
@@ -145,10 +147,6 @@ export function useEntryFlow() {
         text = t.answerLast(last.note || (cat ? categoryName(cat, t) : t.otherSpending), money(last.amount), friendlyDate(last.occurredAt, todayStr, fmt), last.type === 'income');
         history = { from: last.occurredAt, to: last.occurredAt, type: last.type };
       }
-    } else if (q.ask === 'plan') {
-      // "set my groceries plan to 400": a plan, never logged as spending; said back with where plans are set.
-      const cat = q.categoryId ? categories.find((c) => c.id === q.categoryId) : q.fallbackCategoryId ? categories.find((c) => c.id === q.fallbackCategoryId) : null;
-      text = t.answerPlanHint(cat ? categoryName(cat, t) : q.target, q.price != null ? money(q.price) : null);
     } else if (q.ask === 'owed') {
       text = t.answerOwed(q.target, q.price != null ? money(q.price) : null);
     } else if (q.ask === 'owe') {
@@ -358,6 +356,20 @@ export function useEntryFlow() {
   }, [t, reply, applyToSaved]);
 
 
+  /** One tap on a frequent entry: the same card as a typed sentence, dated today, still saved by the person. */
+  const prefill = useCallback((entry: { note: string | null; categoryId: string | null; amount: number }) => {
+    if (useAppStore.getState().license?.state === 'ended') { setPending(null); setPendingMany(null); setBlocked(true); return; }
+    setAnswer(null);
+    setBlocked(false);
+    setPendingMany(null);
+    setLastSource('typed');
+    setPending({
+      kind: 'transaction', raw: entry.note ?? '', amount: entry.amount, type: 'expense', typeConfidence: 1, categoryId: entry.categoryId, categoryConfidence: 1,
+      note: entry.note, occurredAt: today(), dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
+      reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null, command: null, correction: null, repeat: null, confidence: 1, needsReview: false, hints: [],
+    });
+  }, []);
+
   const submitInner = useCallback(async (raw: string, source: EntrySource = 'typed') => {
     const text = cleanEntry(raw);
     if (!text) return;
@@ -366,7 +378,10 @@ export function useEntryFlow() {
     const now = new Date();
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const language = resolveLanguage(settings?.language);
-    const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames, currency: settings?.currency };
+    const { rules } = useAppStore.getState();
+    const catLabel = (id: string | null) => (id ? categoryName(categories.find((c) => c.id === id) ?? ({ id, name: id } as never), t) : '');
+    const ruleNames = rules.map((r) => (r.note || catLabel(r.categoryId)).toLowerCase().trim()).filter(Boolean);
+    const ctx = { categories, goals, keywordMap, today: today(), nowTime, language, categoryLabels: t.categoryNames, currency: settings?.currency, ruleNames };
     const entries = parseEntries(stripCardNumbers(text), ctx);
     setBlocked(false);
     if (entries.length === 1 && entries[0].kind === 'correction' && entries[0].correction) {
@@ -378,6 +393,57 @@ export function useEntryFlow() {
       setPending(null);
       setPendingMany(null);
       const cmd = entries[0].command;
+      const store = useAppStore.getState();
+      const sayBack = async (text: string, route?: SpokenAnswer['route']) => {
+        const mode = store.settings?.answerMode ?? 'auto';
+        const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
+        setAnswer({ text, spoken, route });
+        if (spoken) await speak(text, language, store.settings?.voiceGender ?? 'female');
+      };
+      if (cmd.rule) {
+        // "pause netflix": the rule whose note or category holds the words; "resume" looks among the paused ones.
+        const nameOf = (r: { note: string | null; categoryId: string | null }) => (r.note || catLabel(r.categoryId)).trim();
+        const wanted = cmd.rule.action === 'resume' ? store.rules.filter((r) => !r.active) : store.rules.filter((r) => r.active);
+        const target = cmd.rule.target;
+        const hit = wanted.find((r) => nameOf(r).toLowerCase().includes(target) || target.includes(nameOf(r).toLowerCase()));
+        if (!hit) { await sayBack(t.ruleNoMatch(target)); return; }
+        if (cmd.rule.action === 'remove') await store.removeRule(hit.id);
+        else await store.saveRule({ ...hit, active: cmd.rule.action === 'resume' });
+        await sayBack(cmd.rule.action === 'pause' ? t.rulePaused(nameOf(hit)) : cmd.rule.action === 'resume' ? t.ruleResumed(nameOf(hit)) : t.ruleRemoved(nameOf(hit)), { label: t.openRepeating, href: '/recurring' });
+        return;
+      }
+      if (cmd.goal) {
+        const g = goals.find((x) => x.id === cmd.goal!.id);
+        if (!g) return;
+        const done = cmd.goal.action === 'done';
+        if (g.completed === done) { await sayBack(done ? t.goalAlreadyDone(g.name) : t.goalAlreadyOpen(g.name)); return; }
+        await store.saveGoal({ ...g, completed: done });
+        await sayBack(done ? t.goalMarkedDone(g.name) : t.goalReopened(g.name));
+        return;
+      }
+      if (cmd.again) {
+        // "same again", "another coffee": the newest entry (matching the words, if any) opens in a card dated today.
+        const db = await getDb();
+        const recentRows = (await recentlySavedTransactions(db, 500)).filter((tx) => !tx.isRecurringInstance && !tx.importId && !tx.goalId);
+        const target = cmd.again.target;
+        const matches = (tx: { note: string | null; categoryId: string | null }, words: string) => (tx.note ?? '').toLowerCase().includes(words) || catLabel(tx.categoryId).toLowerCase().includes(words);
+        const singular = target && target.length > 3 && /s$/i.test(target) ? target.replace(/s$/i, '') : null;
+        const hit = target ? recentRows.find((tx) => matches(tx, target)) ?? (singular ? recentRows.find((tx) => matches(tx, singular)) : undefined) : recentRows[0];
+        if (!hit) { await sayBack(t.againNone); return; }
+        prefill({ note: hit.note, categoryId: hit.categoryId, amount: hit.amount });
+        return;
+      }
+      if (cmd.help) { await sayBack(t.helpHint, { label: t.openHelp, href: '/settings/help' }); return; }
+      if (cmd.language || cmd.currency || cmd.theme) {
+        await store.updateSettings({ ...(cmd.language ? { language: cmd.language } : null), ...(cmd.currency ? { currency: cmd.currency } : null), ...(cmd.theme ? { theme: cmd.theme } : null) });
+        // Said in the language just chosen, not the one the sentence came in.
+        const text = cmd.language ? getLocale(cmd.language).s.languageSwitched : cmd.currency ? t.currencySwitched(CURRENCIES.find((c) => c.code === cmd.currency)?.name ?? cmd.currency) : t.themeSwitched(cmd.theme === 'dark' ? t.themeDark : cmd.theme === 'light' ? t.themeLight : t.themeSystem);
+        const mode = store.settings?.answerMode ?? 'auto';
+        const spoken = mode === 'speak' || (mode === 'auto' && source === 'voice');
+        setAnswer({ text, spoken });
+        if (spoken) await speak(text, cmd.language ?? language, store.settings?.voiceGender ?? 'female');
+        return;
+      }
       await useAppStore.getState().updateSettings({ ...(cmd.voice ? { voice: cmd.voice } : null), ...(cmd.attitude ? { attitude: cmd.attitude } : null), ...(cmd.gender ? { voiceGender: cmd.gender } : null) });
       const next = useAppStore.getState().settings;
       if (!next) return;
@@ -455,7 +521,7 @@ export function useEntryFlow() {
     if (result.kind === 'unknown') result = { ...result, kind: 'transaction' };
     setPendingMany(null);
     setPending(result);
-  }, [answerFor, applyCorrection, t]);
+  }, [answerFor, applyCorrection, t, prefill]);
 
   // The typed text is already gone from the bar, so a failure has to say so instead of vanishing.
   const submit = useCallback(async (raw: string, source: EntrySource = 'typed') => {
@@ -469,19 +535,6 @@ export function useEntryFlow() {
 
   const dismiss = useCallback(() => { setPending(null); setPendingMany(null); setBlocked(false); }, []);
 
-  /** One tap on a frequent entry: the same card as a typed sentence, dated today, still saved by the person. */
-  const prefill = useCallback((entry: { note: string | null; categoryId: string | null; amount: number }) => {
-    if (useAppStore.getState().license?.state === 'ended') { setPending(null); setPendingMany(null); setBlocked(true); return; }
-    setAnswer(null);
-    setBlocked(false);
-    setPendingMany(null);
-    setLastSource('typed');
-    setPending({
-      kind: 'transaction', raw: entry.note ?? '', amount: entry.amount, type: 'expense', typeConfidence: 1, categoryId: entry.categoryId, categoryConfidence: 1,
-      note: entry.note, occurredAt: today(), dateExplicit: false, goalName: null, goalKind: 'saving', targetDate: null, goalId: null,
-      reminderText: null, reminderTime: null, reminderRepeat: 'none', question: null, command: null, correction: null, repeat: null, confidence: 1, needsReview: false, hints: [],
-    });
-  }, []);
   const dismissAnswer = useCallback(() => setAnswer(null), []);
 
   return { pending, pendingMany, answer, busy, blocked, submit, prefill, dismiss, dismissAnswer, lastSource };
