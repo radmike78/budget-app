@@ -200,7 +200,7 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   }
   if (affordLead || compare || top) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
   rest = stripAll(rest, pack.strip);
-  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && ask === 'spent' ? { days } : null), ...(month != null ? { month } : null), ...(price != null ? { price } : null) };
+  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && (ask === 'spent' || ask === 'top' || ask === 'compare') ? { days } : null), ...(month != null ? { month } : null), ...(price != null ? { price } : null) };
   if (!rest) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
 
   const key = rest.replace(/\s+/g, ' ').toLowerCase();

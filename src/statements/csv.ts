@@ -223,7 +223,7 @@ const X = { date: 0, desc: 40, out: 400, in: 520, amount: 640, balance: 760 };
  * Balance") and one row per line, date first. Signed amounts keep their sign; an unsigned amount column with a
  * CR/DR column, or with no negatives at all, is split into money in and money out.
  */
-export function csvToRows(text: string, language: string, today: string): CsvRows {
+export function csvToRows(text: string, language: string, today: string, region?: string | null): CsvRows {
   const warnings: string[] = [];
   const grid = parseCsv(text).filter((r) => r.some((c) => c));
   if (!grid.length) return { rows: [], period: null, warnings: ['csvNoColumns'] };
@@ -319,7 +319,7 @@ export function csvToRows(text: string, language: string, today: string): CsvRow
   if (dropped > 0) warnings.push('csvLinesSkipped');
 
   // The span of the lines: the statement's "period", which the parser uses for years and partial months.
-  const order = numericDateOrder(dateOrderRows) ?? defaultDateOrder(language);
+  const order = numericDateOrder(dateOrderRows) ?? defaultDateOrder(language, region);
   let start: string | null = null;
   let end: string | null = null;
   for (const row of dateOrderRows) {

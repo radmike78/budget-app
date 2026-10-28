@@ -18,7 +18,7 @@ const TENS: Record<string, number> = {
 const SCALES: Record<string, number> = { hundred: 100, thousand: 1000, grand: 1000, million: 1_000_000 };
 
 function isNumberWord(w: string): boolean {
-  return w in UNITS || w in TENS || w in SCALES;
+  return Object.hasOwn(UNITS, w) || Object.hasOwn(TENS, w) || Object.hasOwn(SCALES, w);
 }
 
 /**
@@ -39,20 +39,20 @@ function wordsToNumber(words: string[]): number | null {
       continue;
     }
     const cannotExtend = sawAny && (
-      (w in TENS && current % 100 !== 0) ||
-      (w in UNITS && UNITS[w] >= 10 && current % 100 !== 0) ||
-      (w in UNITS && UNITS[w] < 10 && (lastKind === 'unit' || lastKind === 'teen'))
+      (Object.hasOwn(TENS, w) && current % 100 !== 0) ||
+      (Object.hasOwn(UNITS, w) && UNITS[w] >= 10 && current % 100 !== 0) ||
+      (Object.hasOwn(UNITS, w) && UNITS[w] < 10 && (lastKind === 'unit' || lastKind === 'teen'))
     );
     if (cannotExtend) {
       const cents = wordsToNumber(words.slice(idx));
       if (cents == null || cents < 0 || cents > 99 || !Number.isInteger(cents)) return null;
       return total + current + cents / 100;
     }
-    if (w in UNITS) {
+    if (Object.hasOwn(UNITS, w)) {
       current += UNITS[w];
       sawAny = true;
       lastKind = UNITS[w] >= 10 ? 'teen' : 'unit';
-    } else if (w in TENS) {
+    } else if (Object.hasOwn(TENS, w)) {
       current += TENS[w];
       sawAny = true;
       lastKind = 'tens';
@@ -60,7 +60,7 @@ function wordsToNumber(words: string[]): number | null {
       current = (current === 0 ? 1 : current) * 100;
       sawAny = true;
       lastKind = 'scale';
-    } else if (w in SCALES) {
+    } else if (Object.hasOwn(SCALES, w)) {
       total += (current === 0 ? 1 : current) * SCALES[w];
       current = 0;
       sawAny = true;

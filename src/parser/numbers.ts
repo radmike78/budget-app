@@ -65,8 +65,8 @@ function strip(w: string): string {
  * separate words (plus a `pre` hook for compound-word languages).
  */
 export function makeNumberWords(table: WesternNumberTable): (text: string) => string {
-  const isNum = (w: string) => w in table.units || w in table.tens || table.hundred.includes(w) || (table.hundreds && w in table.hundreds) || table.thousand.includes(w) || (table.million?.includes(w) ?? false);
-  const isScale = (w: string) => table.hundred.includes(w) || table.thousand.includes(w) || (table.million?.includes(w) ?? false) || (table.hundreds != null && w in table.hundreds);
+  const isNum = (w: string) => Object.hasOwn(table.units, w) || Object.hasOwn(table.tens, w) || table.hundred.includes(w) || (table.hundreds && Object.hasOwn(table.hundreds, w)) || table.thousand.includes(w) || (table.million?.includes(w) ?? false);
+  const isScale = (w: string) => table.hundred.includes(w) || table.thousand.includes(w) || (table.million?.includes(w) ?? false) || (table.hundreds != null && Object.hasOwn(table.hundreds, w));
 
   function evaluate(run: string[]): number | null {
     let total = 0;
@@ -82,22 +82,22 @@ export function makeNumberWords(table: WesternNumberTable): (text: string) => st
       // "un million" starts a number; after one has started, "vingt et un", "cent un", "treinta y un" add one like any unit.
       if (table.one.includes(w)) {
         if (!saw) { current = 1; continue; }
-        if (!(w in table.units)) { current += 1; lastSmall = true; afterConnector = false; continue; }
+        if (!(Object.hasOwn(table.units, w))) { current += 1; lastSmall = true; afterConnector = false; continue; }
       }
       // "doce cincuenta", "zwölf fünfzig": a tens word that cannot extend the number is a cents group.
       // German says the unit first ("fünf und zwanzig"), so a tens word after a connector still extends it.
-      const centsAfterConnector = Boolean(table.connectorCents) && afterConnector && (w in table.tens || (w in table.units && table.units[w] >= 10));
-      const startsCents = saw && ((!afterConnector && ((w in table.tens && current % 100 !== 0) || (w in table.units && table.units[w] >= 10 && current % 100 !== 0) || (w in table.units && table.units[w] < 10 && lastSmall && current % 10 !== 0))) || centsAfterConnector);
+      const centsAfterConnector = Boolean(table.connectorCents) && afterConnector && (Object.hasOwn(table.tens, w) || (Object.hasOwn(table.units, w) && table.units[w] >= 10));
+      const startsCents = saw && ((!afterConnector && ((Object.hasOwn(table.tens, w) && current % 100 !== 0) || (Object.hasOwn(table.units, w) && table.units[w] >= 10 && current % 100 !== 0) || (Object.hasOwn(table.units, w) && table.units[w] < 10 && lastSmall && current % 10 !== 0))) || centsAfterConnector);
       afterConnector = false;
       if (startsCents) {
         const cents = evaluate(run.slice(idx));
         if (cents == null || cents < 0 || cents > 99 || !Number.isInteger(cents)) return null;
         return total + current + cents / 100;
       }
-      lastSmall = w in table.units || w in table.tens;
-      if (w in table.units) { current += table.units[w]; saw = true; }
-      else if (w in table.tens) { current += table.tens[w]; saw = true; }
-      else if (table.hundreds && w in table.hundreds) { current += table.hundreds[w]; saw = true; }
+      lastSmall = Object.hasOwn(table.units, w) || Object.hasOwn(table.tens, w);
+      if (Object.hasOwn(table.units, w)) { current += table.units[w]; saw = true; }
+      else if (Object.hasOwn(table.tens, w)) { current += table.tens[w]; saw = true; }
+      else if (table.hundreds && Object.hasOwn(table.hundreds, w)) { current += table.hundreds[w]; saw = true; }
       else if (table.hundred.includes(w)) { current = (current === 0 ? 1 : current) * 100; saw = true; }
       else if (table.thousand.includes(w)) { total += (current === 0 ? 1 : current) * 1000; current = 0; saw = true; }
       else if (table.million?.includes(w)) { total += (current === 0 ? 1 : current) * 1_000_000; current = 0; saw = true; }

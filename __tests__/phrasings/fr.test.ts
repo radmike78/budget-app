@@ -12,6 +12,7 @@ const expenses: Case[] = [
   ["j'ai dépensé 12 euros pour le déjeuner", { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
   ["j'ai payé 12 € le déj", { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
   ['déjeuner 12 euros', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
+  ['constructor 500', { kind: 'transaction', amount: 500 }],
   ['12 balles le resto', { type: 'expense', amount: 12, categoryId: 'dining' }],
   ["ça m'a coûté 12 euros le resto", { type: 'expense', amount: 12, categoryId: 'dining' }],
   ["le resto m'a coûté 45", { type: 'expense', amount: 45, categoryId: 'dining' }],

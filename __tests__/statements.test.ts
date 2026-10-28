@@ -106,6 +106,12 @@ describe('money and dates on statements', () => {
   });
   it('reads dates in several formats and locales', () => {
     expect(findDates('12/22 PAYROLL', 'en')[0]).toMatchObject({ month: 11, day: 22, year: null });
+    // a description that starts with a month word never steals the numeric date in front of it
+    expect(findDates('03/15  MAY DEPT STORE  20.00', 'en')).toMatchObject([{ month: 2, day: 15, year: null }]);
+    expect(findDates('03/20  DEC HARDWARE  30.00', 'en')).toMatchObject([{ month: 2, day: 20, year: null }]);
+    expect(findDates('03/15/26,MAY DEPT STORE', 'en')).toMatchObject([{ month: 2, day: 15, year: 2026 }]);
+    expect(findDates('15/03/25;MARS CHOCOLAT', 'fr')).toMatchObject([{ month: 2, day: 15, year: 2025 }]);
+    expect(findDates('15 Mar 2026 COFFEE', 'en')).toMatchObject([{ month: 2, day: 15, year: 2026 }]);
     expect(findDates('22/12/2025 NOMINA', 'es')[0]).toMatchObject({ month: 11, day: 22, year: 2025 });
     expect(findDates('Jan 5, 2026', 'en')[0]).toMatchObject({ month: 0, day: 5, year: 2026 });
     expect(findDates('5 janv. 2026', 'fr')[0]).toMatchObject({ month: 0, day: 5, year: 2026 });

@@ -331,6 +331,21 @@ describe('exports from other budget apps keep their categories', () => {
   });
 });
 
+describe('dates the description could confuse', () => {
+  it('keeps a line whose description starts with a month word, dated by the number in front', () => {
+    const p = read('Date,Description,Amount\n03/15/26,MAY DEPT STORE,-20.00\n03/20/26,DEC HARDWARE,-30.00\n03/18/26,COFFEE,-4.00');
+    expect(p.lines.map((l) => l.date).sort()).toEqual(['2026-03-15', '2026-03-18', '2026-03-20']);
+    expect(p.warnings).toEqual([]);
+  });
+  it("an all-ambiguous file follows the phone's region for its span as well as its lines", () => {
+    const csv = 'Date,Description,Amount\n03/04/2026,A,-1.00\n05/04/2026,B,-2.00\n07/04/2026,C,-3.00';
+    const gb = csvToRows(csv, 'en', TODAY, 'GB');
+    expect(gb.period).toEqual({ start: '2026-04-03', end: '2026-04-07' });
+    const us = csvToRows(csv, 'en', TODAY, 'US');
+    expect(us.period).toEqual({ start: '2026-03-04', end: '2026-07-04' });
+  });
+});
+
 describe('what was typed by hand before the import', () => {
   it('a line matching an entry already here by day, amount and direction is marked already in the history', () => {
     const csv = `Date,Description,Amount

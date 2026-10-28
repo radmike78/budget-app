@@ -12,6 +12,7 @@ const LABELS = itLocale.s.categoryNames as Record<string, string>;
 const CASES: Case[] = [
   // ---- expenses ----
   ['ho speso 12 euro per il pranzo', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
+  ['constructor 500', { kind: 'transaction', amount: 500 }],
   ['pranzo 12', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
   ['pranzo 12 euro', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
   ['12 euro di pranzo', { kind: 'transaction', type: 'expense', amount: 12, categoryId: 'dining' }],
