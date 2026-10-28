@@ -34,6 +34,10 @@ export default function SettingsScreen() {
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const resetAll = useAppStore((s) => s.resetAll);
+  const snapshot = useAppStore((s) => s.snapshot);
+  const restoreSnapshot = useAppStore((s) => s.restoreSnapshot);
+  const deleteSnapshot = useAppStore((s) => s.deleteSnapshot);
+  const [restoringSnapshot, setRestoringSnapshot] = useState(false);
   const keywords = useAppStore((s) => s.keywords);
   const rules = useAppStore((s) => s.rules);
   const voiceSummary = useVoiceSummary();
@@ -99,11 +103,39 @@ export default function SettingsScreen() {
     }
   };
 
+  const snapshotWhen = snapshot ? friendlyDate(localDay(snapshot.takenAt), today(), fmt) : '';
+  const onRestoreSnapshot = async () => {
+    if (!(await confirmDialog(t.snapshotRestore, t.snapshotRestoreConfirm(snapshotWhen), { confirmText: t.snapshotRestore, cancelText: t.cancel, destructive: true }))) return;
+    setRestoringSnapshot(true);
+    try {
+      await restoreSnapshot();
+      notify(t.snapshotTitle, t.snapshotRestored);
+    } catch (e) {
+      notify(t.snapshotTitle, t.didntWork((e as Error).message));
+    } finally {
+      setRestoringSnapshot(false);
+    }
+  };
+  const onDeleteSnapshot = async () => {
+    if (!(await confirmDialog(t.snapshotRemove, t.snapshotRemoveConfirm, { confirmText: t.snapshotRemove, cancelText: t.cancel, destructive: true }))) return;
+    try { await deleteSnapshot(); } catch (e) { notify(t.snapshotTitle, t.didntWork((e as Error).message)); }
+  };
+
   return (
     <Screen>
       <SectionTitle>{t.yourData}</SectionTitle>
       {/* The date is on the row itself: a local-first app's one real risk is a phone lost with no copy made. */}
       <ListItem title={t.backupExport} subtitle={`${t.backupExportSub} ${settings.lastBackupAt ? t.lastBackupShort(friendlyDate(localDay(settings.lastBackupAt), today(), fmt)) : t.noBackupYetShort}`} onPress={() => router.push('/settings/backup')} />
+      {snapshot && Platform.OS !== 'web' ? (
+        <Card style={{ marginBottom: spacing.sm }}>
+          <Text variant="label" style={{ marginBottom: spacing.xs }}>{t.snapshotTitle}</Text>
+          <Text variant="small" style={{ marginBottom: spacing.sm }}>{t.snapshotSub(snapshotWhen)}</Text>
+          <Row style={{ flexWrap: 'wrap', gap: spacing.sm }}>
+            <Button title={t.snapshotRestore} tone="secondary" onPress={onRestoreSnapshot} loading={restoringSnapshot} />
+            <Button title={t.snapshotRemove} tone="ghost" onPress={onDeleteSnapshot} />
+          </Row>
+        </Card>
+      ) : null}
       <Card style={{ marginBottom: spacing.sm }}>
         <Text variant="label" style={{ marginBottom: spacing.sm }}>{t.budgetPeriod}</Text>
         <Segmented<BudgetPeriodMode> value={settings.budgetPeriod} onChange={changeBudgetPeriod} options={[{ value: 'month', label: t.periodMonth }, { value: 'pay', label: t.periodPay }]} />
