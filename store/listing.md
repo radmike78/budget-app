@@ -30,6 +30,7 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 - Repeating entries for rent, salary and subscriptions. Set up once, logged automatically
 - Savings goals with honest pace: "You're $180 away, on pace to hit it 2 weeks early"
 - Questions, answered out loud if you like: "how much did I spend on coffee this week?", "what's left for groceries?", "can I afford 80 on shoes?"
+- Say what you want done, too: "pause netflix", "set my groceries plan to 400", "same again", "split 60 between groceries and household", "mark the trip goal done"
 - Budget by calendar month or from payday to payday, with a "safe to spend until payday" number that keeps the bills back
 - Statement import: a PDF or CSV from your bank or card, read on your phone, every line shown before anything is saved
 - Reminders you set yourself. The app never notifies you on its own
@@ -37,6 +38,7 @@ OnlyBudget works out the amount, whether it's money in or out, the category and 
 - An app lock with Face ID, Touch ID or your passcode
 - Export to CSV, a readable summary, or a full backup. Passphrase-encrypted backups you can keep in your own cloud drive
 - Your data stays on your phone and is never copied anywhere by itself, so make a backup before you change phones; a backup can be added to another phone or replace what is there
+- Before an update changes how your data are stored, a copy is kept on the phone, and Settings can take you back to it
 - Light and dark themes
 - Works in English, Spanish, French, Italian, German, Chinese, Japanese and Korean, including the voice entry
 

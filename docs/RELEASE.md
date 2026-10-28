@@ -50,6 +50,26 @@ For a build that runs on your own iPhone you need the Apple Developer Program
 eas build --profile device --platform ios
 ```
 
+### Without an Expo account: a release APK from this machine
+
+The same artifact EAS makes, built locally, so a store build is never the first
+time the release configuration (R8, resource shrinking, the fatal lint check)
+runs. Needs a JDK (17 or 21) and the Android SDK packages the project pins:
+`platform-tools`, `platforms;android-36`, `build-tools;36.0.0` and
+`ndk;27.1.12297006` (install them with `sdkmanager`, then point
+`ANDROID_HOME` at the SDK).
+
+```sh
+npx expo prebuild --platform android --no-install   # writes ./android (gitignored)
+cd android && ./gradlew :app:assembleRelease         # ~30 min the first time
+```
+
+The APK is `android/app/build/outputs/apk/release/app-release.apk`, signed with
+the debug key, which is fine for a phone you own and never for a store. The
+build has been run this way once: everything compiles, and the one thing it
+caught (`lintVitalRelease` refusing iOS usage strings written into Android's
+resources) is fixed and guarded by `release.test.ts`.
+
 ## 2. What to check on the device
 
 The web walkthrough cannot reach any of these.

@@ -1,6 +1,8 @@
 {
-  "NSMicrophoneUsageDescription": "OnlyBudget nutzt das Mikrofon, während du einen Eintrag sprichst, etwa „12 fürs Mittagessen“. Die Spracherkennung deines Telefons macht Text daraus; OnlyBudget nimmt nie Audio auf und speichert keins.",
-  "NSSpeechRecognitionUsageDescription": "OnlyBudget nutzt die Spracherkennung, um aus dem Gesagten einen Eintrag zu machen. Nichts wird an uns gesendet.",
-  "NSFaceIDUsageDescription": "OnlyBudget kann Face ID zum Entsperren nutzen, wenn du die App-Sperre einschaltest.",
-  "CFBundleDisplayName": "OnlyBudget"
+  "ios": {
+    "NSMicrophoneUsageDescription": "OnlyBudget nutzt das Mikrofon, während du einen Eintrag sprichst, etwa „12 fürs Mittagessen“. Die Spracherkennung deines Telefons macht Text daraus; OnlyBudget nimmt nie Audio auf und speichert keins.",
+    "NSSpeechRecognitionUsageDescription": "OnlyBudget nutzt die Spracherkennung, um aus dem Gesagten einen Eintrag zu machen. Nichts wird an uns gesendet.",
+    "NSFaceIDUsageDescription": "OnlyBudget kann Face ID zum Entsperren nutzen, wenn du die App-Sperre einschaltest.",
+    "CFBundleDisplayName": "OnlyBudget"
+  }
 }

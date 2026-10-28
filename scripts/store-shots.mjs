@@ -87,7 +87,7 @@ const browser = await playwright.chromium.launch({ headless: true });
   await shot('04-ask');
 
   await goto('/budget');
-  await scrollTo('Where it goes', 110);
+  await scrollTo('Entertainment', 14);
   await shot('05-split');
 
   await goto('/goals');

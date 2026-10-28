@@ -67,6 +67,17 @@ describe('release switches', () => {
     expect(read('docs/PRIVACY.md')).toMatch(/switched off in the code\s+for this release/);
     expect(read('docs/PRIVACY.md')).not.toMatch(/api\.anthropic\.com/);
   });
+  it('the usage strings in assets/locales are scoped to iOS, so Android lint never sees a translation with no default', () => {
+    // Expo writes every top-level key of these files into Android's values-b+<lang>/strings.xml as well; the iOS
+    // Info.plist keys there have no default value, and the release build's fatal lint check (ExtraTranslation) fails.
+    for (const l of ['en', 'es', 'fr', 'de', 'it', 'ja', 'ko', 'zh']) {
+      const json = JSON.parse(read(`assets/locales/${l}.json`)) as Record<string, unknown>;
+      expect(Object.keys(json)).toEqual(['ios']);
+      const ios = json.ios as Record<string, string>;
+      for (const key of ['NSMicrophoneUsageDescription', 'NSSpeechRecognitionUsageDescription', 'NSFaceIDUsageDescription', 'CFBundleDisplayName']) expect(typeof ios[key]).toBe('string');
+    }
+  });
+
   it('the locales no longer promise the Smart parsing exception in the About commitments', () => {
     for (const l of ['en', 'es', 'fr', 'de', 'it', 'ja', 'ko', 'zh']) {
       const src = read(`src/i18n/locales/${l}.ts`);

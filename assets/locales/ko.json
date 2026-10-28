@@ -1,6 +1,8 @@
 {
-  "NSMicrophoneUsageDescription": "OnlyBudget은 \"점심 12000원\"처럼 말로 기록하는 동안 마이크를 사용해요. 휴대폰의 음성 인식이 글자로 바꿔 주고, OnlyBudget은 소리를 녹음하거나 저장하지 않아요.",
-  "NSSpeechRecognitionUsageDescription": "OnlyBudget은 말한 내용을 기록으로 바꾸기 위해 음성 인식을 사용해요. 우리에게 보내지는 것은 없어요.",
-  "NSFaceIDUsageDescription": "앱 잠금을 켜면 OnlyBudget이 Face ID로 잠금을 풀 수 있어요.",
-  "CFBundleDisplayName": "OnlyBudget"
+  "ios": {
+    "NSMicrophoneUsageDescription": "OnlyBudget은 \"점심 12000원\"처럼 말로 기록하는 동안 마이크를 사용해요. 휴대폰의 음성 인식이 글자로 바꿔 주고, OnlyBudget은 소리를 녹음하거나 저장하지 않아요.",
+    "NSSpeechRecognitionUsageDescription": "OnlyBudget은 말한 내용을 기록으로 바꾸기 위해 음성 인식을 사용해요. 우리에게 보내지는 것은 없어요.",
+    "NSFaceIDUsageDescription": "앱 잠금을 켜면 OnlyBudget이 Face ID로 잠금을 풀 수 있어요.",
+    "CFBundleDisplayName": "OnlyBudget"
+  }
 }
