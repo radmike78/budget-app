@@ -608,6 +608,7 @@ export const de: LocaleDef = {
     restoreReplace: 'Alles ersetzen',
     merged: (n: number) => `${n} ${n === 1 ? 'Eintrag' : 'Einträge'} hinzugefügt. Alles, was schon hier war, ist geblieben.`,
     mergedNothing: 'Nichts Neues in dieser Datei: alles darin ist schon hier.',
+    mergedOther: (n: number) => `Außerdem ${n === 1 ? 'wurde 1 Element hinzugefügt, das kein Eintrag war' : `wurden ${n} Elemente hinzugefügt, die keine Einträge waren`}: Ziele, wiederkehrende Einträge, Erinnerungen, Schulden oder Kategorien.`,
     mergeTooMany: 'Mit dieser Datei gäbe es mehr wiederkehrende Einträge oder Erinnerungen, als die App halten kann. Ersetze stattdessen alles, oder entferne vorher welche.',
     categoryExists: 'Eine Kategorie mit diesem Namen gibt es schon.',
     goalExists: 'Ein Ziel mit diesem Namen gibt es schon.',
@@ -700,6 +701,7 @@ export const de: LocaleDef = {
     yes: 'ja',
     no: 'nein',
     openError: 'Beim Öffnen deiner Daten ist etwas schiefgelaufen.',
+    openErrorOtherTab: 'OnlyBudget ist in einem anderen Tab geöffnet, oder die Seite wurde zu früh neu geladen. Schließe den anderen Tab und versuche es noch einmal.',
     tryAgain: 'Erneut versuchen',
     screenError: 'Auf diesem Bildschirm ist ein Problem aufgetreten. Deine Einträge sind sicher.',
     categoryNames: {

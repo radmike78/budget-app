@@ -604,6 +604,7 @@ export const zh: LocaleDef = {
     restoreReplace: '全部替换',
     merged: (n: number) => `添加了 ${n} 条记录。原来就有的都保留了。`,
     mergedNothing: '这个文件里没有新内容：里面的东西这里都已经有了。',
+    mergedOther: (n: number) => `还添加了 ${n} 项不是记录的内容：目标、定期记录、提醒、欠款或分类。`,
     mergeTooMany: '添加这个文件后，定期记录或提醒会超过应用能保存的数量。请改为全部替换，或先删掉一些。',
     categoryExists: '已经有同名的分类了。',
     goalExists: '已经有同名的目标了。',
@@ -696,6 +697,7 @@ export const zh: LocaleDef = {
     yes: '是',
     no: '否',
     openError: '打开数据时出了点问题。',
+    openErrorOtherTab: 'OnlyBudget 已在另一个标签页打开，或页面刷新得太快。请关闭另一个标签页后再试。',
     tryAgain: '重试',
     screenError: '这个页面出了点问题。你的记录都还在。',
     categoryNames: {

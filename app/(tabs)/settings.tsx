@@ -124,7 +124,7 @@ export default function SettingsScreen() {
             const selected = settings.accent === a;
             const label = { sage: t.accentSage, ocean: t.accentOcean, plum: t.accentPlum, clay: t.accentClay }[a];
             return (
-              <Pressable key={a} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} onPress={() => updateSettings({ accent: a })} style={{ alignItems: 'center', minWidth: 44, minHeight: 44, paddingTop: 6 }}>
+              <Pressable key={a} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} aria-selected={selected} onPress={() => updateSettings({ accent: a })} style={{ alignItems: 'center', minWidth: 44, minHeight: 44, paddingTop: 6 }}>
                 <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: ACCENTS[a][isDark ? 'dark' : 'light'], borderWidth: selected ? 3 : 0, borderColor: colors.text }} />
                 <Text variant="small" style={{ marginTop: 4 }}>{label}</Text>
               </Pressable>

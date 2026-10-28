@@ -18,7 +18,10 @@ export const MAX_CSV_LINES = 20000;
 export const MAX_CSV_COLUMNS = 64;
 const MAX_CSV_CELL = 400;
 
-type Role = 'date' | 'desc' | 'amount' | 'in' | 'out' | 'balance' | 'sign' | 'category' | 'skip';
+type Role = 'date' | 'desc' | 'amount' | 'in' | 'out' | 'balance' | 'sign' | 'category' | 'status' | 'skip';
+
+/** A row whose status cell says it has not posted yet: it will be on the next export. */
+const PENDING_CELL = /^(?:pending|processing|uncleared|unposted|authori[sz]ed|pendiente|en proceso|en attente|en cours|ausstehend|vorgemerkt|in attesa|in elaborazione|保留|処理中|未確定|처리 중|대기|待处理|处理中|未入账)$/i;
 
 /** Header words, in the eight app languages plus what common exports use. Longer, more specific words first. */
 const HEADER_ROLES: { re: RegExp; role: Role }[] = [
@@ -31,6 +34,7 @@ const HEADER_ROLES: { re: RegExp; role: Role }[] = [
   { re: /^(?:description|details|transaction details|transaction description|narrative|memo|payee|merchant|name|counterparty|beneficiary|reference|particulars|text|descripci[oó]n|concepto|libell[ée]|intitul[ée]|verwendungszweck|buchungstext|avisierungstext|beschreibung ?\d?|empf[äa]nger|zahlungsempf[äa]nger|auftraggeber ?\/? ?empf[äa]nger|beg[üu]nstigter|descrizione|dettagli|operazione|causale|摘要|内容|利用店名|적요|내용|거래내용|交易摘要|交易说明|商户)$/i, role: 'desc' },
   // Another app's export (YNAB, Mint, Monarch, Goodbudget, EveryDollar): its category lands in this app's category.
   { re: /^(?:category|categories|category group\/category|category group|subcategory|envelope|budget category|budget|categor[ií]a|cat[ée]gorie|kategorie|カテゴリ|カテゴリー|分類|분류|카테고리|分类|类别)$/i, role: 'category' },
+  { re: /^(?:status|transaction status|state|estado|statut|[ée]tat|zustand|ステータス|状態|상태|状态)$/i, role: 'status' },
   { re: /^(?:type|transaction type|cr\/dr|dr\/cr|d\/c|c\/d|debit\/credit|credit\/debit|direction|flow|indicator|tipo|type d'op[ée]ration|soll\/haben|art|区分|입출금구분|借贷)$/i, role: 'sign' },
 ];
 
@@ -138,6 +142,7 @@ interface Plan {
   balance: number | null;
   sign: number | null;
   category: number | null;
+  status?: number | null;
   headerRow: number;
 }
 
@@ -156,7 +161,7 @@ function planFromHeader(header: string[]): Plan | null {
   const outCol = first('out');
   if (amount < 0 && (inCol < 0 || outCol < 0)) return null;
   const desc = roles.map((r, i) => (r === 'desc' ? i : -1)).filter((i) => i >= 0);
-  return { date, desc, amount: amount >= 0 ? amount : null, inCol: inCol >= 0 ? inCol : null, outCol: outCol >= 0 ? outCol : null, balance: first('balance') >= 0 ? first('balance') : null, sign: first('sign') >= 0 ? first('sign') : null, category: first('category') >= 0 ? first('category') : null, headerRow: 0 };
+  return { date, desc, amount: amount >= 0 ? amount : null, inCol: inCol >= 0 ? inCol : null, outCol: outCol >= 0 ? outCol : null, balance: first('balance') >= 0 ? first('balance') : null, sign: first('sign') >= 0 ? first('sign') : null, category: first('category') >= 0 ? first('category') : null, status: first('status') >= 0 ? first('status') : null, headerRow: 0 };
 }
 
 /** Moves a "description" column whose cells are all credit/debit flags over to the sign role. */
@@ -274,7 +279,9 @@ export function csvToRows(text: string, language: string, today: string, region?
 
   const dateOrderRows: Row[] = [];
   let dropped = 0;
+  let pending = 0;
   for (const r of data) {
+    if (plan.status != null && PENDING_CELL.test((r[plan.status] ?? '').trim())) { pending += 1; continue; }
     const rawDate = normalizeCsvDate(r[plan.date] ?? '');
     if (!rawDate || !looksLikeDate(rawDate, language)) { dropped += 1; continue; }
     const partsOfDesc = plan.desc.map((i) => (r[i] ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean);
@@ -317,6 +324,7 @@ export function csvToRows(text: string, language: string, today: string, region?
   }
   if (rows.length === 1) return { rows: [], period: null, warnings: ['csvNoColumns'] };
   if (dropped > 0) warnings.push('csvLinesSkipped');
+  if (pending > 0) warnings.push('pendingSkipped');
 
   // The span of the lines: the statement's "period", which the parser uses for years and partial months.
   const order = numericDateOrder(dateOrderRows) ?? defaultDateOrder(language, region);

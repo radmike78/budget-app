@@ -126,8 +126,10 @@ export default function Backup() {
       }
     }
     if (choice === 'add') {
-      const { added } = await mergeRestore(data);
-      return added ? t.merged(added) : t.mergedNothing;
+      const { added, other } = await mergeRestore(data);
+      if (added && other) return `${t.merged(added)} ${t.mergedOther(other)}`;
+      if (added) return t.merged(added);
+      return other ? t.mergedOther(other) : t.mergedNothing;
     }
     // The switches a file may not set keep whatever this phone already has (the daily reminder stays scheduled or not as it is).
     // The file just restored is itself a backup of everything now on the phone, made when it was exported.

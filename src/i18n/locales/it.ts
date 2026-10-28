@@ -608,6 +608,7 @@ export const it: LocaleDef = {
     restoreReplace: 'Sostituisci tutto',
     merged: (n: number) => `${n === 1 ? 'Aggiunta 1 voce' : `Aggiunte ${n} voci`}. Tutto ciò che c’era già è rimasto.`,
     mergedNothing: 'Niente di nuovo in quel file: tutto ciò che contiene è già qui.',
+    mergedOther: (n: number) => `${n === 1 ? 'Aggiunto anche 1 elemento che non era una voce' : `Aggiunti anche ${n} elementi che non erano voci`}: obiettivi, ricorrenti, promemoria, debiti o categorie.`,
     mergeTooMany: 'Aggiungendo questo file ci sarebbero più voci ricorrenti o promemoria di quanti l’app possa tenere. Sostituisci tutto, oppure rimuovine prima qualcuno.',
     categoryExists: 'Esiste già una categoria con questo nome.',
     goalExists: 'Esiste già un obiettivo con questo nome.',
@@ -700,6 +701,7 @@ export const it: LocaleDef = {
     yes: 'sì',
     no: 'no',
     openError: 'Qualcosa è andato storto nell’aprire i tuoi dati.',
+    openErrorOtherTab: 'OnlyBudget è aperto in un’altra scheda, oppure la pagina è stata ricaricata troppo presto. Chiudi l’altra scheda e riprova.',
     tryAgain: 'Riprova',
     screenError: 'Questa schermata ha avuto un problema. Le tue voci sono al sicuro.',
     categoryNames: {

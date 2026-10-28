@@ -37,9 +37,13 @@ export default function RootLayout() {
   const start = React.useCallback(() => {
     setError(null);
     const timer = setTimeout(() => { if (!useAppStore.getState().ready) { useAppStore.getState().resetInit(); setError(t.screenError); } }, START_TIMEOUT_MS);
-    init().catch((e: Error) => setError(e.message)).finally(() => clearTimeout(timer));
+    // On the web a second tab, or a reload while a query ran, cannot open the file (OPFS allows one access handle);
+    // the message says so plainly instead of quoting the browser.
+    init().catch((e: Error) => setError(Platform.OS === 'web' && /access handle|vfs/i.test(e.message) ? t.openErrorOtherTab : e.message)).finally(() => clearTimeout(timer));
   }, [init, t.screenError]);
   useEffect(() => { start(); }, [start]);
+  // The web database worker does not recover from a failed open; a fresh page does.
+  const retryStart = React.useCallback(() => { if (Platform.OS === 'web') window.location.reload(); else start(); }, [start]);
 
   // Back from the background (perhaps days later): log what fell due and move to today's period.
   useEffect(() => {
@@ -63,7 +67,7 @@ export default function RootLayout() {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.bg }}>
         <Text variant="heading">{t.openError}</Text>
         <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>{error}</Text>
-        <View style={{ marginTop: 16 }}><Button title={t.tryAgain} onPress={start} /></View>
+        <View style={{ marginTop: 16 }}><Button title={t.tryAgain} onPress={retryStart} /></View>
       </View>
     );
   } else if (!ready || !fontsReady) {

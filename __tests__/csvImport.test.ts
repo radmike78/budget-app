@@ -337,6 +337,11 @@ describe('dates the description could confuse', () => {
     expect(p.lines.map((l) => l.date).sort()).toEqual(['2026-03-15', '2026-03-18', '2026-03-20']);
     expect(p.warnings).toEqual([]);
   });
+  it('rows a status column marks as pending are left out with the same notice as a pending section', () => {
+    const p = read('Date,Description,Amount,Status\n03/15/2026,COFFEE,-4.00,Posted\n03/18/2026,HOTEL HOLD,-120.00,Pending\n03/16/2026,GROCER,-30.00,posted');
+    expect(p.lines.map((l) => l.description)).toEqual(['Coffee', 'Grocer']);
+    expect(p.csvWarnings).toContain('pendingSkipped');
+  });
   it("an all-ambiguous file follows the phone's region for its span as well as its lines", () => {
     const csv = 'Date,Description,Amount\n03/04/2026,A,-1.00\n05/04/2026,B,-2.00\n07/04/2026,C,-3.00';
     const gb = csvToRows(csv, 'en', TODAY, 'GB');

@@ -608,6 +608,7 @@ export const es: LocaleDef = {
     restoreReplace: 'Reemplazarlo todo',
     merged: (n: number) => `Se añadieron ${n} ${n === 1 ? 'movimiento' : 'movimientos'}. Lo que ya estaba aquí se conserva.`,
     mergedNothing: 'No hay nada nuevo en ese archivo: todo lo que contiene ya está aquí.',
+    mergedOther: (n: number) => `También se ${n === 1 ? 'añadió 1 elemento que no era un movimiento' : `añadieron ${n} elementos que no eran movimientos`}: metas, recurrentes, recordatorios, deudas o categorías.`,
     mergeTooMany: 'Al añadir este archivo habría más movimientos recurrentes o recordatorios de los que la app puede guardar. Reemplázalo todo, o quita algunos antes.',
     categoryExists: 'Ya hay una categoría con ese nombre.',
     goalExists: 'Ya hay una meta con ese nombre.',
@@ -700,6 +701,7 @@ export const es: LocaleDef = {
     yes: 'sí',
     no: 'no',
     openError: 'Algo salió mal al abrir tus datos.',
+    openErrorOtherTab: 'OnlyBudget está abierto en otra pestaña, o la página se recargó demasiado pronto. Cierra la otra pestaña y vuelve a intentarlo.',
     tryAgain: 'Reintentar',
     screenError: 'Esta pantalla tuvo un problema. Tus movimientos están a salvo.',
     categoryNames: {
