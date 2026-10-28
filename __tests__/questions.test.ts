@@ -1,6 +1,6 @@
 import { DEFAULT_CATEGORIES } from '@/lib/defaultCategories';
 import { parseEntries, type ParseContext } from '@/parser';
-import { answerQuestion, compareRanges, periodRange } from '@/lib/questions';
+import { answerBiggest, answerQuestion, compareRanges, periodRange } from '@/lib/questions';
 import type { Transaction } from '@/types';
 
 const TODAY = '2026-09-16'; // a Wednesday
@@ -111,6 +111,27 @@ describe('periodRange', () => {
     const q = ask('how much did I spend on coffee in August?').question!;
     expect(q).toMatchObject({ period: 'namedMonth', month: 7, target: 'Coffee' });
     expect(periodRange(q.period, TODAY, undefined, q.days, 0, q.month)).toEqual({ from: '2026-08-01', to: '2026-08-31' });
+  });
+});
+
+describe('one day and the biggest entry', () => {
+  const tx = (id: string, amount: number, occurredAt: string, note: string | null, categoryId: string | null = 'dining'): Transaction => ({ id, amount, type: 'expense', categoryId, note, rawInput: note, occurredAt, createdAt: `${occurredAt}T12:00:00.000Z`, isRecurringInstance: false, recurringRuleId: null });
+  const rows = [tx('a', 4.5, '2026-09-09', 'Starbucks latte'), tx('b', 12, '2026-09-09', 'Lunch'), tx('c', 1200, '2026-08-01', 'Rent', 'rent'), tx('d', 60, '2026-08-20', 'Groceries', 'groceries'), tx('e', 60, '2026-08-12', 'Costco', 'groceries')];
+  it('a day is one day, today when none was given, and compares with the day before', () => {
+    expect(periodRange('day', TODAY, undefined, 7, 0, undefined, '2026-09-09')).toEqual({ from: '2026-09-09', to: '2026-09-09' });
+    expect(periodRange('day', TODAY, undefined, 7, 0, undefined, 'nonsense')).toEqual({ from: TODAY, to: TODAY });
+    expect(compareRanges('day', TODAY, undefined, undefined, 0, 7, undefined, '2026-09-11')).toEqual({ now: { from: '2026-09-11', to: '2026-09-11' }, before: { from: '2026-09-10', to: '2026-09-10' } });
+  });
+  it('sums one day, with or without a place', () => {
+    const day = { from: '2026-09-09', to: '2026-09-09' };
+    expect(answerQuestion(ask('how much did I spend last wednesday').question!, rows, day, DEFAULT_CATEGORIES)).toMatchObject({ total: 16.5, count: 2 });
+    expect(answerQuestion(ask('how much did I spend at starbucks last wednesday').question!, rows, day, DEFAULT_CATEGORIES)).toMatchObject({ total: 4.5, count: 1, target: 'Starbucks' });
+  });
+  it('the biggest entry is the largest one, the earliest when two tie, within what was asked about', () => {
+    const month = { from: '2026-08-01', to: '2026-08-31' };
+    expect(answerBiggest(ask('what was my biggest expense last month').question!, rows, month, DEFAULT_CATEGORIES)).toMatchObject({ entry: { id: 'c' }, total: 1320, count: 3 });
+    expect(answerBiggest(ask('what was my biggest grocery expense last month').question!, rows, month, DEFAULT_CATEGORIES)).toMatchObject({ entry: { id: 'e' }, total: 120, count: 2, usedFallback: true });
+    expect(answerBiggest(ask('what was my biggest expense last month').question!, rows, { from: '2026-07-01', to: '2026-07-31' }, DEFAULT_CATEGORIES)).toBeNull();
   });
 });
 

@@ -909,6 +909,7 @@ function parseQuestionText(raw: string, ctx: ParseContext, pack: LanguagePack): 
     detect: (t) => { const m = detectCategory(t, ctx, pack); return m ? { categoryId: m.categoryId, matched: m.matched } : null; },
     restoreCase: (fragment) => restoreCase(fragment, raw) ?? fragment,
     amount: (t) => { const a = extractAmount(t, pack); return { amount: a.multiple ? null : a.amount, text: a.text }; },
+    pastDate: (t) => { const d = applyRules(pack.pastDateRules, t, ctx.today); return { date: d.date, text: d.text, phrase: d.phrase }; },
   });
   if (!q) return null;
   return { ...baseResult(raw, ctx.today), kind: 'question', type: q.type, question: q, confidence: 0.9, needsReview: false };

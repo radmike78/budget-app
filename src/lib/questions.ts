@@ -6,7 +6,7 @@
  */
 import type { Category, MonthStats, Period, RecurringRule, Transaction } from '@/types';
 import type { ParsedQuestion, QuestionPeriod } from '@/parser';
-import { addDays, daysBetween, fromDateString, monthKey, monthRange, shiftMonthKey, toDateString } from '@/lib/dates';
+import { addDays, daysBetween, fromDateString, isValidDateString, monthKey, monthRange, shiftMonthKey, toDateString } from '@/lib/dates';
 import { effectivePlan, type CarryState } from '@/lib/rollover';
 import { safeToSpend } from '@/lib/safeToSpend';
 
@@ -16,14 +16,15 @@ export interface DateRange { from: string; to: string }
  * Calendar range for a period. Weeks start on the locale's first day (`firstDay`, Sunday by default) and run to today.
  * `budget` is the current budget period (`current`, from periodContaining) up to today;
  * without one it is the month. `namedMonth` is the calendar month `month` (0 = January): this year's up to today,
- * or last year's when it has not come yet.
+ * or last year's when it has not come yet. `day` is the one day `date` ("last Wednesday"), today when none was given.
  */
-export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7, firstDay = 0, month?: number): DateRange {
+export function periodRange(period: QuestionPeriod, todayStr: string, current?: Period, days = 7, firstDay = 0, month?: number, date?: string): DateRange {
   const d = fromDateString(todayStr);
   const dow = (d.getDay() - firstDay + 7) % 7; // 0 on the first day of the week
   const sun = d.getDay(); // Sunday = 0, for the weekend
   switch (period) {
     case 'today': return { from: todayStr, to: todayStr };
+    case 'day': { const day = date && isValidDateString(date) ? date : todayStr; return { from: day, to: day }; }
     case 'namedMonth': {
       const m = month != null && month >= 0 && month <= 11 ? Math.floor(month) : d.getMonth();
       let key = `${d.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
@@ -75,28 +76,46 @@ function mentions(tx: Transaction, needle: string): boolean {
  * Matching on a place or thing is a plain case-insensitive substring test over
  * the note and the original words; no regular expression is built from user text.
  */
-export function answerQuestion(q: ParsedQuestion, transactions: Transaction[], range: DateRange, categories: Category[]): Answer {
+/** The entries a question is about: the period, then the category, the group, or the place or thing named. */
+function selectEntries(q: ParsedQuestion, transactions: Transaction[], range: DateRange, categories: Category[]): { list: Transaction[]; categoryId: string | null; categoryIds?: string[]; target: string | null; usedFallback: boolean } {
   const inRange = transactions.filter((tx) => tx.type === q.type && tx.occurredAt >= range.from && tx.occurredAt <= range.to);
-  const sum = (list: Transaction[]) => Math.round(list.reduce((acc, tx) => acc + tx.amount, 0) * 100) / 100;
-
   if (q.categoryIds && q.categoryIds.length > 0) {
     const ids = new Set(q.categoryIds);
-    const list = inRange.filter((tx) => tx.categoryId != null && ids.has(tx.categoryId));
-    return { total: sum(list), count: list.length, categoryId: null, categoryIds: q.categoryIds, target: q.target, usedFallback: false };
+    return { list: inRange.filter((tx) => tx.categoryId != null && ids.has(tx.categoryId)), categoryId: null, categoryIds: q.categoryIds, target: q.target, usedFallback: false };
   }
-  if (q.categoryId) {
-    const list = inRange.filter((tx) => tx.categoryId === q.categoryId);
-    return { total: sum(list), count: list.length, categoryId: q.categoryId, target: null, usedFallback: false };
-  }
+  if (q.categoryId) return { list: inRange.filter((tx) => tx.categoryId === q.categoryId), categoryId: q.categoryId, target: null, usedFallback: false };
   if (q.target) {
     const list = inRange.filter((tx) => mentions(tx, q.target!));
-    if (list.length > 0 || !q.fallbackCategoryId || !categories.some((c) => c.id === q.fallbackCategoryId)) {
-      return { total: sum(list), count: list.length, categoryId: null, target: q.target, usedFallback: false };
-    }
-    const byCat = inRange.filter((tx) => tx.categoryId === q.fallbackCategoryId);
-    return { total: sum(byCat), count: byCat.length, categoryId: q.fallbackCategoryId, target: q.target, usedFallback: true };
+    if (list.length > 0 || !q.fallbackCategoryId || !categories.some((c) => c.id === q.fallbackCategoryId)) return { list, categoryId: null, target: q.target, usedFallback: false };
+    return { list: inRange.filter((tx) => tx.categoryId === q.fallbackCategoryId), categoryId: q.fallbackCategoryId, target: q.target, usedFallback: true };
   }
-  return { total: sum(inRange), count: inRange.length, categoryId: null, target: null, usedFallback: false };
+  return { list: inRange, categoryId: null, target: null, usedFallback: false };
+}
+
+export function answerQuestion(q: ParsedQuestion, transactions: Transaction[], range: DateRange, categories: Category[]): Answer {
+  const { list, ...rest } = selectEntries(q, transactions, range, categories);
+  const total = Math.round(list.reduce((acc, tx) => acc + tx.amount, 0) * 100) / 100;
+  return { total, count: list.length, ...rest };
+}
+
+export interface BiggestAnswer {
+  /** The largest entry; the earliest when two are equal. */
+  entry: Transaction;
+  /** What all the matching entries add up to, so the answer can say what share it was. */
+  total: number;
+  count: number;
+  categoryId: string | null;
+  target: string | null;
+  usedFallback: boolean;
+}
+
+/** "What was my biggest expense last month?": the single largest entry among those the question is about. */
+export function answerBiggest(q: ParsedQuestion, transactions: Transaction[], range: DateRange, categories: Category[]): BiggestAnswer | null {
+  const { list, categoryId, target, usedFallback } = selectEntries({ ...q, type: 'expense' }, transactions, range, categories);
+  if (!list.length) return null;
+  let entry = list[0];
+  for (const tx of list) if (tx.amount > entry.amount || (tx.amount === entry.amount && tx.occurredAt < entry.occurredAt)) entry = tx;
+  return { entry, total: round2(list.reduce((acc, tx) => acc + tx.amount, 0)), count: list.length, categoryId, target, usedFallback };
 }
 
 /**
@@ -180,7 +199,7 @@ export interface CompareRanges {
  * the same day, the week so far against last week to the same weekday, the pay period so far against the same
  * number of days into the one before (`previous`, from shiftPeriod).
  */
-export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0, days = 7, month?: number): CompareRanges {
+export function compareRanges(period: QuestionPeriod, todayStr: string, current?: Period, previous?: Period, firstDay = 0, days = 7, month?: number, date?: string): CompareRanges {
   const d = fromDateString(todayStr);
   const clamp = (from: string, to: string, end: string): DateRange => ({ from, to: to > end ? end : to });
   // A period that is over is compared whole with the one before it: last week with the week before, yesterday with
@@ -192,6 +211,8 @@ export function compareRanges(period: QuestionPeriod, todayStr: string, current?
     if (now.from === monthRange(monthKey(todayStr)).start) return compareRanges('month', todayStr);
     return { now, before: monthRangeOf(shiftMonthKey(now.from.slice(0, 7), -1)) };
   }
+  // One day against the day before it ("did I spend more last Wednesday than the day before").
+  if (period === 'day') { const now = periodRange('day', todayStr, current, days, firstDay, month, date); const y = addDays(now.from, -1); return { now, before: { from: y, to: y } }; }
   if (period === 'lastYear') { const y = d.getFullYear() - 1; return { now: { from: `${y}-01-01`, to: `${y}-12-31` }, before: { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` } }; }
   if (period === 'lastWeek' || period === 'yesterday' || period === 'weekend' || period === 'recentDays' || period === 'today') {
     const now = periodRange(period, todayStr, current, days, firstDay);

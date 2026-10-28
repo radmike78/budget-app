@@ -10,8 +10,9 @@ import type { Category } from '@/types';
  * `budget` is the current budget period: payday to payday in pay mode, else the month.
  * `weekend` is the most recent Saturday and Sunday; `recentDays` is the last `days` days up to today.
  * `namedMonth` is a calendar month said by name ("in August"), carried as `month`; last year's when it is still to come.
+ * `day` is one day said the way an entry's date is said ("last Wednesday", "on the 3rd", "two days ago"), carried as `date`.
  */
-export type QuestionPeriod = 'today' | 'yesterday' | 'week' | 'lastWeek' | 'month' | 'lastMonth' | 'year' | 'lastYear' | 'all' | 'budget' | 'weekend' | 'recentDays' | 'namedMonth';
+export type QuestionPeriod = 'today' | 'yesterday' | 'week' | 'lastWeek' | 'month' | 'lastMonth' | 'year' | 'lastYear' | 'all' | 'budget' | 'weekend' | 'recentDays' | 'namedMonth' | 'day';
 
 export interface QuestionPack {
   /** Phrases that make the sentence a question about money out. Removed from the text. */
@@ -44,6 +45,10 @@ export interface QuestionPack {
   compareBefore?: RegExp;
   /** "what did I spend the most on?", "where did most of my money go?" */
   topLead?: RegExp;
+  /** "what was my biggest expense?", "the most I paid at once": the single largest entry, tried before `topLead`. */
+  biggestLead?: RegExp;
+  /** Words removed from the target of a `biggest` question ("expense", "bought"), so "my biggest grocery expense" asks about groceries. Global. */
+  biggestWords?: RegExp;
   /** "can I afford a $200 jacket?": the one question that carries an amount. */
   affordLead?: RegExp;
   /** Words removed from the target of a compare, top or afford question ("more", "than", "most", "on it"). Global. */
@@ -58,9 +63,9 @@ export interface ParsedQuestion {
   /**
    * `spent` sums entries; `left` asks what remains of this period's plan or income; `compare` sets spending so
    * far against the same point in the period before; `top` names where most went; `afford` weighs `price`
-   * against what is left.
+   * against what is left; `biggest` names the single largest entry.
    */
-  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford';
+  ask: 'spent' | 'left' | 'compare' | 'top' | 'afford' | 'biggest';
   period: QuestionPeriod;
   /** True when no period was said; the answer then uses the current budget period. */
   periodDefaulted: boolean;
@@ -68,6 +73,8 @@ export interface ParsedQuestion {
   days?: number;
   /** For `namedMonth`: the month asked about, 0 = January. */
   month?: number;
+  /** For `day`: the day asked about, YYYY-MM-DD. */
+  date?: string;
   /** For `afford`: the amount being weighed. */
   price?: number;
   /** What the user asked about, in their own casing ("Starbucks", "dining out"); null for a plain total. */
@@ -90,6 +97,8 @@ export interface QuestionContext {
   restoreCase: (fragment: string) => string;
   /** Finds the amount in a sentence (for "can I afford 200 for shoes"), supplied by the parser. */
   amount?: (text: string) => { amount: number | null; text: string };
+  /** Reads a day said the way an entry's date is said ("last Wednesday"), supplied by the parser from the pack's date rules. */
+  pastDate?: (text: string) => { date: string | null; text: string; phrase: string | null };
 }
 
 /** What a comparison measures, for each period word that can come with it. */
@@ -97,7 +106,7 @@ const COMPARE_PERIOD: Partial<Record<QuestionPeriod, QuestionPeriod>> = {
   week: 'week', lastWeek: 'week', month: 'month', lastMonth: 'month', year: 'year', lastYear: 'year', budget: 'budget',
 };
 /** Periods that are over, compared whole against the one before them ("last week than the week before"). */
-const WHOLE_PERIODS = new Set<QuestionPeriod>(['lastWeek', 'lastMonth', 'lastYear', 'yesterday', 'weekend', 'recentDays', 'today', 'namedMonth']);
+const WHOLE_PERIODS = new Set<QuestionPeriod>(['lastWeek', 'lastMonth', 'lastYear', 'yesterday', 'weekend', 'recentDays', 'today', 'namedMonth', 'day']);
 
 /** Word boundary that also works for scripts without spaces. */
 const trimPunct = (s: string) => s.replace(/^[\s,.;:!?¿¡'"()]+|[\s,.;:!?¿¡'"()]+$/gu, '').trim();
@@ -152,8 +161,10 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   // spending words. With an amount in the sentence it is an entry, never a question ("left 5 for the tip").
   const compare = affordLead || hasDigit ? null : pack.compareLead?.exec(text) ?? null;
   const remaining = affordLead || compare || hasDigit ? null : pack.remainingLead.exec(text) ?? affordAsLeft;
-  const top = affordLead || remaining || compare || hasDigit ? null : pack.topLead?.exec(text) ?? null;
-  const special = affordLead ?? remaining ?? compare ?? top;
+  // The single biggest entry before the biggest category: "my biggest expense" is one thing, "my biggest expenses" are where the money went.
+  const biggest = affordLead || remaining || compare || hasDigit ? null : pack.biggestLead?.exec(text) ?? null;
+  const top = affordLead || remaining || compare || biggest || hasDigit ? null : pack.topLead?.exec(text) ?? null;
+  const special = affordLead ?? remaining ?? compare ?? biggest ?? top;
   let expense = special ? null : pack.lead.exec(text);
   const income = special ? null : pack.incomeLead.exec(text);
   if (!special && !expense && !income && pack.weakLead && !hasDigit) expense = pack.weakLead.exec(text);
@@ -162,12 +173,13 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   const useIncome = !special && !!income && (!expense || income.index < expense.index);
   const lead = special ?? (useIncome ? income! : expense!);
   const type: ParsedQuestion['type'] = useIncome ? 'income' : 'expense';
-  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : remaining ? 'left' : compare ? 'compare' : top ? 'top' : 'spent';
+  const ask: ParsedQuestion['ask'] = affordLead ? 'afford' : remaining ? 'left' : compare ? 'compare' : biggest ? 'biggest' : top ? 'top' : 'spent';
   let rest = text.slice(0, lead.index) + ' ' + text.slice(lead.index + lead[0].length);
 
   let period: QuestionPeriod = 'month';
   let periodDefaulted = true;
   let month: number | null = null;
+  let date: string | null = null;
   // "in August" names a calendar month; read before the target is cut, so the name never becomes the target.
   let named = days == null ? pack.months?.re.exec(rest) ?? null : null;
   let namedIdx = named ? pack.months!.names[(named.slice(1).find((g) => g != null) ?? '').toLowerCase()] : undefined;
@@ -182,9 +194,18 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
   else if (named && namedIdx != null) {
     period = 'namedMonth'; month = namedIdx; periodDefaulted = false;
     rest = rest.slice(0, named.index) + ' ' + rest.slice(named.index + named[0].length);
-  } else for (const p of pack.periods) {
-    const m = p.re.exec(rest);
-    if (m) { period = p.period; periodDefaulted = false; rest = rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length); break; }
+  } else {
+    // "last Wednesday", "on the 3rd", "two days ago": one day, read by the same rules that date an entry. A period word
+    // wins unless the day phrase says more ("先週の水曜日" is last week's Wednesday, not last week); "yesterday" stays a period.
+    const found = ctx.pastDate?.(rest);
+    for (const p of pack.periods) {
+      const m = p.re.exec(rest);
+      if (!m) continue;
+      if (found?.date && found.phrase && found.phrase.length > m[0].length && found.phrase.includes(m[0])) break;
+      period = p.period; periodDefaulted = false; rest = rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length);
+      break;
+    }
+    if (periodDefaulted && found?.date) { period = 'day'; date = found.date; periodDefaulted = false; rest = found.text; }
   }
   // What is left, and whether something fits in it, are always about the current budget period.
   if (remaining || affordLead) { period = 'budget'; rest = rest.replace(pack.remainingWords, ' '); }
@@ -198,9 +219,10 @@ export function parseQuestion(input: string, pack: QuestionPack, ctx: QuestionCo
     // "this week than last week" names both sides: neither is the thing asked about.
     for (const p of pack.periods) rest = rest.replace(new RegExp(p.re.source, `${p.re.flags.replace('g', '')}g`), ' ');
   }
-  if (affordLead || compare || top) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
+  if (affordLead || compare || top || biggest) rest = pack.askWords ? rest.replace(pack.askWords, ' ') : rest;
+  if (biggest && pack.biggestWords) rest = rest.replace(pack.biggestWords, ' ');
   rest = stripAll(rest, pack.strip);
-  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && (ask === 'spent' || ask === 'top' || ask === 'compare') ? { days } : null), ...(month != null ? { month } : null), ...(price != null ? { price } : null) };
+  const base = { type, ask, period, periodDefaulted, categoryIds: null, ...(days != null && (ask === 'spent' || ask === 'top' || ask === 'compare' || ask === 'biggest') ? { days } : null), ...(month != null ? { month } : null), ...(date != null ? { date } : null), ...(price != null ? { price } : null) };
   if (!rest) return { ...base, target: null, categoryId: null, fallbackCategoryId: null };
 
   const key = rest.replace(/\s+/g, ' ').toLowerCase();

@@ -1,20 +1,41 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Transaction, TxType } from '@/types';
 import { getDb } from '@/db/database';
 import { queryTransactionTotals, queryTransactions, type TransactionSort } from '@/db/repositories';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, useTheme } from '@/theme';
-import { addDays, monthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
+import { addDays, friendlyDate, isValidDateString, monthKey, monthRange, shiftMonthKey, today } from '@/lib/dates';
 import { hasPayRules, periodContaining, shiftPeriod } from '@/lib/periods';
-import { categoryName, useMoney, useT } from '@/i18n';
+import { categoryName, useDateFormat, useMoney, useT } from '@/i18n';
 import { CategoryPicker } from '@/components/pickers';
 import { TransactionRow } from '@/components/TransactionRow';
 import { Button, CONTENT_MAX_WIDTH, Chip, ChipRow, EmptyState, Field, Text } from '@/components/ui';
 
-type Range = 'month' | 'last_month' | '90d' | 'all';
+type Range = 'month' | 'last_month' | '90d' | 'all' | 'custom';
+
+/**
+ * "See in History" under an answer opens this tab with the entries behind it: a span of days, a type, a sort, and
+ * the words or category asked about. Everything comes from the address and is checked like typed text.
+ */
+function linkFromParams(p: Record<string, string | string[] | undefined>, categoryIds: Set<string>) {
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
+  const from = one(p.from);
+  const to = one(p.to);
+  const span = isValidDateString(from) && isValidDateString(to) && from <= to ? { start: from, end: to } : null;
+  const type = one(p.type);
+  const sort = one(p.sort);
+  const cat = one(p.cat);
+  return {
+    span,
+    type: (type === 'expense' || type === 'income' ? type : null) as TxType | null,
+    sort: (sort === 'amount' || sort === 'type' || sort === 'date' ? sort : null) as TransactionSort | null,
+    search: one(p.q).slice(0, 200),
+    categoryId: cat && categoryIds.has(cat) ? cat : null,
+  };
+}
 
 /** Entries loaded at a time. "Show more" adds another page; the totals above always count them all. */
 const PAGE = 100;
@@ -27,12 +48,25 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const categories = useAppStore((s) => s.categories);
   const recent = useAppStore((s) => s.recent); // changes whenever data changes; used to re-query
-  const [search, setSearch] = useState('');
-  const [type, setType] = useState<TxType | null>(null);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [range, setRange] = useState<Range>('month');
-  const [sort, setSort] = useState<TransactionSort>('date');
+  const fmt = useDateFormat();
+  const params = useLocalSearchParams<{ from?: string; to?: string; type?: string; sort?: string; q?: string; cat?: string }>();
+  const link = useMemo(() => linkFromParams(params, new Set(categories.map((c) => c.id))), [params, categories]);
+  const [search, setSearch] = useState(link.search);
+  const [type, setType] = useState<TxType | null>(link.type);
+  const [categoryId, setCategoryId] = useState<string | null>(link.categoryId);
+  const [range, setRange] = useState<Range>(link.span ? 'custom' : 'month');
+  const [customSpan, setCustomSpan] = useState(link.span);
+  const [sort, setSort] = useState<TransactionSort>(link.sort ?? 'date');
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+  // A later "See in History" while the tab is already open replaces the filters with the new ones.
+  const linkKey = `${link.span?.start}|${link.span?.end}|${link.type}|${link.sort}|${link.search}|${link.categoryId}`;
+  const firstLink = useRef(linkKey);
+  useEffect(() => {
+    if (firstLink.current === linkKey) return;
+    firstLink.current = linkKey;
+    if (!link.span) return;
+    setSearch(link.search); setType(link.type); setCategoryId(link.categoryId); setRange('custom'); setCustomSpan(link.span); setSort(link.sort ?? 'date'); setDirection('desc');
+  }, [linkKey, link]);
   const [showCat, setShowCat] = useState(false);
   const [rows, setRows] = useState<Transaction[]>([]);
   // Counted in SQL over every match, so the one line under the filters is true
@@ -64,6 +98,7 @@ export default function HistoryScreen() {
   useFocusEffect(useCallback(() => { setDay(today()); }, []));
   const bounds = useMemo(() => {
     const now = day;
+    if (range === 'custom' && customSpan) return customSpan;
     if (payMode) {
       const current = periodContaining('pay', rules, now);
       if (range === 'month') return current;
@@ -73,7 +108,7 @@ export default function HistoryScreen() {
     if (range === 'last_month') return monthRange(shiftMonthKey(monthKey(now), -1));
     if (range === '90d') return { start: addDays(now, -89), end: now };
     return { start: null, end: null };
-  }, [range, day, payMode, rules]);
+  }, [range, day, payMode, rules, customSpan]);
 
   const load = useCallback(async () => {
     const id = ++requestId.current;
@@ -117,6 +152,7 @@ export default function HistoryScreen() {
     <View style={{ paddingTop: spacing.sm }}>
       <Field placeholder={t.searchPlaceholder} value={search} onChangeText={setSearch} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" style={{ marginBottom: spacing.sm }} />
       <ChipRow style={{ marginBottom: spacing.sm }}>
+        {customSpan ? <Chip label={customSpan.start === customSpan.end ? friendlyDate(customSpan.start, day, fmt) : `${friendlyDate(customSpan.start, day, fmt)} – ${friendlyDate(customSpan.end, day, fmt)}`} selected={range === 'custom'} onPress={() => setRange('custom')} /> : null}
         {ranges.map((r) => <Chip key={r.value} label={r.label} selected={range === r.value} onPress={() => setRange(r.value)} />)}
       </ChipRow>
       <ChipRow style={{ marginBottom: spacing.md }}>
